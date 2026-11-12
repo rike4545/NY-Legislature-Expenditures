@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NYS Assembly Expenditures · Oct 2025 – Mar 2026</title>
+  <meta name="description" content="Search and explore every line of the New York State Assembly Expenditure Report for October 1, 2025 – March 31, 2026: member offices, staff payroll, vendors, travel and allocated costs.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 16 16%27%3E%3Crect width=%2716%27 height=%2716%27 rx=%273%27 fill=%27%231f5fa8%27/%3E%3Cpath d=%27M4 12V7m4 5V4m4 8V9%27 stroke=%27white%27 stroke-width=%272%27/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap header-row">
+      <a class="brand" href="#/">
+        <span class="brand-title">NYS Assembly Expenditures</span>
+        <span class="brand-sub" id="periodLabel">Oct 1, 2025 – Mar 31, 2026</span>
+      </a>
+      <form class="global-search" id="globalSearch" role="search">
+        <input type="search" id="globalSearchInput" placeholder="Search members, staff, vendors, descriptions…" aria-label="Search all records" autocomplete="off">
+      </form>
+    </div>
+    <nav class="wrap tabs" aria-label="Sections">
+      <a href="#/" data-tab="overview">Overview</a>
+      <a href="#/units" data-tab="units">Members &amp; Offices</a>
+      <a href="#/records" data-tab="records">All Records</a>
+      <a href="#/payees" data-tab="payees">Payees</a>
+      <a href="#/about" data-tab="about">About the Data</a>
+    </nav>
+  </header>
+
+  <main class="wrap" id="app" tabindex="-1">
+    <p class="loading">Loading expenditure data…</p>
+  </main>
+
+  <footer class="wrap site-footer">
+    Source: <a href="https://assembly.ny.gov/expenditure/" target="_blank" rel="noopener">New York State Assembly Expenditure Reports</a>
+    · File <code id="sourceFile">cad00251-20260331.csv</code>
+    · Independent presentation of public records; not affiliated with the Assembly.
+  </footer>
+
+  <script src="assets/app.js"></script>
+</body>
+</html>
