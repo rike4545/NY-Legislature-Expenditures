@@ -15,11 +15,15 @@ out = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else root / "dist" / "assemb
 html = (root / "index.html").read_text(encoding="utf-8")
 css = (root / "assets" / "styles.css").read_text(encoding="utf-8")
 js = (root / "assets" / "app.js").read_text(encoding="utf-8")
-data = (root / "data" / "expenditures.json").read_text(encoding="utf-8").replace("</", "<\\/")
+import json
+manifest = json.loads((root / "data" / "periods.json").read_text(encoding="utf-8"))
+bundle = {"manifest": manifest,
+          "data": {m["id"]: json.loads((root / m["file"]).read_text(encoding="utf-8")) for m in manifest}}
+data = json.dumps(bundle, separators=(",", ":"), ensure_ascii=False).replace("</", "<\\/")
 
 html = html.replace('<link rel="stylesheet" href="assets/styles.css">', f"<style>\n{css}\n</style>")
 html = html.replace('<script src="assets/app.js"></script>',
-                    f"<script>window.__EXPENDITURE_DATA__ = {data};</script>\n<script>\n{js}\n</script>")
+                    f"<script>window.__EXPENDITURE_PERIODS__ = {data};</script>\n<script>\n{js}\n</script>")
 out.parent.mkdir(parents=True, exist_ok=True)
 out.write_text(html, encoding="utf-8")
 print(f"Wrote {out} ({out.stat().st_size / 1e6:.1f} MB)")

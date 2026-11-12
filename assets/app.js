@@ -6,7 +6,10 @@
   const PAGE_SIZE = 50;
   const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-  let DB = null; // populated after load
+  let DB = null;      // currently selected period
+  let PREV = null;    // the period before it, for comparisons (or null)
+  let PERIODS = [];   // manifest, newest first
+  const DBS = {};     // period id -> indexed data
 
   /* ---------- formatting helpers ---------- */
   const usd0 = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
@@ -61,7 +64,10 @@
   }
   function buildHash(view, params) {
     const clean = {};
+    const explicitP = !!params && Object.prototype.hasOwnProperty.call(params, "p");
     for (const [k, v] of Object.entries(params || {})) if (v !== "" && v != null) clean[k] = v;
+    if (!explicitP && DB && PERIODS.length && DB.id !== PERIODS[0].id) clean.p = DB.id;
+    if (clean.p && PERIODS.length && clean.p === PERIODS[0].id) delete clean.p;
     const qs = new URLSearchParams(clean).toString();
     return `#/${view}${qs ? "?" + qs : ""}`;
   }
@@ -74,7 +80,21 @@
 
   /* ---------- data load & indexing ---------- */
   async function load() {
-    const raw = window.__EXPENDITURE_DATA__ || (await (await fetch("data/expenditures.json")).json());
+    const bundled = window.__EXPENDITURE_PERIODS__;
+    PERIODS = bundled ? bundled.manifest : await (await fetch("data/periods.json")).json();
+    await Promise.all(PERIODS.map(async (pm) => {
+      const raw = bundled ? bundled.data[pm.id] : await (await fetch(pm.file)).json();
+      DBS[pm.id] = indexPeriod(pm.id, raw);
+    }));
+  }
+
+  function selectPeriod(id) {
+    const i = Math.max(0, PERIODS.findIndex((pm) => pm.id === id));
+    DB = DBS[PERIODS[i].id];
+    PREV = PERIODS[i + 1] ? DBS[PERIODS[i + 1].id] : null;
+  }
+
+  function indexPeriod(id, raw) {
     const { meta, units, types, payees, descs, rows } = raw;
 
     const records = rows.map((r, i) => {
@@ -112,8 +132,24 @@
     const statuses = [...new Set(records.map((r) => r.st).filter(Boolean))].sort();
     const typeIndex = Object.fromEntries(types.map((t, i) => [t.code, i]));
 
-    DB = { meta, units, types, payees, descs, records, unitStats, members, memberMedian, months, statuses, typeIndex };
+    const byName = new Map(unitStats.map((s) => [s.name, s]));
+    return { id, meta, units, types, payees, descs, records, unitStats, members, memberMedian, months, statuses, typeIndex, byName };
   }
+
+  /* ---------- period comparison helpers ---------- */
+  function periodName(db) { return `${fmtShort(db.meta.period.start)} – ${fmtShort(db.meta.period.end)}`; }
+  function fmtShort(iso) { const [y, m] = iso.split("-").map(Number); return `${MONTH_NAMES[m - 1]} ${y}`; }
+  function change(cur, prev) {
+    if (prev == null) return null;
+    return { diff: cur - prev, pct: prev ? (cur - prev) / Math.abs(prev) * 100 : null };
+  }
+  function changeText(c, short) {
+    if (!c) return short ? "—" : "";
+    const sign = c.diff > 0 ? "+" : c.diff < 0 ? "−" : "";
+    const pct = c.pct == null ? "" : ` (${sign}${Math.abs(c.pct).toFixed(1)}%)`;
+    return short ? `${sign}${Math.abs(c.pct || 0).toFixed(1)}%` : `${sign}${compact(Math.abs(c.diff))}${pct} vs ${PREV ? periodName(PREV) : "prior"}`;
+  }
+  function prevUnit(s) { return PREV ? PREV.byName.get(s.name) || null : null; }
 
   /* ---------- shared UI pieces ---------- */
   function kpi(label, value, note) {
@@ -129,9 +165,10 @@
         <span class="amt">${opts.compact ? compact(x.value) : money0(x.value)}</span>
       </li>`).join("")}</ul>`;
   }
+  function unitHref(id) { return buildHash("unit/" + id, {}); }
   function unitLink(id) {
     const u = DB.units[id];
-    return `<a href="#/unit/${id}">${esc(u.name)}</a>`;
+    return `<a href="${unitHref(id)}">${esc(u.name)}</a>`;
   }
   function kindChip(kind) {
     return kind === "member" ? `<span class="chip">Member</span>` : `<span class="chip muted">Office</span>`;
@@ -172,11 +209,18 @@
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   }
 
+  function totalsByType(db) {
+    const out = Object.fromEntries(db.types.map((t) => [t.code, 0]));
+    for (const r of db.records) out[db.types[r.t].code] += r.amt;
+    return out;
+  }
+
   /* ---------- views ---------- */
   function viewOverview() {
     const { meta, records, unitStats, types, payees, descs } = DB;
-    const totalBy = Object.fromEntries(types.map((t) => [t.code, 0]));
-    for (const r of records) totalBy[types[r.t].code] += r.amt;
+    const totalBy = totalsByType(DB);
+    const prevBy = PREV ? totalsByType(PREV) : null;
+    const vs = (code) => prevBy ? changeText(change(totalBy[code], prevBy[code])) : "";
     const staffAll = new Set(records.filter((r) => types[r.t].code === "PERSSERV").map((r) => r.p));
 
     const byMonth = sumBy(records.filter((r) => r.month && !r.allocated), (r) => r.month).sort((a, b) => a.key.localeCompare(b.key));
@@ -199,10 +243,10 @@
       <p class="lede">Every line of the New York State Assembly Expenditure Report for ${fmtDate(meta.period.start)} – ${fmtDate(meta.period.end)}:
         ${int.format(meta.rowCount)} records across ${meta.members} member offices and ${meta.offices} central offices and committees.</p>
       <div class="grid kpis">
-        ${kpi("Actual spending", compact(meta.totalActual), "Payroll + M&amp;O + travel")}
-        ${kpi("Payroll", compact(totalBy["PERSSERV"]), `${int.format(staffAll.size)} people paid`)}
-        ${kpi("Maintenance &amp; operations", compact(totalBy["M & O"]), "Rent, utilities, services")}
-        ${kpi("Travel", compact(totalBy["TRAVEL"]), "Reimbursed to members &amp; staff")}
+        ${kpi("Actual spending", compact(meta.totalActual), PREV ? changeText(change(meta.totalActual, PREV.meta.totalActual)) : "Payroll + M&amp;O + travel")}
+        ${kpi("Payroll", compact(totalBy["PERSSERV"]), `${int.format(staffAll.size)} people paid${PREV ? "<br>" + vs("PERSSERV") : ""}`)}
+        ${kpi("Maintenance &amp; operations", compact(totalBy["M & O"]), PREV ? vs("M & O") : "Rent, utilities, services")}
+        ${kpi("Travel", compact(totalBy["TRAVEL"]), PREV ? vs("TRAVEL") : "Reimbursed to members &amp; staff")}
         ${kpi("Allocated costs", compact(meta.totalAllocated), "Informational only — see About")}
       </div>
       <div class="grid two">
@@ -216,12 +260,24 @@
             </a>`).join("")}</div>
           <p class="summary">Payroll has no voucher date, so it isn't shown by month.</p>
         </section>
-        <section class="card"><div class="card-head"><h2>Highest-spending member offices</h2><a href="#/units?kind=member">All ${DB.members.length} →</a></div>${bars(topMembers)}
-          <p class="summary">Median member office: <strong>${money0(DB.memberMedian)}</strong></p></section>
-        <section class="card"><div class="card-head"><h2>Largest central offices &amp; committees</h2><a href="#/units?kind=office">All offices →</a></div>${bars(topOffices)}</section>
-        <section class="card"><div class="card-head"><h2>Top vendors (M&amp;O)</h2><a href="#/payees?group=vendor">All payees →</a></div>${bars(topVendors)}</section>
+        <section class="card"><div class="card-head"><h2>Highest-spending member offices</h2><a href="${buildHash("units", { kind: "member" })}">All ${DB.members.length} →</a></div>${bars(topMembers)}
+          <p class="summary">Median member office: <strong>${money0(DB.memberMedian)}</strong>${PREV ? ` · ${periodName(PREV)}: ${money0(PREV.memberMedian)}` : ""}</p></section>
+        <section class="card"><div class="card-head"><h2>Largest central offices &amp; committees</h2><a href="${buildHash("units", { kind: "office" })}">All offices →</a></div>${bars(topOffices)}</section>
+        <section class="card"><div class="card-head"><h2>Top vendors (M&amp;O)</h2><a href="${buildHash("payees", { group: "vendor" })}">All payees →</a></div>${bars(topVendors)}</section>
         <section class="card"><div class="card-head"><h2>What M&amp;O money bought</h2></div>${bars(topDescs)}</section>
+        ${PREV ? moversCard() : ""}
       </div>`;
+  }
+
+  function moversCard() {
+    const rows = DB.members.map((s) => ({ s, p: prevUnit(s) })).filter((x) => x.p)
+      .map((x) => ({ ...x, d: x.s.actual - x.p.actual }));
+    const up = rows.slice().sort((a, b) => b.d - a.d).slice(0, 5);
+    const down = rows.slice().sort((a, b) => a.d - b.d).slice(0, 5);
+    const li = (x) => `<li><span class="name"><a href="${unitHref(x.s.id)}">${esc(x.s.name)}</a></span><span class="amt">${x.d >= 0 ? "+" : "−"}${money0(Math.abs(x.d))}</span></li>`;
+    return `<section class="card"><div class="card-head"><h2>Biggest changes vs ${esc(periodName(PREV))}</h2><span class="summary">member offices</span></div>
+      <div class="grid two movers"><div><h3>Increased most</h3><ul class="bars plain">${up.map(li).join("")}</ul></div>
+      <div><h3>Decreased most</h3><ul class="bars plain">${down.map(li).join("")}</ul></div></div></section>`;
   }
 
   function viewUnits(params) {
@@ -231,6 +287,7 @@
     const val = {
       name: (s) => s.name, actual: (s) => s.actual, ps: (s) => s.byType["PERSSERV"] || 0, mo: (s) => s.byType["M & O"] || 0,
       travel: (s) => s.byType["TRAVEL"] || 0, allocated: (s) => s.allocated, staff: (s) => s.staffCount,
+      change: (s) => { const p = prevUnit(s); return p ? s.actual - p.actual : -Infinity; },
     }[state.sort] || ((s) => s.actual);
     list.sort((a, b) => {
       const x = val(a), y = val(b);
@@ -263,10 +320,11 @@
           ${sortHeader("Actual total", "actual", state, "num")}
           ${sortHeader("Allocated", "allocated", state, "num")}
           ${sortHeader("People paid", "staff", state, "num")}
+          ${PREV ? sortHeader("vs prior", "change", state, "num") : ""}
         </tr></thead>
         <tbody>${list.length ? list.map((s, i) => `<tr>
           <td class="num">${i + 1}</td>
-          <td><a href="#/unit/${s.id}">${highlight(s.name, tokens)}</a></td>
+          <td><a href="${unitHref(s.id)}">${highlight(s.name, tokens)}</a></td>
           <td>${kindChip(s.kind)}</td>
           <td class="num">${money0(s.byType["PERSSERV"] || 0)}</td>
           <td class="num">${money0(s.byType["M & O"] || 0)}</td>
@@ -274,7 +332,8 @@
           <td class="num"><strong>${money0(s.actual)}</strong></td>
           <td class="num">${money0(s.allocated)}</td>
           <td class="num">${s.staffCount}</td>
-        </tr>`).join("") : `<tr><td colspan="9" class="empty">No members or offices match.</td></tr>`}</tbody>
+          ${PREV ? (() => { const c = change(s.actual, prevUnit(s) && prevUnit(s).actual); return `<td class="num${c && c.diff < 0 ? " neg" : ""}" title="${c ? esc(changeText(c)) : "Not in prior period"}">${changeText(c, true)}</td>`; })() : ""}
+        </tr>`).join("") : `<tr><td colspan="10" class="empty">No members or offices match.</td></tr>`}</tbody>
       </table></div>`;
     app.innerHTML = html;
 
@@ -285,14 +344,14 @@
     app.querySelector("#ukind").addEventListener("change", (e) => update({ kind: e.target.value }));
     wireSortHeaders(app, state, update, { name: "asc" });
     app.querySelector("#uexport").addEventListener("click", () => downloadCSV("assembly-units.csv",
-      ["Name", "Type", "Payroll", "M&O", "Travel", "Actual total", "Allocated", "People paid"],
-      list.map((s) => [s.name, s.kind, (s.byType["PERSSERV"] || 0).toFixed(2), (s.byType["M & O"] || 0).toFixed(2), (s.byType["TRAVEL"] || 0).toFixed(2), s.actual.toFixed(2), s.allocated.toFixed(2), s.staffCount])));
+      ["Period", "Name", "Type", "Payroll", "M&O", "Travel", "Actual total", "Allocated", "People paid"],
+      list.map((s) => [periodName(DB), s.name, s.kind, (s.byType["PERSSERV"] || 0).toFixed(2), (s.byType["M & O"] || 0).toFixed(2), (s.byType["TRAVEL"] || 0).toFixed(2), s.actual.toFixed(2), s.allocated.toFixed(2), s.staffCount])));
     return null;
   }
 
   function viewUnit(id) {
     const s = DB.unitStats[Number(id)];
-    if (!s) return `<p class="empty">That member or office wasn't found. <a href="#/units">Back to the list</a>.</p>`;
+    if (!s) return `<p class="empty">That member or office wasn't found. <a href="${buildHash("units", {})}">Back to the list</a>.</p>`;
     const { types, payees, descs, meta } = DB;
     const recs = DB.records.filter((r) => r.u === s.id);
     const code = (r) => types[r.t].code;
@@ -303,22 +362,24 @@
     const moDescs = sumBy(mo, (r) => r.d).sort((a, b) => b.total - a.total).slice(0, 10);
     const allocated = types.filter((t) => t.allocated).map((t) => ({ label: t.label, value: s.byType[t.code] || 0, alt: true }));
 
+    const ps = prevUnit(s);
+    const vsPrev = (cur, prevVal) => ps ? `<br>${changeText(change(cur, prevVal))}` : "";
     let rankNote = "";
     if (s.kind === "member") {
       const diff = s.actual - DB.memberMedian;
-      rankNote = `Ranks <strong>#${s.rank}</strong> of ${DB.members.length} member offices · ${diff >= 0 ? "" : "−"}${money0(Math.abs(diff))} ${diff >= 0 ? "above" : "below"} the median (${money0(DB.memberMedian)}).`;
+      rankNote = `Ranks <strong>#${s.rank}</strong> of ${DB.members.length} member offices for ${esc(periodName(DB))} · ${diff >= 0 ? "" : "−"}${money0(Math.abs(diff))} ${diff >= 0 ? "above" : "below"} the median (${money0(DB.memberMedian)}).${ps && ps.rank ? ` Ranked #${ps.rank} in ${esc(periodName(PREV))}.` : ""}`;
     }
 
     const statusName = (c) => meta.statusLabels[c] || c;
     return `
-      <div class="crumbs"><a href="#/units${s.kind ? "?kind=" + s.kind : ""}">← ${s.kind === "member" ? "Members" : "Offices"}</a></div>
+      <div class="crumbs"><a href="${buildHash("units", { kind: s.kind })}">← ${s.kind === "member" ? "Members" : "Offices"}</a></div>
       <h1>${esc(s.name)} ${kindChip(s.kind)}</h1>
       <p class="lede">${rankNote || "Central office, committee, or task force."}</p>
       <div class="grid kpis">
-        ${kpi("Actual spending", money0(s.actual))}
-        ${kpi("Payroll", money0(s.byType["PERSSERV"] || 0), `${s.staffCount} ${s.staffCount === 1 ? "person" : "people"} paid`)}
-        ${kpi("Maintenance &amp; operations", money0(s.byType["M & O"] || 0), `${vendors.length} payees`)}
-        ${kpi("Travel", money0(s.byType["TRAVEL"] || 0), `${travel.length} reimbursements`)}
+        ${kpi("Actual spending", money0(s.actual), ps ? changeText(change(s.actual, ps.actual)) : (PREV ? "Not in prior period" : ""))}
+        ${kpi("Payroll", money0(s.byType["PERSSERV"] || 0), `${s.staffCount} ${s.staffCount === 1 ? "person" : "people"} paid${vsPrev(s.byType["PERSSERV"] || 0, ps && (ps.byType["PERSSERV"] || 0))}`)}
+        ${kpi("Maintenance &amp; operations", money0(s.byType["M & O"] || 0), `${vendors.length} payees${vsPrev(s.byType["M & O"] || 0, ps && (ps.byType["M & O"] || 0))}`)}
+        ${kpi("Travel", money0(s.byType["TRAVEL"] || 0), `${travel.length} reimbursements${vsPrev(s.byType["TRAVEL"] || 0, ps && (ps.byType["TRAVEL"] || 0))}`)}
         ${kpi("Allocated", money0(s.allocated), "Informational only")}
       </div>
 
@@ -352,7 +413,14 @@
 
       <section class="card"><div class="card-head"><h2>Allocated operational costs</h2><span class="summary">shares of centrally paid costs</span></div>${bars(allocated)}</section>
 
+      ${otherPeriodLinks(s)}
       <p><a class="btn" href="${buildHash("records", { unit: s.id })}">See all ${int.format(recs.length)} records for this ${s.kind === "member" ? "member" : "office"} →</a></p>`;
+  }
+
+  function otherPeriodLinks(s) {
+    const others = PERIODS.filter((pm) => pm.id !== DB.id).map((pm) => ({ pm, u: DBS[pm.id].byName.get(s.name) })).filter((x) => x.u);
+    if (!others.length) return "";
+    return `<p class="summary">Also in: ${others.map((x) => `<a href="${buildHash("unit/" + x.u.id, { p: x.pm.id === PERIODS[0].id ? "" : x.pm.id })}">${esc(periodName(DBS[x.pm.id]))}</a>`).join(" · ")}</p>`;
   }
 
   function filterRecords(state) {
@@ -434,7 +502,7 @@
         </tr></thead>
         <tbody>${slice.length ? slice.map((r) => `<tr>
           <td class="nowrap">${r.date ? fmtDate(r.date) : "—"}</td>
-          <td><a href="#/unit/${r.u}">${highlight(units[r.u].name, tokens)}</a></td>
+          <td><a href="${unitHref(r.u)}">${highlight(units[r.u].name, tokens)}</a></td>
           <td class="nowrap">${esc(types[r.t].code)}</td>
           <td>${highlight(payees[r.p], tokens)}</td>
           <td>${highlight(descs[r.d], tokens)}</td>
@@ -462,8 +530,8 @@
     app.querySelector("#rprev").addEventListener("click", () => { update({ page: page - 1 }); window.scrollTo(0, 0); });
     app.querySelector("#rnext").addEventListener("click", () => { update({ page: page + 1 }); window.scrollTo(0, 0); });
     app.querySelector("#rexport").addEventListener("click", () => downloadCSV("assembly-expenditures-filtered.csv",
-      ["Voucher date", "Member/office", "Unit kind", "Expense type", "Payee", "Service dates", "Description", "Pay status", "Voucher", "Amount", "Allocated (informational)"],
-      list.map((r) => [r.date, units[r.u].name, units[r.u].kind, types[r.t].code, payees[r.p], r.svc, descs[r.d], r.st, r.voucher, r.amt.toFixed(2), r.allocated ? "yes" : "no"])));
+      ["Period", "Voucher date", "Member/office", "Unit kind", "Expense type", "Payee", "Service dates", "Description", "Pay status", "Voucher", "Amount", "Allocated (informational)"],
+      list.map((r) => [periodName(DB), r.date, units[r.u].name, units[r.u].kind, types[r.t].code, payees[r.p], r.svc, descs[r.d], r.st, r.voucher, r.amt.toFixed(2), r.allocated ? "yes" : "no"])));
     return null;
   }
 
@@ -532,17 +600,22 @@
     const { meta, types } = DB;
     return `<div class="about">
       <h1>About the data</h1>
-      <p class="lede">This site presents the New York State Assembly's semi-annual Expenditure Report for ${fmtDate(meta.period.start)} – ${fmtDate(meta.period.end)} (source file <code>${esc(meta.sourceFile)}</code>). Every line in the original file is included; nothing is added or removed.</p>
+      <p class="lede">This site presents the New York State Assembly's semi-annual Expenditure Reports. Every line in each original file is included; nothing is added or removed. Use the period menu at the top to switch reports.</p>
+      <section class="card"><h2>Reports included</h2><div class="table-wrap"><table>
+        <thead><tr><th>Period</th><th>Source file</th><th class="num">Lines</th><th class="num">Actual spending</th><th class="num">Allocated</th></tr></thead>
+        <tbody>${PERIODS.map((pm) => `<tr><td>${fmtDate(pm.start)} – ${fmtDate(pm.end)}</td><td class="mono">${esc(pm.sourceFile)}</td><td class="num">${int.format(pm.rowCount)}</td><td class="num">${money(pm.totalActual)}</td><td class="num">${money(pm.totalAllocated)}</td></tr>`).join("")}</tbody>
+      </table></div></section>
       <div class="callout"><strong>Allocated costs are not actual spending.</strong> Mail, telephone, and supplies lines are each office's share of costs paid centrally in Albany. The Assembly's report states these are shown for informational purposes only and do not reflect actual expenditures, so this site keeps them separate from "actual" totals.</div>
-      <section class="card"><h2>Expense types</h2><dl class="glossary">
+      <section class="card"><h2>Expense types (${esc(periodName(DB))})</h2><dl class="glossary">
         ${types.map((t) => `<dt>${esc(t.code)}</dt><dd>${esc(t.label)} — ${int.format(meta.typeCounts[t.code] || 0)} lines${t.allocated ? " (allocated, informational)" : ""}</dd>`).join("")}
       </dl></section>
       <section class="card"><h2>Pay status codes</h2><p>Shown on payroll lines; reflects each employee's payroll type as of the end of the period.</p><dl class="glossary">
         ${Object.entries(meta.statusLabels).map(([c, l]) => `<dt>${esc(c)}</dt><dd>${esc(l)}</dd>`).join("")}
       </dl></section>
       <section class="card"><h2>Notes on how the data was prepared</h2><ul>
-        <li><strong>Members vs. offices.</strong> A unit is treated as a member office when it contains a "MEMBER OF ASSEMBLY" payroll line (${meta.members} units). All others (${meta.offices}) are central offices, committees, and task forces.</li>
-        <li><strong>Voucher dates</strong> in the source have no year (e.g. "9-Oct"). October–December are read as 2025 and January–March as 2026, matching the report period.</li>
+        <li><strong>Members vs. offices.</strong> A unit is treated as a member office when it contains a "MEMBER OF ASSEMBLY" payroll line (${meta.members} in ${esc(periodName(DB))}). All others (${meta.offices}) are central offices, committees, and task forces.</li>
+        <li><strong>Voucher dates</strong> in the source have no year (e.g. "9-Oct"); the year is taken from the report period (for an October–March report, October–December fall in the first year and January–March in the second).</li>
+        <li><strong>Period comparisons</strong> match members and offices by their name as printed in each report. A member who joined or left between periods has no comparison.</li>
         <li><strong>Payroll lines</strong> have no voucher date; they carry service dates instead, so they don't appear in the by-month chart or month filter.</li>
         <li><strong>Negative amounts</strong> (${int.format(DB.records.filter((r) => r.amt < 0).length)} lines) are refunds or adjustments and are included in totals as reported.</li>
         <li><strong>Names are truncated</strong> to 40 characters in the source (e.g. "LEGISLATIVE TASK FORCE ON REAPPORTIONMEN"); they're shown as published.</li>
@@ -566,8 +639,12 @@
   }
   let lastView = "";
   function render() {
-    if (!DB) return;
+    if (!PERIODS.length) return;
     const { view, arg, params } = parseHash();
+    const before = DB && DB.id;
+    selectPeriod(params.p || PERIODS[0].id);
+    syncPeriodUI();
+    if (before && before !== DB.id) lastView = "";
     setActiveTab(view);
     let html;
     switch (view) {
@@ -584,6 +661,28 @@
     if (view === "records") document.getElementById("globalSearchInput").value = params.q || "";
   }
 
+  function syncPeriodUI() {
+    const sel = document.getElementById("periodSelect");
+    if (!sel.options.length) {
+      sel.innerHTML = PERIODS.map((pm) => `<option value="${esc(pm.id)}">${esc(periodName(DBS[pm.id]))}</option>`).join("");
+      sel.addEventListener("change", () => {
+        const { view, arg, params } = parseHash();
+        // Unit ids differ between periods: carry the unit across by name.
+        if (view === "unit") {
+          const cur = DB.unitStats[Number(arg)];
+          const target = cur && DBS[sel.value].byName.get(cur.name);
+          if (target) { location.hash = buildHash("unit/" + target.id, { p: sel.value }); return; }
+          location.hash = buildHash("units", { p: sel.value }); return;
+        }
+        const keep = { ...params, p: sel.value, page: "" };
+        if (view === "records") delete keep.unit;
+        location.hash = buildHash(view === "overview" ? "" : view, keep);
+      });
+    }
+    sel.value = DB.id;
+    document.getElementById("sourceFile").textContent = DB.meta.sourceFile;
+  }
+
   document.getElementById("globalSearch").addEventListener("submit", (e) => {
     e.preventDefault();
     const q = document.getElementById("globalSearchInput").value.trim();
@@ -592,9 +691,6 @@
   window.addEventListener("hashchange", render);
 
   load().then(() => {
-    const { meta } = DB;
-    document.getElementById("periodLabel").textContent = `${fmtDate(meta.period.start)} – ${fmtDate(meta.period.end)}`;
-    document.getElementById("sourceFile").textContent = meta.sourceFile;
     render();
   }).catch((err) => {
     console.error(err);

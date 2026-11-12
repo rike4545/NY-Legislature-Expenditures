@@ -2,10 +2,15 @@
 """Convert the NYS Assembly expenditure CSV into a compact JSON file for the site.
 
 Usage:
-    python3 scripts/build_data.py data/raw/cad00251-20260331.csv data/expenditures.json
+    python3 scripts/build_data.py            # builds every CSV in data/raw/
 
-The source CSV is the fixed-width-style export of the NYS Assembly Expenditure
-Report (October 1, 2025 - March 31, 2026). Columns:
+Each source CSV is the export of one semi-annual NYS Assembly Expenditure Report.
+The reporting period is read from the file name's YYYYMMDD end date:
+    *-YYYY0331.csv -> October 1 (prior year) - March 31
+    *-YYYY0930.csv -> April 1 - September 30
+Outputs data/periods/<end-date>.json per report plus data/periods.json (manifest).
+
+Columns:
     UNIT, EXP TYPE, DATE, VOUCHER, PAYEE, SERVICE DATES, DESCRIPTION, P, ($)AMOUNT
 
 Output is dictionary-encoded to keep the file small:
@@ -18,8 +23,21 @@ import sys
 from collections import Counter
 from datetime import date
 
-PERIOD_START = date(2025, 10, 1)
-PERIOD_END = date(2026, 3, 31)
+import pathlib
+
+ROOT = pathlib.Path(__file__).resolve().parent.parent
+
+
+def period_from_filename(name: str):
+    m = re.search(r"(\d{4})(\d{2})(\d{2})\.csv$", name)
+    if not m:
+        raise ValueError(f"Can't read period end date from file name: {name}")
+    y, mo, d = map(int, m.groups())
+    if (mo, d) == (3, 31):
+        return date(y - 1, 10, 1), date(y, 3, 31)
+    if (mo, d) == (9, 30):
+        return date(y, 4, 1), date(y, 9, 30)
+    raise ValueError(f"Unexpected period end {y}-{mo:02d}-{d:02d} in {name}")
 
 MONTHS = {m: i for i, m in enumerate(
     ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"], start=1)}
@@ -50,7 +68,7 @@ def clean(s: str) -> str:
     return re.sub(r"\s+", " ", (s or "").strip())
 
 
-def parse_voucher_date(s: str) -> str:
+def parse_voucher_date(s: str, PERIOD_START: date, PERIOD_END: date) -> str:
     """'9-Oct' -> '2025-10-09'. Oct-Dec belong to 2025, Jan-Mar to 2026."""
     s = clean(s)
     if not s:
@@ -66,7 +84,8 @@ def parse_voucher_date(s: str) -> str:
     return d.isoformat()
 
 
-def main(src: str, dst: str) -> None:
+def build_one(src: pathlib.Path, dst: pathlib.Path) -> dict:
+    PERIOD_START, PERIOD_END = period_from_filename(src.name)
     with open(src, encoding="utf-8-sig", newline="") as f:
         rows = list(csv.reader(f))
     header, body = rows[0], rows[1:]
@@ -90,7 +109,7 @@ def main(src: str, dst: str) -> None:
         out_rows.append([
             idx("units", unit),
             idx("types", typ),
-            parse_voucher_date(dt),
+            parse_voucher_date(dt, PERIOD_START, PERIOD_END),
             voucher,
             idx("payees", payee),
             svc,
@@ -109,7 +128,7 @@ def main(src: str, dst: str) -> None:
     meta = {
         "title": "New York State Assembly Expenditure Report",
         "period": {"start": PERIOD_START.isoformat(), "end": PERIOD_END.isoformat()},
-        "sourceFile": src.split("/")[-1],
+        "sourceFile": src.name,
         "sourceUrl": "https://assembly.ny.gov/expenditure/",
         "columns": [clean(h) for h in header],
         "rowCount": len(out_rows),
@@ -134,9 +153,33 @@ def main(src: str, dst: str) -> None:
         json.dump(payload, f, separators=(",", ":"), ensure_ascii=False)
     print(f"Wrote {dst}: {len(out_rows):,} rows, {len(members)} members, "
           f"actual ${actual:,.2f}, allocated ${allocated:,.2f}")
+    return meta
+
+
+def main() -> None:
+    raw = ROOT / "data" / "raw"
+    out = ROOT / "data" / "periods"
+    out.mkdir(parents=True, exist_ok=True)
+    manifest = []
+    for src in sorted(raw.glob("*.csv")):
+        meta = build_one(src, out / f"{period_from_filename(src.name)[1].isoformat()}.json")
+        manifest.append({
+            "id": meta["period"]["end"],
+            "file": f"data/periods/{meta['period']['end']}.json",
+            "start": meta["period"]["start"],
+            "end": meta["period"]["end"],
+            "sourceFile": meta["sourceFile"],
+            "rowCount": meta["rowCount"],
+            "totalActual": meta["totalActual"],
+            "totalAllocated": meta["totalAllocated"],
+        })
+    manifest.sort(key=lambda m: m["end"], reverse=True)  # newest first
+    with open(ROOT / "data" / "periods.json", "w", encoding="utf-8") as f:
+        json.dump(manifest, f, indent=2)
+    print(f"Wrote data/periods.json ({len(manifest)} periods)")
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
+    if len(sys.argv) > 1:
         sys.exit(__doc__)
-    main(sys.argv[1], sys.argv[2])
+    main()
