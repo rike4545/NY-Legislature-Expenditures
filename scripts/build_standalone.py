@@ -17,7 +17,9 @@ css = (root / "assets" / "styles.css").read_text(encoding="utf-8")
 js = (root / "assets" / "app.js").read_text(encoding="utf-8")
 import json
 manifest = json.loads((root / "data" / "periods.json").read_text(encoding="utf-8"))
+districts_file = root / "data" / "districts.json"
 bundle = {"manifest": manifest,
+          "districts": json.loads(districts_file.read_text(encoding="utf-8")) if districts_file.exists() else [],
           "data": {m["id"]: json.loads((root / m["file"]).read_text(encoding="utf-8")) for m in manifest}}
 data = json.dumps(bundle, separators=(",", ":"), ensure_ascii=False).replace("</", "<\\/")
 

@@ -152,3 +152,39 @@ dl.glossary dd { margin: 0; }
 @media (max-width: 640px) { .site-header { position: static; } }
 .bars.plain li { grid-template-areas: "name amt"; }
 .movers h3 { font-size: 13px; color: var(--muted); font-weight: 600; margin: 0 0 4px; text-transform: uppercase; letter-spacing: 0.03em; }
+
+/* Compare */
+:root { --seg-ps: #2f74c0; --seg-mo: #e08a2c; --seg-tr: #3a9a6b; --hi: #fff4cc; }
+@media (prefers-color-scheme: dark) { :root { --seg-ps: #5b9be0; --seg-mo: #f0a24f; --seg-tr: #5cc092; --hi: #3d3415; } }
+.title-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+table.compare th[scope=row] { text-transform: none; letter-spacing: 0; font-size: 14px; color: var(--text); font-weight: 500; position: static; }
+table.compare thead th { text-transform: none; letter-spacing: 0; font-size: 14px; color: var(--text); white-space: normal; min-width: 160px; }
+table.compare td.hi { background: var(--hi); font-weight: 600; }
+button.link { border: 0; background: none; padding: 0 4px; color: var(--muted); font-size: 13px; }
+button.link:hover { color: var(--neg); }
+.stack-row { margin: 10px 0; }
+.stack-name { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; margin-bottom: 4px; }
+.stack-name span { font-variant-numeric: tabular-nums; }
+.stack { display: flex; height: 14px; border-radius: 4px; overflow: hidden; min-width: 4px; }
+.seg-ps { background: var(--seg-ps); } .seg-mo { background: var(--seg-mo); } .seg-tr { background: var(--seg-tr); }
+.legend { display: flex; gap: 16px; font-size: 13px; color: var(--muted); margin-top: 8px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.grid.compare-months { grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); }
+h3.mini { font-size: 13px; margin: 0 0 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cols.small { height: 120px; gap: 4px; }
+.cols.small .colval { font-size: 10px; }
+.cols.small .collabel { font-size: 10px; }
+.table-wrap + .card { margin-top: 16px; }
+@media (max-width: 640px) { table.compare thead th { min-width: 130px; } table.compare th[scope=row] { font-size: 13px; } }
+
+/* Map */
+.map-layout { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 860px) { .map-layout { grid-template-columns: 1fr; } }
+.map-layout .card { margin-top: 0; }
+svg.map { width: 100%; height: auto; display: block; }
+svg.map path.district { stroke: var(--surface); stroke-width: 0.6; cursor: pointer; outline: none; }
+svg.map path.district:hover, svg.map path.district:focus { stroke: var(--text); stroke-width: 1.6; }
+svg.map path.district.dim { stroke: var(--border); }
+.map-legend { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 13px; color: var(--muted); margin: 12px 0 16px; }
+.map-legend i { display: inline-block; width: 14px; height: 14px; border-radius: 3px; margin-right: 6px; vertical-align: -2px; border: 1px solid var(--border); }
+.map-tip { position: fixed; z-index: 20; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; font-size: 13px; box-shadow: 0 4px 16px rgba(0,0,0,.15); pointer-events: none; max-width: 260px; }

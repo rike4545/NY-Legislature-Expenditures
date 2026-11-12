@@ -26,13 +26,15 @@ jobs:
         with:
           python-version: "3.12"
       - name: Rebuild data from raw CSV
-        run: python3 scripts/build_data.py
+        run: |
+          python3 scripts/build_data.py
+          python3 scripts/build_districts.py
       - name: Assemble site
         run: |
           mkdir -p _site/data
           cp index.html _site/
           cp -r assets _site/
-          cp data/periods.json _site/data/
+          cp data/periods.json data/districts.json _site/data/
           cp -r data/periods _site/data/
           touch _site/.nojekyll
       - uses: actions/configure-pages@v5
