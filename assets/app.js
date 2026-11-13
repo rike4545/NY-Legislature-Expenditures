@@ -21,6 +21,17 @@
   let ELECTION_SOURCES = {};
   const dbFor = (periodId, chamberId) => DBS[(chamberId || CH.id) + "/" + periodId];
 
+  /* ---------- icons: one stroke family, drawn inline ---------- */
+  const svg = (d, cls = "") => `<svg class="ico ${cls}" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="${d}"/></svg>`;
+  const I = {
+    r: svg("M5 12h14M13 6l6 6-6 6"),
+    l: svg("M19 12H5M11 6l-6 6 6 6"),
+    ext: svg("M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"),
+    up: svg("M12 19V5M6 11l6-6 6 6", "tiny"),
+    down: svg("M12 5v14M6 13l6 6 6-6", "tiny"),
+    x: svg("M6 6l12 12M18 6L6 18", "tiny"),
+  };
+
   /* ---------- formatting helpers ---------- */
   const usd0 = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
   const usd2 = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 });
@@ -253,7 +264,7 @@
     if (s.kind !== "member") return "";
     const url = (BALLOTPEDIA[CH.id] || {})[s.name];
     const href = url || `https://ballotpedia.org/wiki/index.php?search=${encodeURIComponent(displayName(s))}`;
-    return `<a class="btn" href="${esc(href)}" target="_blank" rel="noopener" title="${url ? "Ballotpedia profile" : "Not on Ballotpedia's current-members list; opens a Ballotpedia search"}">${url ? "Ballotpedia profile" : "Search Ballotpedia"} ↗</a>`;
+    return `<a class="btn" href="${esc(href)}" target="_blank" rel="noopener" title="${url ? "Ballotpedia profile" : "Not on Ballotpedia's current-members list; opens a Ballotpedia search"}">${url ? "Ballotpedia profile" : "Search Ballotpedia"} ${I.ext}</a>`;
   }
   const ELECTION_LABEL = {
     retiring: ["Not seeking re-election", "change"], other_office: ["Ran for another office", "change"],
@@ -418,16 +429,11 @@
     return `
       <section class="hero">
         <div class="hero-text">
-          <div class="eyebrow">${esc(CH.title)} · ${esc(periodName(DB))}</div>
-          <h1>Where the ${esc(CH.name)}'s money went</h1>
-          <p>Every line of the ${esc(CH.name)}'s expenditure report: ${int.format(meta.rowCount)} records across ${meta.members} member offices and ${meta.offices} central offices and committees.</p>
-          <form class="hero-search" id="heroSearch" role="search"><input type="search" id="heroSearchInput" placeholder="Search a member, staffer, vendor or expense…" aria-label="Search all records"><button class="primary" type="submit">Search</button></form>
+        <h1>The ${esc(CH.name)} spent <span class="hero-num">${compact(meta.totalActual)}</span> in ${esc(periodName(DB))}</h1>
+        <p class="hero-sub">That's about <strong>${compact(meta.totalActual / DB.periodMonths)} a month</strong> on payroll, operations and travel${chg ? `, <span class="${chg.diff >= 0 ? "up" : "down"}">${chg.diff >= 0 ? I.up : I.down}${Math.abs(chg.pct).toFixed(1)}% ${chg.diff >= 0 ? "more" : "less"}</span> than ${esc(periodName(PREV))}` : ""}. Every one of the report's ${int.format(meta.rowCount)} lines is here, across ${meta.members} member offices and ${meta.offices} central offices and committees.</p>
+        <form class="hero-search" id="heroSearch" role="search"><input type="search" id="heroSearchInput" placeholder="Search a member, staffer, vendor or expense…" aria-label="Search all records"><button class="primary" type="submit">Search</button></form>
         </div>
-        <div class="hero-figure">
-          <div class="hero-label">Actual spending</div>
-          <div class="hero-value">${compact(meta.totalActual)}</div>
-          <div class="hero-sub">≈${compact(meta.totalActual / DB.periodMonths)} a month${chg ? ` · <span class="${chg.diff >= 0 ? "up" : "down"}">${chg.diff >= 0 ? "▲" : "▼"} ${Math.abs(chg.pct).toFixed(1)}%</span> vs ${esc(periodName(PREV))}` : ""}</div>
-        </div>
+        ${heroMap()}
       </section>
       <div class="grid kpis">
         ${kpi("Payroll", compact(totalBy.ps), `${int.format(staffAll.size)} people paid${PREV ? "<br>" + vs("ps") : ""}`)}
@@ -447,10 +453,10 @@
             </a>`).join("")}</div>
           <p class="summary">Payroll has no voucher date, so it isn't shown by month.</p>
         </section>
-        <section class="card"><div class="card-head"><h2>Highest-spending member offices</h2><a href="${buildHash("units", { kind: "member" })}">All ${DB.members.length} →</a></div>${bars(topMembers)}
+        <section class="card"><div class="card-head"><h2>Highest-spending member offices</h2><a href="${buildHash("units", { kind: "member" })}">All ${DB.members.length} ${I.r}</a></div>${bars(topMembers)}
           <p class="summary">Median member office: <strong>${money0(DB.memberMedian)}</strong>${PREV ? ` · ${periodName(PREV)}: ${money0(PREV.memberMedian)}` : ""}</p></section>
-        <section class="card"><div class="card-head"><h2>Largest central offices &amp; committees</h2><a href="${buildHash("units", { kind: "office" })}">All offices →</a></div>${bars(topOffices)}</section>
-        <section class="card"><div class="card-head"><h2>Top vendors (M&amp;O)</h2><a href="${buildHash("payees", { group: "vendor" })}">All payees →</a></div>${bars(topVendors)}</section>
+        <section class="card"><div class="card-head"><h2>Largest central offices &amp; committees</h2><a href="${buildHash("units", { kind: "office" })}">All offices ${I.r}</a></div>${bars(topOffices)}</section>
+        <section class="card"><div class="card-head"><h2>Top vendors (M&amp;O)</h2><a href="${buildHash("payees", { group: "vendor" })}">All payees ${I.r}</a></div>${bars(topVendors)}</section>
         <section class="card"><div class="card-head"><h2>What M&amp;O money bought</h2></div>${bars(topDescs)}</section>
         ${travelCard()}
         ${PREV ? moversCard() : ""}
@@ -483,8 +489,19 @@
       ${bars(cats.map((c) => ({ label: c.label, value: c.value })))}
       <h3 class="mini" style="margin-top:12px">Most common destinations</h3>
       <ul class="bars plain">${dest.slice(0, 6).map((d) => `<li><span class="name">${esc(d.key)} · ${d.count} trips</span><span class="amt">${money0(d.total)}</span></li>`).join("")}</ul>
-      <p class="summary">Miles are recovered from mileage reimbursements at the IRS rate on each trip's start date. <a href="${buildHash("about", {})}">Travel rules on the About page →</a></p>
+      <p class="summary">Miles are recovered from mileage reimbursements at the IRS rate on each trip's start date. <a href="${buildHash("about", {})}">Travel rules on the About page ${I.r}</a></p>
     </section>`;
+  }
+
+  function heroMap() {
+    if (!DISTRICTS.length) return "";
+    const box = bboxOf(DISTRICTS.map((d) => ({ geometry: d.geometry })));
+    const proj = makeProjection(box, 300);
+    const vals = DISTRICTS.map((d) => { const u = d.unitName && DB.byName.get(d.unitName); return u ? u.actual : null; });
+    const scale = binsFor(vals, false);
+    return `<a class="hero-map" href="${buildHash("map", {})}" aria-label="Open the district map">
+      <svg viewBox="0 0 300 ${proj.height.toFixed(0)}" aria-hidden="true">${DISTRICTS.map((d, i) => `<path d="${pathFor(d.geometry, proj)}" fill="${scale.color(vals[i])}"></path>`).join("")}</svg>
+      <span>Member office spending by district ${I.r}</span></a>`;
   }
 
   function chambersCard() {
@@ -574,7 +591,7 @@
         </tr></thead>
         <tbody>${list.length ? list.map((s, i) => `<tr>
           <td class="num">${i + 1}</td>
-          <td><a href="${unitHref(s.id)}">${highlight(s.name, tokens)}</a></td>
+          <td class="namecell"><a href="${unitHref(s.id)}">${highlight(s.name, tokens)}</a></td>
           <td class="nowrap">${dist(s) ? `${CH.abbr} ${dist(s).district}` : ""}</td>
           <td>${kindChip(s.kind)} ${electionChip(s, true)}</td>
           <td class="num">${money0(s.byType.ps || 0)}</td>
@@ -628,7 +645,7 @@
 
     const statusName = (c) => meta.statusLabels[c] || c;
     return `
-      <div class="crumbs"><a href="${buildHash("units", { kind: s.kind })}">← ${s.kind === "member" ? "Members" : "Offices"}</a></div>
+      <div class="crumbs"><a href="${buildHash("units", { kind: s.kind })}">${I.l} ${s.kind === "member" ? "Members" : "Offices"}</a></div>
       <div class="title-row"><h1>${esc(s.name)} ${kindChip(s.kind)}${districtChip(s)}</h1>
         <div class="title-actions">${ballotpediaLink(s)}<a class="btn" href="${buildHash("compare", { u: s.kind === "member" ? [s.name, DB.members[Math.floor(DB.members.length / 2)].name].filter((v, i, a) => a.indexOf(v) === i).join("|") : s.name })}">Compare…</a></div></div>
       <p class="lede">${rankNote || "Central office, committee, or task force."}</p>
@@ -657,7 +674,7 @@
             <td class="num${r.amt < 0 ? " neg" : ""}">${money(r.amt)}</td>
             <td class="num">${showSal ? `<a href="${buildHash("salaries", { q: `"${payees[r.p].toLowerCase()}"` })}" title="${esc(`${int.format(sal.days)} days of regular pay (${money(sal.paid)}) scaled to 364 days`)}">${money0(sal.annual)}</a>` : ""}</td></tr>`; }).join("")}</tbody>
         </table></div>
-        <p class="summary">Annualized = a person's regular pay in this office divided by the days it covers, scaled to a year of 26 biweekly pay periods. One-time payments (lump sums, deferrals, stipends) aren't annualized. <a href="${buildHash("salaries", {})}">All salaries →</a></p>` : `<p class="empty">No payroll lines.</p>`}
+        <p class="summary">Annualized = a person's regular pay in this office divided by the days it covers, scaled to a year of 26 biweekly pay periods. One-time payments (lump sums, deferrals, stipends) aren't annualized. <a href="${buildHash("salaries", {})}">All salaries ${I.r}</a></p>` : `<p class="empty">No payroll lines.</p>`}
       </section>
 
       <div class="grid two">
@@ -679,7 +696,7 @@
       <section class="card"><div class="card-head"><h2>Allocated operational costs</h2><span class="summary">shares of centrally paid costs</span></div>${bars(allocated)}</section>
 
       ${otherPeriodLinks(s)}
-      <p><a class="btn" href="${buildHash("records", { unit: s.id })}">See all ${int.format(recs.length)} records for this ${s.kind === "member" ? "member" : "office"} →</a></p>`;
+      <p><a class="btn" href="${buildHash("records", { unit: s.id })}">See all ${int.format(recs.length)} records for this ${s.kind === "member" ? "member" : "office"} ${I.r}</a></p>`;
   }
 
   function unitTrips(s) {
@@ -699,7 +716,7 @@
         <tbody>${sorted.map((t) => `<tr><td class="nowrap">${fmtDate(t.begin)}${t.end && t.end !== t.begin ? ` – ${fmtDate(t.end)}` : ""}</td><td>${esc(t.dest)}</td><td>${esc(titleCase(t.purpose))}</td>
           ${cols.map(({ i }) => `<td class="num">${t.amounts[i] ? money(t.amounts[i]) : ""}</td>`).join("")}${hasMiles ? `<td class="num">${tripMiles(t) ? int.format(Math.round(tripMiles(t))) : ""}</td>` : ""}<td class="num"><strong>${money(t.total)}</strong></td></tr>`).join("")}</tbody>
       </table></div>
-      <p class="summary">From the Senate's member travel detail file; each trip is matched to its voucher in the expenditure report by check date and amount. Miles are recovered from the mileage reimbursement at the IRS rate in effect on the trip's start date. <a href="${buildHash("about", {})}">Travel rules on the About page →</a></p>
+      <p class="summary">From the Senate's member travel detail file; each trip is matched to its voucher in the expenditure report by check date and amount. Miles are recovered from the mileage reimbursement at the IRS rate in effect on the trip's start date. <a href="${buildHash("about", {})}">Travel rules on the About page ${I.r}</a></p>
     </section>`;
   }
 
@@ -757,7 +774,7 @@
     const opt = (v, label, cur) => `<option value="${esc(v)}"${String(cur) === String(v) ? " selected" : ""}>${esc(label)}</option>`;
     const unitOptions = DB.unitStats.slice().sort((a, b) => a.name.localeCompare(b.name)).map((s) => opt(s.id, s.name, state.unit)).join("");
     const active = [];
-    if (state.payee) active.push(`<span class="chip">Payee: ${esc(state.payee)} <a href="${buildHash("records", { ...state, payee: "", page: "" })}" aria-label="Remove payee filter">✕</a></span>`);
+    if (state.payee) active.push(`<span class="chip">Payee: ${esc(state.payee)} <a href="${buildHash("records", { ...state, payee: "", page: "" })}" aria-label="Remove payee filter">${I.x}</a></span>`);
 
     app.innerHTML = `
       <h1>All Records</h1>
@@ -799,9 +816,9 @@
         </tr>`).join("") : `<tr><td colspan="9" class="empty">No records match these filters.</td></tr>`}</tbody>
       </table></div>
       <div class="pager">
-        <button id="rprev"${page <= 1 ? " disabled" : ""}>← Prev</button>
+        <button id="rprev"${page <= 1 ? " disabled" : ""}>${I.l} Prev</button>
         <span>Page ${page} of ${int.format(pages)}</span>
-        <button id="rnext"${page >= pages ? " disabled" : ""}>Next →</button>
+        <button id="rnext"${page >= pages ? " disabled" : ""}>Next ${I.r}</button>
       </div>`;
 
     const update = (patch) => go("records", { ...state, page: "", ...patch }, true);
@@ -884,7 +901,7 @@
           <td class="num">${money(x.paid)}</td>
           <td class="num"><strong>${money0(x.annual)}</strong></td></tr>`).join("") : `<tr><td colspan="7" class="empty">No one matches.</td></tr>`}</tbody>
       </table></div>
-      <div class="pager"><button id="sprev"${page <= 1 ? " disabled" : ""}>← Prev</button><span>Page ${page} of ${int.format(pages)}</span><button id="snext"${page >= pages ? " disabled" : ""}>Next →</button></div>`;
+      <div class="pager"><button id="sprev"${page <= 1 ? " disabled" : ""}>${I.l} Prev</button><span>Page ${page} of ${int.format(pages)}</span><button id="snext"${page >= pages ? " disabled" : ""}>Next ${I.r}</button></div>`;
 
     const update = (patch) => go("salaries", { ...state, page: "", ...patch }, true);
     const sq = app.querySelector("#sq");
@@ -946,9 +963,9 @@
         </tr>`).join("") : `<tr><td colspan="4" class="empty">No payees match.</td></tr>`}</tbody>
       </table></div>
       <div class="pager">
-        <button id="pprev"${page <= 1 ? " disabled" : ""}>← Prev</button>
+        <button id="pprev"${page <= 1 ? " disabled" : ""}>${I.l} Prev</button>
         <span>Page ${page} of ${int.format(pages)}</span>
-        <button id="pnext"${page >= pages ? " disabled" : ""}>Next →</button>
+        <button id="pnext"${page >= pages ? " disabled" : ""}>Next ${I.r}</button>
       </div>`;
 
     const update = (patch) => go("payees", { ...state, page: "", ...patch }, true);
@@ -1006,7 +1023,7 @@
       body = `
       <div class="table-wrap"><table class="compare">
         <thead><tr><th></th>${picked.map((s) => `<th scope="col"><a href="${unitHref(s.id)}">${esc(s.name)}</a> ${kindChip(s.kind)}
-          <button class="link remove" data-name="${esc(s.name)}" aria-label="Remove ${esc(s.name)}">✕</button></th>`).join("")}</tr></thead>
+          <button class="link remove" data-name="${esc(s.name)}" aria-label="Remove ${esc(s.name)}">${I.x}</button></th>`).join("")}</tr></thead>
         <tbody>
           ${metric("Actual spending", (s) => s.actual)}
           ${metric("Per month", (s) => s.perMonth)}
@@ -1292,11 +1309,11 @@
 
     const picker = `<select id="dpick" aria-label="Choose a district">${DISTRICTS.map((x) => `<option value="${x.district}"${x === d ? " selected" : ""}>${CH.abbr} ${x.district} · ${esc(x.member)}</option>`).join("")}</select>`;
     const head = `
-      <div class="crumbs"><a href="${buildHash("map", {})}">← District map</a></div>
+      <div class="crumbs"><a href="${buildHash("map", {})}">${I.l} District map</a></div>
       <div class="title-row district-head">
         <div><h1>${esc(CH.name)} District ${d.district} ${s ? electionChip(s, true) : ""}</h1>
-          <p class="lede">${esc(d.member)}${d.party ? ` · ${esc(d.party)}` : ""}${s ? ` · <a href="${unitHref(s.id)}">member office page →</a>` : ""}${s && (BALLOTPEDIA[CH.id] || {})[s.name] ? ` · <a href="${esc(BALLOTPEDIA[CH.id][s.name])}" target="_blank" rel="noopener">Ballotpedia ↗</a>` : ""}</p></div>
-        <div class="dnav"><a class="btn" href="${dHref(prevD)}" aria-label="Previous district">← ${CH.abbr} ${prevD.district}</a>${picker}<a class="btn" href="${dHref(nextD)}" aria-label="Next district">${CH.abbr} ${nextD.district} →</a></div>
+          <p class="lede">${esc(d.member)}${d.party ? ` · ${esc(d.party)}` : ""}${s ? ` · <a href="${unitHref(s.id)}">member office page ${I.r}</a>` : ""}${s && (BALLOTPEDIA[CH.id] || {})[s.name] ? ` · <a href="${esc(BALLOTPEDIA[CH.id][s.name])}" target="_blank" rel="noopener">Ballotpedia ${I.ext}</a>` : ""}</p></div>
+        <div class="dnav"><a class="btn" href="${dHref(prevD)}" aria-label="Previous district">${I.l} ${CH.abbr} ${prevD.district}</a>${picker}<a class="btn" href="${dHref(nextD)}" aria-label="Next district">${CH.abbr} ${nextD.district} ${I.r}</a></div>
       </div>`;
 
     if (!s) {
@@ -1345,7 +1362,7 @@
           <div class="stack big">${seg.map(([code, label, cls]) => { const v = Math.max(s.byType[code] || 0, 0); return v ? `<span class="${cls}" style="flex:${v}" title="${label}: ${money(v)}"></span>` : ""; }).join("")}</div>
           <div class="legend">${seg.map(([code, label, cls]) => `<span><i class="${cls}"></i>${label} ${money0(s.byType[code] || 0)} (${((s.byType[code] || 0) / s.actual * 100).toFixed(0)}%)</span>`).join("")}</div>
           <h3 class="mini" style="margin-top:14px">Top operating expenses</h3>${bars(topMo.map((v) => ({ label: titleCase(DB.descs[v.key]), value: v.total })))}</section>
-        <section class="card"><div class="card-head"><h2>Compared with neighboring districts</h2><a href="${compareHref}">Compare side by side →</a></div>
+        <section class="card"><div class="card-head"><h2>Compared with neighboring districts</h2><a href="${compareHref}">Compare side by side ${I.r}</a></div>
           <ul class="bars">${nbrRows.map((r) => `<li class="${r.x === d ? "me" : ""}"><span class="name"><a href="${dHref(r.x)}">${CH.abbr} ${r.x.district} · ${esc(r.x.member)}</a></span><span class="amt">${money0(r.u.actual)}</span>
             <span class="track"><span class="fill${r.x === d ? "" : " alt"}" style="width:${(r.u.actual / maxN * 100).toFixed(1)}%"></span></span></li>`).join("")}</ul></section>
         <section class="card"><div class="card-head"><h2>Across report periods</h2>${ps ? `<span class="summary">${changeText(change(s.actual, ps.actual))}</span>` : ""}</div>
