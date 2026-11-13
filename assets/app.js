@@ -41,6 +41,7 @@
   const svg = (d, cls = "") => `<svg class="ico ${cls}" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="${d}"/></svg>`;
   const I = {
     r: svg("M5 12h14M13 6l6 6-6 6"),
+    pin: svg("M9 4h6l-1 6 3 3H7l3-3zM12 13v7"),
     l: svg("M19 12H5M11 6l-6 6 6 6"),
     ext: svg("M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"),
     up: svg("M12 19V5M6 11l6-6 6 6", "tiny"),
@@ -1291,7 +1292,15 @@
     });
     return rows;
   }
-  function percentileRanks(rows, groupOf) {
+  const SC_WEIGHT_LABELS = ["Off", "Low", "Normal", "High", "Most"];
+  function parseWeights(str) {
+    const w = {};
+    for (const m of SC_MEASURES) w[m.key] = 2;
+    for (const part of String(str || "").split(",")) { const [k, v] = part.split(":"); if (k in w && /^[0-4]$/.test(v || "")) w[k] = Number(v); }
+    return w;
+  }
+  const weightsStr = (w) => SC_MEASURES.every((m) => w[m.key] === 2) ? "" : SC_MEASURES.map((m) => `${m.key}:${w[m.key]}`).join(",");
+  function percentileRanks(rows, groupOf, weights) {
     for (const m of SC_MEASURES) {
       const groups = new Map();
       for (const r of rows) if (r.values[m.key] != null) { const g = groupOf(r); if (!groups.has(g)) groups.set(g, []); groups.get(g).push(r); }
@@ -1306,12 +1315,19 @@
         }
       }
     }
-    for (const r of rows) { const v = SC_MEASURES.map((m) => r.pct && r.pct[m.key]).filter((x) => x != null); r.index = v.length >= 3 ? v.reduce((a, b) => a + b, 0) / v.length * 100 : null; r.nMeasures = v.length; }
+    const w = weights || parseWeights("");
+    for (const r of rows) {
+      const used = SC_MEASURES.filter((m) => w[m.key] > 0 && r.pct && r.pct[m.key] != null);
+      const tw = used.reduce((a, m) => a + w[m.key], 0);
+      r.index = used.length >= 3 && tw ? used.reduce((a, m) => a + r.pct[m.key] * w[m.key], 0) / tw * 100 : null;
+      r.nMeasures = used.length;
+    }
   }
   function viewScorecard(params) {
-    const state = { sort: params.sort || "index", dir: params.dir || "desc", within: params.within || "party", party: params.party || "" };
+    const weights = parseWeights(params.w);
+    const state = { sort: params.sort || "index", dir: params.dir || "desc", within: params.within || "party", party: params.party || "", w: weightsStr(weights) };
     let rows = scorecardRows();
-    percentileRanks(rows, (r) => state.within === "party" ? r.party : "all");
+    percentileRanks(rows, (r) => state.within === "party" ? r.party : "all", weights);
     if (state.party) rows = rows.filter((r) => r.party === state.party);
     const key = state.sort === "index" ? (r) => r.index : state.sort === "name" ? (r) => displayName(r.s) : state.sort === "district" ? (r) => r.district : (r) => (r.values[state.sort]);
     rows.sort((a, b) => { const x = key(a), y = key(b); if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1; const c = typeof x === "string" ? x.localeCompare(y) : x - y; return state.dir === "asc" ? c : -c; });
@@ -1320,6 +1336,18 @@
       const w = app.querySelector("#scWithin"), pf = app.querySelector("#scParty");
       if (w) w.addEventListener("change", () => go("scorecard", { ...state, within: w.value }, true));
       if (pf) pf.addEventListener("change", () => go("scorecard", { ...state, party: pf.value }, true));
+      const panel = app.querySelector("#scWeights");
+      if (panel) {
+        let t = 0;
+        const read = () => { const w = {}; panel.querySelectorAll("input[type=range]").forEach((i) => { w[i.name] = Number(i.value); }); return w; };
+        panel.addEventListener("input", (e) => {
+          if (e.target.type !== "range") return;
+          const out = panel.querySelector(`output[for="${e.target.id}"]`); if (out) out.textContent = SC_WEIGHT_LABELS[e.target.value];
+          clearTimeout(t); t = setTimeout(() => { const id = e.target.id; go("scorecard", { ...state, w: weightsStr(read()), sort: "index", dir: "desc" }, true); setTimeout(() => { const el = app.querySelector("#" + id); if (el) el.focus(); }, 0); }, 180);
+        });
+        const reset = panel.querySelector("#scReset");
+        if (reset) reset.addEventListener("click", () => go("scorecard", { ...state, w: "" }, true));
+      }
     }, 0);
     const cell = (r, m) => {
       const v = r.values[m.key];
@@ -1328,11 +1356,15 @@
       return `<td class="num"><span class="scval">${m.fmt(v)}</span><span class="scrank" title="Rank ${r.rank[m.key]} of ${r.of[m.key]}${state.within === "party" ? " in party" : ""}"><span class="scbar"><span style="width:${(pc * 100).toFixed(0)}%"></span></span>#${r.rank[m.key]}</span></td>`;
     };
     return `<h1>Scorecard</h1>
-      <p class="lede">How each ${esc(CH.name)} member office did in ${esc(periodName(DB))} on measures this site can check against public records. Each column ranks offices${state.within === "party" ? " within their party" : " across the chamber"}; the index averages the percentile ranks.</p>
+      <p class="lede">How each ${esc(CH.name)} member office did in ${esc(periodName(DB))} on measures this site can check against public records. Each column ranks offices${state.within === "party" ? " within their party" : " across the chamber"}; the index averages the percentile ranks${state.w ? ", weighted as set below" : ""}.</p>
       <div class="filters">
         <label>Rank against<select id="scWithin"><option value="party"${state.within === "party" ? " selected" : ""}>Own party (default)</option><option value="chamber"${state.within === "chamber" ? " selected" : ""}>Whole chamber</option></select></label>
         <label>Party<select id="scParty"><option value="">Both</option><option value="D"${state.party === "D" ? " selected" : ""}>Democrats</option><option value="R"${state.party === "R" ? " selected" : ""}>Republicans</option></select></label>
       </div>
+      <details class="card weights" id="scWeights"${state.w ? " open" : ""}><summary><strong>Weigh the measures yourself</strong> <span class="summary">${state.w ? "custom weights: the index and order below use them" : "every measure counts equally; slide to change"}</span></summary>
+        <div class="weight-grid">${SC_MEASURES.map((m) => `<div class="weight"><label for="w-${m.key}">${esc(m.label)}</label><input type="range" id="w-${m.key}" name="${m.key}" min="0" max="4" step="1" value="${weights[m.key]}" aria-valuetext="${SC_WEIGHT_LABELS[weights[m.key]]}"><output for="w-${m.key}">${SC_WEIGHT_LABELS[weights[m.key]]}</output></div>`).join("")}</div>
+        <p class="summary">Off leaves a measure out of the index; Most counts it twice as much as Normal. The ranks within each column don't change, only how they're combined. Your weights are kept in the page address, so you can share the link. <button type="button" class="linkbtn" id="scReset">Reset to equal weights</button></p>
+      </details>
       <div class="table-wrap"><table class="scorecard">
         <caption class="sr-only">${esc(CH.name)} member office scorecard, sortable</caption>
         <thead><tr>${sortHeader("Member", "name", state)}${sortHeader(CH.abbr, "district", state, "num")}${SC_MEASURES.map((m) => sortHeader(`<abbr title="${esc(m.help)}">${esc(m.label)}</abbr>`, m.key, state, "num")).join("")}${sortHeader(`<abbr title="Average of the percentile ranks the office has (at least three of five). 100 = best on every measure.">Index</abbr>`, "index", state, "num")}</tr></thead>
@@ -1340,8 +1372,8 @@
       <section class="card"><div class="card-head"><h2>How to read this</h2></div>
         <ul class="plainlist">${SC_MEASURES.map((m) => `<li><strong>${esc(m.label)}.</strong> ${esc(m.help)}.</li>`).join("")}
           <li><strong>Index.</strong> The average of an office's percentile ranks (0 = last, 100 = first) on the measures it has, shown only when it has at least three; "/n" is how many. Every measure counts equally; that weighting is a choice, so the columns matter more than the index.</li>
-          <li><strong>Why rank within party.</strong> The majority conference sets office budgets, and minority-party offices get smaller ones, so cost per month (and, once added, bills passed) mostly reflects party. Ranking within party compares like with like; switch to "whole chamber" to see the raw order.</li>
-          <li><strong>Not yet here: lawmaking.</strong> Bills introduced, moved out of committee, passed and signed into law come from the Senate's Open Legislation service, which needs an API key; they'll be added as columns when it's connected. Majority-party members pass far more bills, which is why ranking within party is offered.</li></ul>
+          <li><strong>Why rank within party.</strong> The majority conference sets office budgets, and minority-party offices get smaller ones, so cost per month (and bills passed) mostly reflects party. Ranking within party compares like with like; switch to "whole chamber" to see the raw order.</li>
+          <li><strong>Lawmaking.</strong> Bills signed into law and the share of bills that passed the member's own chamber come from the Senate's Open Legislation service, for the 2025–26 session. Majority-party members pass far more bills, which is another reason ranking within party is offered. Turn these off with the weights above if you only want the money measures.</li></ul>
         <p class="summary">None of these measures says whether an office served its district well; they're checkable facts about cost, staffing, elections and fundraising. Members who left mid-period or have little data are ranked on what exists. Sources: the ${esc(CH.name)} expenditure reports, the State Board of Elections unofficial count, and campaign finance filings (see About the Data).</p></section>`;
   }
 
@@ -1900,7 +1932,7 @@
         </tr></thead>
         <tbody>${list.length ? list.map((s, i) => `<tr>
           <td class="num">${i + 1}</td>
-          <td class="namecell"><a href="${unitHref(s.id)}">${highlight(s.name, tokens)}</a></td>
+          <td class="namecell"><a href="${unitHref(s.id)}">${highlight(s.name, tokens)}</a>${pinMini(s.name)}</td>
           <td class="nowrap">${dist(s) ? `${CH.abbr} ${dist(s).district}` : ""}</td>
           <td>${kindChip(s.kind)} ${electionChip(s, true)}</td>
           <td class="num">${money0(s.byType.ps || 0)}</td>
@@ -1956,7 +1988,7 @@
     return `
       <div class="crumbs"><a href="${buildHash("units", { kind: s.kind })}">${I.l} ${s.kind === "member" ? "Members" : "Offices"}</a></div>
       <div class="title-row"><h1>${esc(s.name)} ${kindChip(s.kind)}${districtChip(s)}</h1>
-        <div class="title-actions">${officialLink(s)}${ballotpediaLink(s)}<a class="btn" href="${buildHash("compare", { u: s.kind === "member" ? [s.name, DB.members[Math.floor(DB.members.length / 2)].name].filter((v, i, a) => a.indexOf(v) === i).join("|") : s.name })}">Compare…</a></div></div>
+        <div class="title-actions">${officialLink(s)}${ballotpediaLink(s)}${pinBtn(s.name)}<a class="btn" href="${buildHash("compare", { u: s.kind === "member" ? [s.name, DB.members[Math.floor(DB.members.length / 2)].name].filter((v, i, a) => a.indexOf(v) === i).join("|") : s.name })}">Compare…</a></div></div>
       <p class="lede">${rankNote || "Central office, committee, or task force."}</p>
       <div class="grid kpis">
         ${kpi("Actual spending", money0(s.actual), ps ? changeText(change(s.actual, ps.actual)) : (PREV ? "Not in prior period" : ""))}
@@ -2333,6 +2365,113 @@
       </a>`).join("")}</div>`;
   }
 
+  /* Plain tables get click-to-sort headers and, when long, a row filter. Tables whose sort lives
+     in the URL (th.sortable) are left alone. Sorting is in-page only. */
+  const COLL = new Intl.Collator("en", { numeric: true, sensitivity: "base" });
+  function cellValue(c) {
+    if (c.dataset.v != null) return { n: Number(c.dataset.v) };
+    const t = c.textContent.replace(/\s+/g, " ").trim();
+    if (!t || t === "—") return { e: true };
+    const m = t.replace(/[−–]/g, "-").match(/^([-+]?)#?\$?(\d[\d,]*\.?\d*|\.\d+)\s*([KkMmBb%])?(?![\w])/);
+    if (m && !/^\d{1,2}\/\d/.test(t)) { let n = parseFloat(m[2].replace(/,/g, "")); const mul = { k: 1e3, m: 1e6, b: 1e9 }[(m[3] || "").toLowerCase()]; if (mul) n *= mul; return { n: m[1] === "-" ? -n : n }; }
+    if (/[A-Za-z]{3}/.test(t) && /\d{4}/.test(t) && t.length < 24) { const d = Date.parse(t); if (!isNaN(d)) return { n: d, date: true }; }
+    return { s: t };
+  }
+  function enhanceTables(root) {
+    root.querySelectorAll(".table-wrap > table").forEach((t, ti) => {
+      if (t.dataset.enh || t.matches(".compare, .scorecard, .bh-table") || t.querySelector("th.sortable")) return;
+      const head = t.tHead, body = t.tBodies[0];
+      if (!head || head.rows.length !== 1 || !body || t.tBodies.length !== 1) return;
+      const hcells = [...head.rows[0].cells];
+      const rows = [...body.rows];
+      if (rows.length < 5 || rows.some((r) => r.cells.length !== hcells.length || [...r.cells].some((c) => c.colSpan > 1))) return;
+      t.dataset.enh = "1";
+      const vals = rows.map((r) => [...r.cells].map(cellValue));
+      const numeric = hcells.map((_, i) => { const v = vals.map((r) => r[i]).filter((x) => !x.e); return v.length > 0 && v.filter((x) => x.n != null).length / v.length >= 0.7; });
+      rows.forEach((r, i) => { r._v = vals[i]; r._i = i; });
+      let cur = -1, dir = 1;
+      hcells.forEach((th, i) => {
+        if (!th.textContent.trim()) return;
+        const b = document.createElement("button"); b.type = "button"; b.className = "th-sort";
+        while (th.firstChild) b.appendChild(th.firstChild);
+        const sr = document.createElement("span"); sr.className = "sr-only"; sr.textContent = ", sortable"; b.appendChild(sr);
+        th.appendChild(b); th.classList.add("csort-th");
+        b.addEventListener("click", () => {
+          dir = cur === i ? -dir : (numeric[i] ? -1 : 1); cur = i;
+          const key = (r) => r._v[i];
+          const sorted = rows.slice().sort((a, b2) => {
+            const x = key(a), y = key(b2);
+            if (x.e || y.e) return x.e && y.e ? a._i - b2._i : x.e ? 1 : -1;
+            const c = numeric[i] ? ((x.n ?? -Infinity) - (y.n ?? -Infinity)) : COLL.compare(x.s ?? String(x.n), y.s ?? String(y.n));
+            return c * dir || a._i - b2._i;
+          });
+          sorted.forEach((r) => body.appendChild(r));
+          hcells.forEach((h, j) => { h.classList.toggle("sorted", j === i); h.classList.toggle("asc", j === i && dir === 1); if (j === i) h.setAttribute("aria-sort", dir === 1 ? "ascending" : "descending"); else h.removeAttribute("aria-sort"); const s2 = h.querySelector(".th-sort .sr-only"); if (s2) s2.textContent = j === i ? `, sorted ${dir === 1 ? "ascending" : "descending"}` : ", sortable"; });
+          announce(`Sorted by ${b.textContent.replace(/,.*$/, "").trim()}, ${dir === 1 ? "ascending" : "descending"}`);
+        });
+      });
+      if (rows.length >= 12) {
+        const wrap = t.parentElement;
+        const id = "tf" + Math.random().toString(36).slice(2, 8);
+        const bar = document.createElement("div"); bar.className = "tfilter";
+        bar.innerHTML = `<label for="${id}">Filter rows</label><input type="search" id="${id}" autocomplete="off" placeholder="Type to narrow ${rows.length} rows"><span class="summary" aria-live="polite"></span>`;
+        wrap.parentNode.insertBefore(bar, wrap);
+        const inp = bar.querySelector("input"), out = bar.querySelector(".summary");
+        const text = rows.map((r) => r.textContent.replace(/\s+/g, " ").toLowerCase());
+        let tm = 0;
+        inp.addEventListener("input", () => { clearTimeout(tm); tm = setTimeout(() => {
+          const q = inp.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+          let n = 0; rows.forEach((r, i) => { const ok = q.every((w) => text[i].includes(w)); r.hidden = !ok; if (ok) n++; });
+          out.textContent = q.length ? `${n} of ${rows.length} shown` : "";
+        }, 120); });
+      }
+    });
+  }
+
+  /* Pins: a short list of members/offices kept per chamber in this browser, opened in Compare. */
+  let PINS_MEM = {};
+  const pinKey = () => "pins:" + CH.id;
+  function getPins() {
+    try { const v = JSON.parse(localStorage.getItem(pinKey()) || "[]"); if (Array.isArray(v)) return v.filter((x) => typeof x === "string").slice(0, 4); } catch (e) { /* storage unavailable */ }
+    return (PINS_MEM[CH.id] || []).slice();
+  }
+  function setPins(list) {
+    list = list.slice(0, 4); PINS_MEM[CH.id] = list;
+    try { localStorage.setItem(pinKey(), JSON.stringify(list)); } catch (e) { /* storage unavailable: pins last this visit */ }
+    renderPinTray();
+  }
+  const pinMini = (name) => { const on = getPins().includes(name); return `<button type="button" class="pin-mini${on ? " on" : ""}" data-pin="${esc(name)}" aria-pressed="${on}" aria-label="Pin ${esc(name)} to compare" data-tip="${on ? "Pinned · click to unpin" : "Pin to compare"}">${I.pin}</button>`; };
+  const pinBtn = (name) => { const on = getPins().includes(name); return `<button type="button" class="btn pin${on ? " on" : ""}" data-pin="${esc(name)}" aria-pressed="${on}">${on ? "Pinned" : "Pin to compare"}</button>`; };
+  function renderPinTray() {
+    let tray = document.getElementById("pinTray");
+    if (!CH) return;
+    const pins = getPins().filter((n) => DB.byName.get(n));
+    if (!pins.length) { if (tray) tray.remove(); document.body.classList.remove("has-tray"); return; }
+    if (!tray) { tray = document.createElement("aside"); tray.id = "pinTray"; tray.className = "pin-tray"; tray.setAttribute("aria-label", "Pinned to compare"); document.body.appendChild(tray); }
+    document.body.classList.add("has-tray");
+    tray.innerHTML = `<span class="pt-label">Pinned <b>${pins.length}</b>/4</span><ul>${pins.map((n) => { const u = DB.byName.get(n); return `<li><a href="${unitHref(u.id)}">${esc(n)}</a><button type="button" class="link" data-unpin="${esc(n)}" aria-label="Unpin ${esc(n)}">${I.x}</button></li>`; }).join("")}</ul>
+      <a class="btn primary" href="${buildHash("compare", { u: pins.join("|") })}">Compare${pins.length > 1 ? ` ${pins.length}` : ""} ${I.r}</a><button type="button" class="link" data-unpin="*">Clear</button>`;
+  }
+  function wirePins() {
+    document.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-pin], [data-unpin]");
+      if (!b) return;
+      let pins = getPins();
+      if (b.hasAttribute("data-unpin")) {
+        const n = b.getAttribute("data-unpin");
+        pins = n === "*" ? [] : pins.filter((x) => x !== n);
+        setPins(pins); announce(n === "*" ? "Cleared pins" : `Unpinned ${n}`);
+      } else {
+        const n = b.getAttribute("data-pin");
+        if (pins.includes(n)) { pins = pins.filter((x) => x !== n); announce(`Unpinned ${n}`); }
+        else if (pins.length >= 4) { announce("You can pin up to 4. Unpin one first."); b.classList.add("shake"); setTimeout(() => b.classList.remove("shake"), 400); return; }
+        else { pins.push(n); announce(`Pinned ${n}. ${pins.length} of 4 pinned.`); }
+        setPins(pins);
+      }
+      document.querySelectorAll("[data-pin]").forEach((x) => { const on = getPins().includes(x.getAttribute("data-pin")); x.classList.toggle("on", on); x.setAttribute("aria-pressed", on); if (x.classList.contains("pin-mini")) x.dataset.tip = on ? "Pinned · click to unpin" : "Pin to compare"; else x.textContent = on ? "Pinned" : "Pin to compare"; });
+    });
+  }
+
   /* Compare: units are identified by name so a comparison survives switching periods. */
   const MAX_COMPARE = 4;
   function compareNames(params) {
@@ -2361,7 +2500,7 @@
       const maxActual = Math.max(...picked.map((s) => s.actual), 1);
       body = `
       <div class="table-wrap"><table class="compare">
-        <thead><tr><th></th>${picked.map((s) => `<th scope="col"><a href="${unitHref(s.id)}">${esc(s.name)}</a> ${kindChip(s.kind)}
+        <thead><tr><th scope="col"><span class="sr-only">Measure</span></th>${picked.map((s) => `<th scope="col"><a href="${unitHref(s.id)}">${esc(s.name)}</a> ${kindChip(s.kind)}
           <button class="link remove" data-name="${esc(s.name)}" aria-label="Remove ${esc(s.name)}">${I.x}</button></th>`).join("")}</tr></thead>
         <tbody>
           ${metric("Actual spending", (s) => s.actual)}
@@ -2405,7 +2544,8 @@
         }).join("")}</div>
       </section>`;
     } else {
-      body = `<p class="empty">Pick up to ${MAX_COMPARE} members or offices above to compare them side by side.</p>`;
+      const pins = getPins().filter((n) => DB.byName.get(n));
+      body = `<p class="empty">Pick up to ${MAX_COMPARE} members or offices above to compare them side by side${pins.length ? `, or <a href="${buildHash("compare", { u: pins.join("|") })}">open your ${pins.length} pinned</a>` : `. You can also pin members from their pages and from list rows as you browse`}.</p>`;
     }
 
     app.innerHTML = `
@@ -2516,7 +2656,7 @@
       const proj = makeProjection(box, width);
       return `<svg class="map" id="${id}" viewBox="0 0 ${width} ${proj.height.toFixed(0)}" role="group" aria-label="${esc(metric.label)} by ${esc(CH.name)} district">
         ${features.map((r) => `<path d="${pathFor(r.d.geometry, proj)}" fill="${r.dim ? "var(--surface)" : scale.color(r.value)}"
-          class="district${r.dim ? " dim" : ""}" data-d="${r.d.district}" role="link" tabindex="0" aria-label="District ${r.d.district}, ${esc(r.d.member)}"></path>`).join("")}
+          class="district${r.dim ? " dim" : ""}" data-d="${r.d.district}" role="link" tabindex="0" aria-label="District ${r.d.district}, ${esc(r.d.member)}" data-tip="${esc(`${CH.abbr} ${r.d.district} · ${r.d.member || "Vacant"} · ${metric.label}: ${r.value == null ? "no data" : fmt(r.value)}`)}"></path>`).join("")}
       </svg>`;
     };
     const stateBox = bboxOf(DISTRICTS.map((d) => ({ geometry: d.geometry })));
@@ -2658,7 +2798,7 @@
       <div class="title-row district-head">
         <div><h1>${esc(CH.name)} District ${d.district} ${s ? electionChip(s, true) : ""}</h1>
           <p class="lede">${esc(d.member)}${d.party ? ` · ${esc(d.party)}` : ""}${s ? ` · <a href="${unitHref(s.id)}">member office page ${I.r}</a>` : ""}${s && (BALLOTPEDIA[CH.id] || {})[s.name] ? ` · <a href="${escUrl(BALLOTPEDIA[CH.id][s.name])}" target="_blank" rel="noopener">Ballotpedia ${I.ext}</a>` : ""} · <a href="${buildHash("sheet/" + d.district, {})}">printable fact sheet ${I.r}</a></p></div>
-        <div class="dnav"><a class="btn" href="${dHref(prevD)}" aria-label="Previous district">${I.l} ${CH.abbr} ${prevD.district}</a>${picker}<a class="btn" href="${dHref(nextD)}" aria-label="Next district">${CH.abbr} ${nextD.district} ${I.r}</a></div>
+        <div class="dnav">${s ? pinBtn(s.name) : ""}<a class="btn" href="${dHref(prevD)}" aria-label="Previous district">${I.l} ${CH.abbr} ${prevD.district}</a>${picker}<a class="btn" href="${dHref(nextD)}" aria-label="Next district">${CH.abbr} ${nextD.district} ${I.r}</a></div>
       </div>`;
 
     if (!s) {
@@ -2871,6 +3011,56 @@
     const nav = document.getElementById("mainNav"), t = document.getElementById("navToggle");
     if (!except && nav && nav.classList.contains("menu-open")) { nav.classList.remove("menu-open"); t.setAttribute("aria-expanded", "false"); }
   }
+  /* ---------- Tooltips: hover with a mouse, tap on a phone, or focus with the keyboard ---------- */
+  // Chart parts carry their numbers in title / <title>; turn those into a styled tooltip that also works on touch.
+  const TIP_SCOPE = ".cols, .bars, .stack, .hemi, svg.map, .bh-bars, .inlinebar, .lg-dots";
+  function prepareTips(root) {
+    root.querySelectorAll(`${TIP_SCOPE.split(", ").map((s) => s + " [title]").join(", ")}, ${TIP_SCOPE.split(", ").map((s) => s + "[title]").join(", ")}`).forEach((el) => {
+      el.dataset.tip = el.getAttribute("title"); el.removeAttribute("title");
+    });
+    root.querySelectorAll(".hemi circle > title").forEach((t) => { const c = t.parentNode; c.dataset.tip = t.textContent; t.remove(); });
+  }
+  let tipEl = null, tipFor = null, tipPinned = false;
+  function tipShow(target, x, y) {
+    if (!tipEl) { tipEl = document.createElement("div"); tipEl.className = "tip"; tipEl.setAttribute("aria-hidden", "true"); document.body.appendChild(tipEl); }
+    tipFor = target;
+    tipEl.textContent = target.dataset.tip;
+    tipEl.classList.add("on");
+    const r = tipEl.getBoundingClientRect();
+    const vw = document.documentElement.clientWidth;
+    let left = Math.min(Math.max(8, x - r.width / 2), vw - r.width - 8);
+    let top = y - r.height - 12;
+    if (top < 8) top = y + 18;
+    tipEl.style.transform = `translate(${Math.round(left)}px, ${Math.round(top + window.scrollY)}px)`;
+  }
+  function tipHide() { if (tipEl) tipEl.classList.remove("on"); tipFor = null; tipPinned = false; }
+  function wireTips() {
+    document.addEventListener("pointermove", (e) => {
+      if (e.pointerType !== "mouse") return;
+      const t = e.target.closest && e.target.closest("[data-tip]");
+      if (t) tipShow(t, e.clientX, e.clientY); else if (!tipPinned) tipHide();
+    });
+    // On touch, the first tap on a chart part shows its numbers; a second tap on the same part follows its link.
+    document.addEventListener("click", (e) => {
+      const t = e.target.closest && e.target.closest("[data-tip]");
+      if (!t) { if (tipPinned) tipHide(); return; }
+      if (t.matches("button")) { tipHide(); return; }
+      if (e.pointerType === "mouse" || (e.detail === 0 && !e.pointerType)) return;
+      if (tipFor !== t || !tipPinned) {
+        const r = t.getBoundingClientRect();
+        tipShow(t, r.left + r.width / 2, r.top);
+        tipPinned = true;
+        if (t.closest("a[href], [role=link]")) { e.preventDefault(); e.stopPropagation(); }
+      } else tipHide();
+    }, true);
+    document.addEventListener("focusin", (e) => {
+      const t = e.target.closest && e.target.closest("[data-tip]");
+      if (t && t.matches(":focus-visible")) { const r = t.getBoundingClientRect(); tipShow(t, r.left + r.width / 2, r.top); } else if (!t) tipHide();
+    });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") tipHide(); });
+    window.addEventListener("scroll", () => { if (!tipPinned) tipHide(); }, { passive: true });
+    window.addEventListener("hashchange", tipHide);
+  }
   function wireNav() {
     const nav = document.getElementById("mainNav");
     if (!nav || nav.dataset.wired) return;
@@ -2954,6 +3144,7 @@
       default: html = viewOverview();
     }
     if (html != null) app.innerHTML = html;
+    prepareTips(app);
     // Long pages (an office, a district): an "On this page" bar that jumps to each section.
     if (view === "unit" || view === "district") {
       const heads = [...app.querySelectorAll("section.card > .card-head h2")].filter((h) => h.textContent.trim());
@@ -3020,6 +3211,8 @@
       if (sum) announce(sum.textContent.replace(/\s+/g, " ").trim());
     }
     if (view === "records" || view === "search") document.getElementById("globalSearchInput").value = params.q || "";
+    enhanceTables(app);
+    renderPinTray();
   }
 
   function syncPeriodUI() {
@@ -3098,6 +3291,7 @@
   window.addEventListener("hashchange", render);
 
   load().then(() => {
+    wireTips(); wirePins();
     wireSearchBox(document.getElementById("globalSearchInput"), document.getElementById("globalSearch"));
     render();
   }).catch((err) => {
