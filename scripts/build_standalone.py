@@ -19,7 +19,7 @@ import json
 chambers = json.loads((root / "data" / "chambers.json").read_text(encoding="utf-8"))
 files = ([p["file"] for c in chambers for p in c["periods"]] + [p["travel"] for c in chambers for p in c["periods"] if p.get("travel")]
          + [c["districts"] for c in chambers] + [f"data/{c['id']}/ballotpedia.json" for c in chambers] + [f"data/{c['id']}/members.json" for c in chambers]
-         + ["data/election_sources.json", "data/senate/payroll.json", "data/budget/legislature.json"] + [f"data/{c['id']}/campaign_finance.json" for c in chambers] + [f"data/{c['id']}/makeup.json" for c in chambers] + [f"data/{c['id']}/donations.json" for c in chambers] + [f"data/{c['id']}/demographics.json" for c in chambers]
+         + ["data/election_sources.json", "data/senate/payroll.json", "data/budget/legislature.json", "data/budget/history.json"] + [f"data/{c['id']}/campaign_finance.json" for c in chambers] + [f"data/{c['id']}/makeup.json" for c in chambers] + [f"data/{c['id']}/donations.json" for c in chambers] + [f"data/{c['id']}/demographics.json" for c in chambers]
          + [f"data/{c["id"]}/enrollment.json" for c in chambers] + [f"data/{c["id"]}/public_financing.json" for c in chambers] + [f"data/{c["id"]}/outside_money.json" for c in chambers] + [f"data/{c["id"]}/lobbying.json" for c in chambers] + [f"data/{c["id"]}/history.json" for c in chambers] + [f"data/{c["id"]}/legislation.json" for c in chambers] + ["data/limits_2026.json", "data/geo/zip_districts.json"] + ["data/vendor_donors.json"])
 bundle = {"chambers": chambers,
           "data": {f: json.loads((root / f).read_text(encoding="utf-8")) for f in files if (root / f).exists()}}

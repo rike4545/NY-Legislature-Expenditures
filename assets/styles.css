@@ -739,3 +739,9 @@ a.back { padding: 4px 0; }
 .cols.hist .col.cur .colbar { background: var(--accent); }
 .cols.hist .collabel { font-size: 10.5px; white-space: nowrap; transform: rotate(-35deg); transform-origin: top center; margin-top: 6px; height: 26px; }
 @media (max-width: 640px) { .cols.hist .colval { display: none; } .cols.hist { gap: 3px; } }
+.bh-table { width: 100%; }
+.bh-bars { width: 38%; min-width: 120px; }
+.bh-bars span { display: block; height: 7px; border-radius: 4px; }
+.bh-ap { background: color-mix(in srgb, var(--muted) 35%, transparent); margin-bottom: 3px; }
+.bh-sp { background: var(--accent); }
+.legend i.bh-ap, .legend i.bh-sp { display: inline-block; height: 10px; }

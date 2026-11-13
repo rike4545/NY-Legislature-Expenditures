@@ -76,7 +76,7 @@ def run(q):
     err = None
     for attempt in range(3):
         try:
-            with urllib.request.urlopen(url, timeout=200) as r:
+            with urllib.request.urlopen(url, timeout=540) as r:
                 return json.load(r)
         except Exception as e:  # noqa: BLE001
             err = e

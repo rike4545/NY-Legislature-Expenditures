@@ -1,0 +1,19 @@
+{
+  "note": "General Fund appropriations for the Legislature by state fiscal year (April 1 - March 31), from each year's Executive Budget agency presentation 'The Legislature' (NYS Division of the Budget). 'appropriated' is the enacted amount the following year's document reports; 'requested' is the Legislature's request when no later document was available. The Assembly figure adds the separately appropriated Assembly Ways and Means Committee.",
+  "sources": {
+    "FY 2022": "https://www.budget.ny.gov/pubs/archive/fy22/ex/agencies/pdf/legislature.pdf",
+    "FY 2024": "https://www.budget.ny.gov/pubs/archive/fy24/ex/agencies/pdf/legislature.pdf",
+    "FY 2025": "https://www.budget.ny.gov/pubs/archive/fy25/ex/agencies/pdf/legislature.pdf",
+    "FY 2026": "https://www.budget.ny.gov/pubs/archive/fy26/ex/agencies/pdf/legislature.pdf",
+    "FY 2027": "https://www.budget.ny.gov/pubs/archive/fy27/ex/agencies/pdf/legislature.pdf"
+  },
+  "years": [
+    {"fy": "2020-21", "start": "2020-04-01", "end": "2021-03-31", "kind": "appropriated", "from": "FY 2022", "senate": 102562983, "assembly": 116834168, "waysAndMeans": 6372947},
+    {"fy": "2021-22", "start": "2021-04-01", "end": "2022-03-31", "kind": "requested", "from": "FY 2022", "senate": 102562983, "assembly": 116834168, "waysAndMeans": 6372947},
+    {"fy": "2022-23", "start": "2022-04-01", "end": "2023-03-31", "kind": "appropriated", "from": "FY 2024", "senate": 108793225, "assembly": 123995977, "waysAndMeans": 6695418},
+    {"fy": "2023-24", "start": "2023-04-01", "end": "2024-03-31", "kind": "appropriated", "from": "FY 2025", "senate": 114069696, "assembly": 132515856, "waysAndMeans": 6896281},
+    {"fy": "2024-25", "start": "2024-04-01", "end": "2025-03-31", "kind": "appropriated", "from": "FY 2026", "senate": 118632484, "assembly": 137816490, "waysAndMeans": 7172132},
+    {"fy": "2025-26", "start": "2025-04-01", "end": "2026-03-31", "kind": "appropriated", "from": "FY 2027", "senate": 123970946, "assembly": 144018232, "waysAndMeans": 7494878},
+    {"fy": "2026-27", "start": "2026-04-01", "end": "2027-03-31", "kind": "requested", "from": "FY 2027", "senate": 127690074, "assembly": 148338779, "waysAndMeans": 7719724}
+  ]
+}

@@ -30,6 +30,7 @@
   const LEG = {}; // chamber id -> bills each legislator sponsored in the 2025-26 session (Open Legislation)
   let VENDOR_DONORS = null; // chamber id -> donations in depth by district (2025-26) // chamber id -> party makeup now and after the Nov 3, 2026 count // chamber id -> campaign finance by district (State Board of Elections, 2025-26)
   let BUDGET = null; // Legislature appropriations from the FY 2027 Executive Budget
+  let BUDGET_HIST = null; // appropriations by fiscal year, FY 2020-21 on
   const MEMBERS = {};     // chamber id -> {office name: {district, contact, roles, offices, assumedOffice, election}}
   let ELECTION_SOURCES = {};
   const dbFor = (periodId, chamberId) => DBS[(chamberId || CH.id) + "/" + periodId];
@@ -197,6 +198,7 @@
 
   async function loadBudget(bundled) {
     try { BUDGET = bundled ? bundled.data["data/budget/legislature.json"] || null : await (await fetch("data/budget/legislature.json")).json(); } catch (e) { BUDGET = null; }
+    try { BUDGET_HIST = bundled ? bundled.data["data/budget/history.json"] || null : await (await fetch("data/budget/history.json")).json(); } catch (e) { BUDGET_HIST = null; }
   }
   async function loadElectionSources(bundled) {
     try { ELECTION_SOURCES = bundled ? bundled.data["data/election_sources.json"] || {} : await (await fetch("data/election_sources.json")).json(); } catch (e) { ELECTION_SOURCES = {}; }
@@ -1509,6 +1511,7 @@
       </div>
       ${chambersCard()}
       ${chamberHistoryCard()}
+      ${budgetHistoryCard()}
       ${makeupCard()}
       ${periodsCard()}
       ${budgetCard()}
@@ -1629,6 +1632,25 @@
       <p class="summary">${chgShort(pLast.actual, (h.periods[last - 2] || pFirst).actual)} versus the same half a year earlier; ${chgShort(pLast.actual, pFirst.actual)} since ${esc(halfLabel(pFirst))}. Not adjusted for inflation.</p>
       ${yoy.length ? `<div class="grid two"><div><h3 class="mini">Member offices up the most from a year earlier</h3><ul class="plainlist">${yoy.slice(0, 5).map((x) => `<li>${link(x[0])} · ${money0(x[2])} → ${money0(x[1])} <span class="up">+${money0(x[3])}</span></li>`).join("")}</ul></div>
         <div><h3 class="mini">Down the most</h3><ul class="plainlist">${yoy.slice(-5).reverse().map((x) => `<li>${link(x[0])} · ${money0(x[2])} → ${money0(x[1])} <span class="down">−${money0(-x[3])}</span></li>`).join("")}</ul></div></div>` : ""}
+    </section>`;
+  }
+  function budgetHistoryCard() {
+    const B = BUDGET_HIST, h = HISTORY[CH.id];
+    if (!B || !h) return "";
+    const rows = B.years.map((y) => {
+      const ap = CH.id === "assembly" ? y.assembly + y.waysAndMeans : y.senate;
+      const halves = h.periods.filter((p) => p.start >= y.start && p.end <= y.end);
+      const spent = halves.length === 2 ? halves[0].actual + halves[1].actual : null;
+      return { y, ap, spent };
+    });
+    const max = Math.max(...rows.map((r) => Math.max(r.ap, r.spent || 0)));
+    return `<section class="card"><div class="card-head"><h2>Budget vs. spending by fiscal year</h2><span class="summary">General Fund appropriation for the ${esc(CH.name)}${CH.id === "assembly" ? " (with Ways and Means)" : ""} and what its expenditure reports show was spent</span></div>
+      <div class="table-wrap"><table class="bh-table"><caption class="sr-only">${esc(CH.name)} appropriations and spending by fiscal year</caption>
+        <thead><tr><th scope="col">Fiscal year</th><th scope="col" class="num">Appropriated</th><th scope="col" class="num">Spent</th><th scope="col" class="num">Share spent</th><th scope="col"><span class="sr-only">Chart</span></th></tr></thead>
+        <tbody>${rows.map((r) => `<tr><th scope="row">${esc(r.y.fy)}${r.y.kind === "requested" ? ` <span class="summary">(requested)</span>` : ""}</th><td class="num">${money0(r.ap)}</td><td class="num">${r.spent != null ? money0(r.spent) : `<span class="summary">${r.y.start > h.periods[h.periods.length - 1].end ? "not yet" : "no report on file"}</span>`}</td><td class="num">${r.spent != null ? pctf(r.spent / r.ap) : "—"}</td>
+          <td class="bh-bars" aria-hidden="true"><span class="bh-ap" style="width:${(r.ap / max * 100).toFixed(1)}%"></span>${r.spent != null ? `<span class="bh-sp" style="width:${(r.spent / max * 100).toFixed(1)}%"></span>` : ""}</td></tr>`).join("")}</tbody></table></div>
+      <div class="legend"><span><i class="bh-ap"></i>Appropriated</span><span><i class="bh-sp"></i>Spent</span></div>
+      <p class="summary">Appropriations come from each year's Executive Budget presentation on the Legislature (NYS Division of the Budget); a year marked requested is the Legislature's request, because the enacted figure wasn't in a later document we could read. Spent adds the two half-year expenditure reports that make up the fiscal year (April–September and October–March). Unspent appropriations can be carried into later years, so a share under 100% isn't money returned. <a href="${esc(B.sources["FY 2027"])}" target="_blank" rel="noopener">FY 2027 Executive Budget</a></p>
     </section>`;
   }
   function chambersCard() {
