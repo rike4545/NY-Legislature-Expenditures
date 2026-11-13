@@ -384,12 +384,12 @@
     return `<section class="card profile">
       <div class="profile-grid">
         <div>
-          <h3 class="mini">Term of office</h3>
+          <h2 class="mini">Term of office</h2>
           <p>Current term: <strong>Jan 1, 2025 – Dec 31, 2026</strong> (two-year term; all ${esc(CH.name)} seats were on the Nov 3, 2026 ballot for the term starting Jan 1, 2027).</p>
           ${m.assumedOffice ? `<p class="summary">${special ? `Took office ${esc(m.assumedOffice)} (special election), serving the rest of the term.` : `In current district since ${esc(m.assumedOffice)}`} <span title="Ballotpedia's 'assumed office' date for the current district number; members who served before the 2022 redistricting can show a later date">(Ballotpedia)</span></p>` : ""}
         </div>
         <div>
-          <h3 class="mini">2026 election</h3>
+          <h2 class="mini">2026 election</h2>
           ${st ? `<p>${electionChip(s)} ${st.cls === "change" ? `<span class="echip change soft">New member in Jan 2027</span>` : ""}</p>
           ${st.e ? `${(() => { const parts = [st.e.note ? esc(st.e.note) : "", st.e.successor ? `${successorLabel(st.e)}: <strong>${esc(st.e.successor)}</strong>${st.e.successorParty ? ` (${esc(st.e.successorParty)})` : ""}` : st.cls === "change" ? "Successor not yet reported in our sources" : ""].filter(Boolean); return parts.length ? `<p>${parts.join(". ")}.</p>` : ""; })()}
             ${boeResult(m)}
@@ -397,18 +397,18 @@
           : `${boeResult(m)}<p class="summary">Not among the departures or losses reported in our sources (City &amp; State, Greenberg Traurig, Wikipedia). Results are unofficial until certified.</p>`}` : ""}
         </div>
         <div>
-          <h3 class="mini">Offices</h3>
+          <h2 class="mini">Offices</h2>
           ${c.districtOffice ? `<p><strong>District office</strong><br>${esc(c.districtOffice)}${c.districtPhone ? `<br>${esc(c.districtPhone)}` : ""}</p>` : ""}
           ${c.albanyPhone || c.email ? `<p><strong>Albany</strong>${c.albanyPhone ? `<br>${esc(c.albanyPhone)}` : ""}${c.email ? `<br><a href="mailto:${esc(c.email)}">${esc(c.email)}</a>` : ""}</p>` : `<p class="summary">No contact details in the state's district layer.</p>`}
         </div>
       </div>
       ${roleGroups.length || linked.length || stipends.length || elsewhere.size ? `<div class="profile-grid">
-        ${roleGroups.length ? `<div><h3 class="mini">Current posts</h3><ul class="plainlist">${roleGroups.flat().map((r) => `<li><span class="echip ${r.kind === "leadership" ? "lead" : "post"}">${r.kind === "leadership" ? "Leadership" : r.kind === "caucus" ? "Caucus / task force" : "Committee"}</span> ${esc(r.role)}</li>`).join("")}</ul></div>` : ""}
+        ${roleGroups.length ? `<div><h2 class="mini">Current posts</h2><ul class="plainlist">${roleGroups.flat().map((r) => `<li><span class="echip ${r.kind === "leadership" ? "lead" : "post"}">${r.kind === "leadership" ? "Leadership" : r.kind === "caucus" ? "Caucus / task force" : "Committee"}</span> ${esc(r.role)}</li>`).join("")}</ul></div>` : ""}
         ${linked.length || stipends.length ? `<div>
-          ${linked.length ? `<h3 class="mini">Central offices tied to these posts</h3><ul class="plainlist">${linked.map((u) => `<li><a href="${unitHref(u.id)}">${esc(u.name)}</a> · ${money0(u.actual)}${u.staffCount ? ` · ${u.staffCount} people paid` : ""}</li>`).join("")}</ul>` : ""}
-          ${stipends.length ? `<h3 class="mini">Leadership / committee pay this period</h3><ul class="plainlist">${stipends.map((r) => `<li>${esc(titleCase(DB.descs[r.d]))} · <strong>${money(r.amt)}</strong></li>`).join("")}</ul>` : ""}
+          ${linked.length ? `<h2 class="mini">Central offices tied to these posts</h2><ul class="plainlist">${linked.map((u) => `<li><a href="${unitHref(u.id)}">${esc(u.name)}</a> · ${money0(u.actual)}${u.staffCount ? ` · ${u.staffCount} people paid` : ""}</li>`).join("")}</ul>` : ""}
+          ${stipends.length ? `<h2 class="mini">Leadership / committee pay this period</h2><ul class="plainlist">${stipends.map((r) => `<li>${esc(titleCase(DB.descs[r.d]))} · <strong>${money(r.amt)}</strong></li>`).join("")}</ul>` : ""}
         </div>` : ""}
-        ${elsewhere.size ? `<div><h3 class="mini">Staff also paid by other offices</h3><ul class="plainlist">${[...elsewhere.entries()].sort((a, b) => b[1].amt - a[1].amt).slice(0, 8).map(([u, x]) => `<li><a href="${unitHref(u)}">${esc(DB.units[u].name)}</a> · ${x.people.size} ${x.people.size === 1 ? "person" : "people"} · ${money0(x.amt)}</li>`).join("")}</ul></div>` : ""}
+        ${elsewhere.size ? `<div><h2 class="mini">Staff also paid by other offices</h2><ul class="plainlist">${[...elsewhere.entries()].sort((a, b) => b[1].amt - a[1].amt).slice(0, 8).map(([u, x]) => `<li><a href="${unitHref(u)}">${esc(DB.units[u].name)}</a> · ${x.people.size} ${x.people.size === 1 ? "person" : "people"} · ${money0(x.amt)}</li>`).join("")}</ul></div>` : ""}
       </div>` : ""}
       <p class="summary">Posts are current (2025–2026 session) from nyassembly.gov and Wikipedia; offices and contacts from the state's district data. The central offices listed are the ones these posts direct (e.g. a committee's own office).</p>
     </section>`;
@@ -434,7 +434,7 @@
   }
   function sortHeader(label, key, state, cls = "") {
     const active = state.sort === key;
-    return `<th class="sortable ${cls}${active ? " sorted" + (state.dir === "asc" ? " asc" : "") : ""}" data-sort="${key}" scope="col">${label}</th>`;
+    return `<th class="sortable ${cls}${active ? " sorted" + (state.dir === "asc" ? " asc" : "") : ""}" data-sort="${key}" scope="col"${active ? ` aria-sort="${state.dir === "asc" ? "ascending" : "descending"}"` : ""}><button type="button" class="th-sort">${label}<span class="sr-only">${active ? `, sorted ${state.dir === "asc" ? "ascending" : "descending"}` : ", sortable"}</span></button></th>`;
   }
   function wireSortHeaders(root, state, onChange, defaultDir = {}) {
     root.querySelectorAll("th.sortable").forEach((th) => th.addEventListener("click", () => {
@@ -495,7 +495,7 @@
         <div class="hero-text">
         <h1>The ${esc(CH.name)} spent <span class="hero-num">${compact(meta.totalActual)}</span> in ${esc(periodName(DB))}</h1>
         <p class="hero-sub">That's about <strong>${compact(meta.totalActual / DB.periodMonths)} a month</strong> on payroll, operations and travel${chg ? `, <span class="${chg.diff >= 0 ? "up" : "down"}">${chg.diff >= 0 ? I.up : I.down}${Math.abs(chg.pct).toFixed(1)}% ${chg.diff >= 0 ? "more" : "less"}</span> than ${esc(periodName(PREV))}` : ""}. Every one of the report's ${int.format(meta.rowCount)} lines is here, across ${meta.members} member offices and ${meta.offices} central offices and committees.</p>
-        <form class="hero-search" id="heroSearch" role="search"><input type="search" id="heroSearchInput" placeholder="Search a member, staffer, vendor or expense…" aria-label="Search all records"><button class="primary" type="submit">Search</button></form>
+        <form class="hero-search" id="heroSearch" role="search" aria-label="Search this report"><input type="search" id="heroSearchInput" placeholder="Search a member, staffer, vendor or expense…" aria-label="Search this report"><button class="primary" type="submit">Search</button></form>
         </div>
         ${heroMap()}
       </section>
@@ -577,7 +577,7 @@
     const first = ps[0], last = ps[ps.length - 1];
     const chg = first.totalActual ? (last.totalActual / first.totalActual - 1) * 100 : 0;
     return `<section class="card"><div class="card-head"><h2>Every ${esc(CH.name)} report on file</h2><span class="summary">actual spending per six-month report · ${chg >= 0 ? "+" : ""}${chg.toFixed(1)}% from ${esc(lab(first))} to ${esc(lab(last))} · click a report to open it</span></div>
-      <div class="cols">${ps.map((p) => `<a class="col${p.id === DB.id ? " me" : ""}" href="${buildHash("", { p: p.id })}" title="${esc(lab(p))}: ${money(p.totalActual)} actual, ${int.format(p.rowCount)} lines">
+      <div class="cols">${ps.map((p) => `<a class="col${p.id === DB.id ? " me" : ""}" href="${buildHash("", { p: p.id })}" title="${esc(lab(p))}: ${money(p.totalActual)} actual, ${int.format(p.rowCount)} lines" aria-label="${esc(lab(p))}: ${money(p.totalActual)} actual spending${p.id === DB.id ? " (showing)" : ""}"${p.id === DB.id ? ' aria-current="page"' : ""}>
         <span class="colval">${compact(p.totalActual)}</span>
         <span class="colbar" style="height:${(p.totalActual / max * 100).toFixed(1)}%"></span>
         <span class="collabel">${esc(lab(p))}</span></a>`).join("")}</div></section>`;
@@ -787,8 +787,8 @@
     const sorted = trips.slice().sort((a, b) => (a.begin || "").localeCompare(b.begin || ""));
     return `<section class="card"><div class="card-head"><h2>Member trips</h2><span class="summary">${trips.length} trips · ${int.format(days)} travel days${hasMiles ? ` · ≈${int.format(Math.round(miles))} miles` : ""} · ${money(trips.reduce((a, t) => a + t.total, 0))}</span></div>
       <div class="grid two">
-        <div><h3 class="mini">What it paid for</h3>${bars(cats.map((c) => ({ label: c.label, value: c.value })))}</div>
-        <div><h3 class="mini">Destinations</h3><ul class="bars plain">${dest.slice(0, 8).map((d) => `<li><span class="name">${esc(d.key)} · ${d.count} ${d.count === 1 ? "trip" : "trips"}</span><span class="amt">${money0(d.total)}</span></li>`).join("")}</ul></div>
+        <div><h2 class="mini">What it paid for</h2>${bars(cats.map((c) => ({ label: c.label, value: c.value })))}</div>
+        <div><h2 class="mini">Destinations</h2><ul class="bars plain">${dest.slice(0, 8).map((d) => `<li><span class="name">${esc(d.key)} · ${d.count} ${d.count === 1 ? "trip" : "trips"}</span><span class="amt">${money0(d.total)}</span></li>`).join("")}</ul></div>
       </div>
       <div class="table-wrap" style="margin-top:12px"><table>
         <thead><tr><th>Travel dates</th><th>Destination</th><th>Purpose</th>${cols.map(({ c }) => `<th class="num">${esc(c)}</th>`).join("")}${hasMiles ? `<th class="num" title="Mileage reimbursement ÷ IRS rate on the trip's start date">≈ Miles</th>` : ""}<th class="num">Total</th></tr></thead>
@@ -1089,7 +1089,7 @@
   function columns(series, opts = {}) {
     const max = opts.max || Math.max(...series.map((x) => x.total), 1);
     return `<div class="cols${opts.small ? " small" : ""}">${series.map((m) => `
-      <a class="col" ${m.href ? `href="${m.href}"` : ""} title="${monthLabel(m.key)}: ${money(m.total)}">
+      <a class="col" ${m.href ? `href="${m.href}"` : ""} title="${monthLabel(m.key)}: ${money(m.total)}" aria-label="${monthLabel(m.key)}: ${money(m.total)}">
         <span class="colval">${m.total ? compact(m.total) : "—"}</span>
         <span class="colbar" style="height:${(Math.max(m.total, 0) / max * 100).toFixed(1)}%"></span>
         <span class="collabel">${monthLabel(m.key)}</span>
@@ -1156,7 +1156,7 @@
         <div class="grid compare-months">${(() => {
           const series = picked.map((s) => monthlyFor(DB, s.id));
           const shared = Math.max(1, ...series.flat().map((m) => m.total));
-          return picked.map((s, i) => `<div><h3 class="mini">${esc(s.name)}</h3>${columns(series[i], { small: true, max: shared })}</div>`).join("");
+          return picked.map((s, i) => `<div><h2 class="mini">${esc(s.name)}</h2>${columns(series[i], { small: true, max: shared })}</div>`).join("");
         })()}</div>
       </section>
 
@@ -1164,7 +1164,7 @@
         <div class="grid compare-months">${picked.map((s) => {
           const mo = DB.records.filter((r) => r.u === s.id && DB.types[r.t].group === "mo");
           const top = sumBy(mo, (r) => r.d).sort((a, b) => b.total - a.total).slice(0, 6);
-          return `<div><h3 class="mini">${esc(s.name)}</h3>${bars(top.map((v) => ({ label: titleCase(DB.descs[v.key]), value: v.total })))}</div>`;
+          return `<div><h2 class="mini">${esc(s.name)}</h2>${bars(top.map((v) => ({ label: titleCase(DB.descs[v.key]), value: v.total })))}</div>`;
         }).join("")}</div>
       </section>`;
     } else {
@@ -1271,9 +1271,9 @@
 
     const panel = (features, box, width, id) => {
       const proj = makeProjection(box, width);
-      return `<svg class="map" id="${id}" viewBox="0 0 ${width} ${proj.height.toFixed(0)}" role="img" aria-label="${esc(metric.label)} by ${esc(CH.name)} district">
+      return `<svg class="map" id="${id}" viewBox="0 0 ${width} ${proj.height.toFixed(0)}" role="group" aria-label="${esc(metric.label)} by ${esc(CH.name)} district">
         ${features.map((r) => `<path d="${pathFor(r.d.geometry, proj)}" fill="${r.dim ? "var(--surface)" : scale.color(r.value)}"
-          class="district${r.dim ? " dim" : ""}" data-d="${r.d.district}" tabindex="0" aria-label="District ${r.d.district}, ${esc(r.d.member)}"></path>`).join("")}
+          class="district${r.dim ? " dim" : ""}" data-d="${r.d.district}" role="link" tabindex="0" aria-label="District ${r.d.district}, ${esc(r.d.member)}"></path>`).join("")}
       </svg>`;
     };
     const stateBox = bboxOf(DISTRICTS.map((d) => ({ geometry: d.geometry })));
@@ -1396,9 +1396,9 @@
     const box = [fb[0] - padX, fb[1] - padY, fb[2] + padX, fb[3] + padY];
     const proj = makeProjection(box, 560);
     const scale = binsFor(DISTRICTS.map((x) => (unitOf(x) ? unitOf(x).actual : null)), false);
-    const zoomSvg = `<svg class="map" id="mapZoom" viewBox="0 0 560 ${proj.height.toFixed(0)}" role="img" aria-label="District ${d.district} and neighboring districts">
+    const zoomSvg = `<svg class="map" id="mapZoom" viewBox="0 0 560 ${proj.height.toFixed(0)}" role="group" aria-label="District ${d.district} and neighboring districts">
       ${focus.map((x) => { const u = unitOf(x); return `<path d="${pathFor(x.geometry, proj)}" class="district${x === d ? " focus" : ""}" data-d="${x.district}"
-        fill="${scale.color(u ? u.actual : null)}" tabindex="0" aria-label="District ${x.district}"></path>`; }).join("")}
+        fill="${scale.color(u ? u.actual : null)}" role="link" tabindex="0" aria-label="District ${x.district}"></path>`; }).join("")}
       ${focus.map((x) => { const b = bboxCache(x); const [cx, cy] = proj.pt([(b[0] + b[2]) / 2, (b[1] + b[3]) / 2]); return `<text x="${cx}" y="${cy}" class="dlabel${x === d ? " focus" : ""}">${x.district}</text>`; }).join("")}
     </svg>`;
     const stateBox = bboxOf(DISTRICTS.map((x) => ({ geometry: x.geometry })));
@@ -1488,6 +1488,13 @@
     return null;
   }
   document.addEventListener("keydown", (e) => {
+    // "/" jumps to the site search, unless the person is already typing somewhere.
+    if (e.key === "/" && !e.metaKey && !e.ctrlKey && !e.altKey && !/input|select|textarea/i.test(e.target.tagName || "") && !e.target.isContentEditable) {
+      e.preventDefault();
+      document.getElementById("globalSearchInput").focus();
+    }
+  });
+  document.addEventListener("keydown", (e) => {
     if (parseHash().view !== "district" || /input|select|textarea/i.test((e.target.tagName || ""))) return;
     if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
     const a = app.querySelector(`.dnav a[aria-label="${e.key === "ArrowLeft" ? "Previous" : "Next"} district"]`);
@@ -1503,6 +1510,16 @@
       : `"Allocated operational expenses" are each office's share of postage and supplies. The Senate's report notes they are allocated back to offices after the fact, that the original vouchers appear under the central offices (Post Office and Senate Supply), and that the amounts are for informational purposes only.`;
     return `<div class="about">
       <h1>About the data</h1>
+      <section class="card a11y" id="accessibility" aria-labelledby="a11y-h">
+        <h2 id="a11y-h">Accessibility</h2>
+        <ul>
+          <li><strong>Keyboard.</strong> Every link, button, filter, sortable column and map district can be reached with Tab and used with Enter or Space. Press <kbd>/</kbd> to jump to the search box. "Skip to main content" is the first stop on every page.</li>
+          <li><strong>Screen readers.</strong> Page changes and updated result counts are announced; charts and map districts have spoken labels with their figures, and every chart's numbers are also in a table or list on the same page.</li>
+          <li><strong>Color and contrast.</strong> Text meets WCAG AA contrast in light and dark themes. The theme follows your device unless you pick Light or Dark with the switch in the header. Charts never rely on color alone: amounts are always written out.</li>
+          <li><strong>Motion and zoom.</strong> Animations are turned off when your device asks for reduced motion, and the layout reflows at 200% zoom and on phones. Windows high-contrast mode keeps chart bars and map districts visible.</li>
+        </ul>
+        <p class="summary">Something hard to use? <a href="https://github.com/rike4545/NYS-Assembly-Expenditures/issues" target="_blank" rel="noopener">Open an issue on GitHub</a>.</p>
+      </section>
       <p class="lede">This site presents the semi-annual Expenditure Reports of the New York State Assembly and the New York State Senate. Every line in each original file is included; nothing is added or removed. Use the chamber buttons and period menu at the top to switch. You're viewing the <strong>${esc(CH.name)}</strong>.</p>
       <section class="card"><h2>Reports included</h2><div class="table-wrap"><table>
         <thead><tr><th>Chamber</th><th>Period</th><th>Source file</th><th class="num">Lines</th><th class="num">Actual spending</th><th class="num">Allocated</th></tr></thead>
@@ -1564,10 +1581,55 @@
   }
   function setActiveTab(view) {
     const tab = { overview: "overview", units: "units", unit: "units", records: "records", payees: "payees", about: "about", compare: "compare", map: "map", district: "map", salaries: "salaries", person: "salaries" }[view] || "overview";
-    document.querySelectorAll(".tabs a").forEach((a) => a.classList.toggle("active", a.dataset.tab === tab));
+    document.querySelectorAll(".tabs a").forEach((a) => { const on = a.dataset.tab === tab; a.classList.toggle("active", on); if (on) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
   }
   let lastView = "";
+  let booted = false;
+  let liveTimer = 0;
+  function announce(text) {
+    const el = document.getElementById("liveRegion");
+    if (!el) return;
+    el.textContent = "";
+    clearTimeout(liveTimer);
+    liveTimer = setTimeout(() => { el.textContent = text; }, 120);
+  }
+
+  /* Color theme: Auto follows the system setting; Light and Dark override it and are remembered. */
+  const THEMES = ["auto", "light", "dark"];
+  const THEME_ICON = {
+    auto: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 4a8 8 0 0 1 0 16Z" fill="currentColor"/></svg>',
+    light: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.5" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+    dark: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z" fill="currentColor"/></svg>',
+  };
+  const THEME_NAME = { auto: "automatic (follows your device)", light: "light", dark: "dark" };
+  function currentTheme() { return document.documentElement.dataset.theme || "auto"; }
+  function paintThemeButton() {
+    const b = document.getElementById("themeToggle");
+    if (!b) return;
+    const t = currentTheme();
+    const next = THEMES[(THEMES.indexOf(t) + 1) % THEMES.length];
+    b.innerHTML = `${THEME_ICON[t]}<span class="theme-label">${t === "auto" ? "Auto" : t === "light" ? "Light" : "Dark"}</span>`;
+    b.setAttribute("aria-label", `Color theme: ${THEME_NAME[t]}. Switch to ${next}.`);
+    b.title = `Theme: ${THEME_NAME[t]} — click for ${next}`;
+  }
+  function wireTheme() {
+    const b = document.getElementById("themeToggle");
+    if (!b || b.dataset.wired) return;
+    b.dataset.wired = "1";
+    b.addEventListener("click", () => {
+      const next = THEMES[(THEMES.indexOf(currentTheme()) + 1) % THEMES.length];
+      if (next === "auto") delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = next;
+      try { if (next === "auto") localStorage.removeItem("theme"); else localStorage.setItem("theme", next); } catch (e) { /* storage unavailable: theme lasts this visit */ }
+      paintThemeButton();
+      announce(`Color theme: ${THEME_NAME[next]}`);
+      render();
+    });
+    paintThemeButton();
+    const skip = document.getElementById("skipLink");
+    if (skip) skip.addEventListener("click", (e) => { e.preventDefault(); const h1 = app.querySelector("h1") || app; h1.setAttribute("tabindex", "-1"); h1.focus(); });
+  }
   function render() {
+    wireTheme();
     if (!CHAMBERS.length) return;
     const { view, arg, params } = parseHash();
     const before = DB && CH ? CH.id + DB.id : "";
@@ -1584,7 +1646,7 @@
       case "payees": html = viewPayees(params); break;
       case "salaries": html = viewSalaries(params); break;
       case "person": html = viewPerson(params); break;
-      case "about": html = viewAbout(); break;
+      case "about": html = viewAbout(); if (params.s) setTimeout(() => { const t = document.getElementById(params.s); if (t) { t.setAttribute("tabindex", "-1"); t.scrollIntoView(); t.focus({ preventScroll: true }); } }, 0); break;
       case "compare": html = viewCompare(params); break;
       case "map": html = viewMap(params); break;
       case "district": html = viewDistrict(arg); break;
@@ -1594,7 +1656,19 @@
     const hs = app.querySelector("#heroSearch");
     if (hs) hs.addEventListener("submit", (e) => { e.preventDefault(); go("records", { q: app.querySelector("#heroSearchInput").value.trim() }); });
     const key = view + (arg || "");
-    if (key !== lastView) { window.scrollTo(0, 0); lastView = key; }
+    if (key !== lastView) {
+      const first = !lastView && !booted;
+      window.scrollTo(0, 0); lastView = key;
+      if (!first) {
+        const h1 = app.querySelector("h1");
+        if (h1) { h1.setAttribute("tabindex", "-1"); h1.focus({ preventScroll: true }); }
+        announce(`${(h1 && h1.textContent.trim()) || "Page"} · ${CH.name} · ${periodName(DB)}`);
+      }
+      booted = true;
+    } else {
+      const sum = app.querySelector(".toolbar .summary");
+      if (sum) announce(sum.textContent.replace(/\s+/g, " ").trim());
+    }
     if (view === "records") document.getElementById("globalSearchInput").value = params.q || "";
   }
 
@@ -1611,7 +1685,7 @@
     const list = [...all.values()].sort((a, b) => b.pm.end.localeCompare(a.pm.end));
     if (sel.dataset.chamber !== CH.id) {
       sel.innerHTML = list.map(({ pm, chambers }) => {
-        const only = chambers.length < CHAMBERS.length ? ` · ${chambers.map((c) => c.name).join(", ")} only` : "";
+        const only = chambers.length < CHAMBERS.length ? ` (${chambers.map((c) => c.name).join(", ")})` : "";
         return `<option value="${esc(pm.id)}">${esc(`${fmtShort(pm.start)} – ${fmtShort(pm.end)}`)}${esc(only)}</option>`;
       }).join("");
       sel.dataset.chamber = CH.id;
