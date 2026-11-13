@@ -38,7 +38,7 @@ jobs:
           cp index.html _site/
           cp -r assets _site/
           cp data/chambers.json data/election_sources.json _site/data/
-          for c in assembly senate; do mkdir -p _site/data/$c && cp -r data/$c/periods data/$c/districts.json data/$c/ballotpedia.json data/$c/members.json _site/data/$c/; [ -d data/$c/travel ] && cp -r data/$c/travel _site/data/$c/; if [ -f data/$c/payroll.json ]; then cp data/$c/payroll.json _site/data/$c/; fi; cp data/$c/campaign_finance.json data/$c/makeup.json _site/data/$c/; done
+          for c in assembly senate; do mkdir -p _site/data/$c && cp -r data/$c/periods data/$c/districts.json data/$c/ballotpedia.json data/$c/members.json _site/data/$c/; [ -d data/$c/travel ] && cp -r data/$c/travel _site/data/$c/; if [ -f data/$c/payroll.json ]; then cp data/$c/payroll.json _site/data/$c/; fi; cp data/$c/campaign_finance.json data/$c/makeup.json data/$c/donations.json _site/data/$c/; done
           mkdir -p _site/data/budget && cp data/budget/legislature.json _site/data/budget/
           cp docs/social-preview.png _site/
           touch _site/.nojekyll

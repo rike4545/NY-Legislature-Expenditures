@@ -571,3 +571,15 @@ svg.lg[viewBox="0 0 24 12"] { width: 26px; }
 .makeup-sum .pd { color: var(--pD); font-weight: 700; } .makeup-sum .pr { color: var(--pR); font-weight: 700; }
 @media (max-width: 640px) { .makeup-grid { grid-template-columns: 1fr; } }
 @media (forced-colors: active) { .seat, .boxtrack span, .hemi svg { forced-color-adjust: none; } }
+
+/* Donations in depth */
+.g-in { background: var(--cf-d); } .g-ny { background: var(--cf-a); } .g-out { background: var(--cf-b); } .g-unk { background: var(--pV); }
+.legend i.g-in, .legend i.g-ny, .legend i.g-out, .legend i.g-unk { border-radius: 3px; }
+.stack.big { height: 18px; border-radius: 6px; overflow: hidden; display: flex; }
+.stack.big span { display: block; height: 100%; }
+.grid.kpis.small .kpi .value, .grid.kpis.small .value { font-size: 22px; }
+.inlinebar { display: inline-block; width: 70px; height: 6px; margin-right: 8px; border-radius: 3px; background: var(--accent-soft); vertical-align: middle; overflow: hidden; }
+.inlinebar span { display: block; height: 100%; background: var(--accent); }
+.card.dn h3.mini { font-size: 13px; margin: 0 0 6px; }
+@media (max-width: 640px) { .inlinebar { display: none; } }
+@media (forced-colors: active) { .stack.big span, .inlinebar span { forced-color-adjust: none; } }

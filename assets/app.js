@@ -18,7 +18,8 @@
   let DISTRICT_BY_UNIT = new Map();
   const BALLOTPEDIA = {}; // chamber id -> {office name: profile url}
   const CAMPAIGN = {};
-  const MAKEUP = {}; // chamber id -> party makeup now and after the Nov 3, 2026 count // chamber id -> campaign finance by district (State Board of Elections, 2025-26)
+  const MAKEUP = {};
+  const DONATIONS = {}; // chamber id -> donations in depth by district (2025-26) // chamber id -> party makeup now and after the Nov 3, 2026 count // chamber id -> campaign finance by district (State Board of Elections, 2025-26)
   let BUDGET = null; // Legislature appropriations from the FY 2027 Executive Budget
   const MEMBERS = {};     // chamber id -> {office name: {district, contact, roles, offices, assumedOffice, election}}
   let ELECTION_SOURCES = {};
@@ -140,6 +141,10 @@
         const bpFile = `data/${ch.id}/ballotpedia.json`;
         BALLOTPEDIA[ch.id] = bundled ? bundled.data[bpFile] || {} : await (await fetch(bpFile)).json();
       } catch (e) { BALLOTPEDIA[ch.id] = {}; }
+      try {
+        const dnFile = `data/${ch.id}/donations.json`;
+        DONATIONS[ch.id] = bundled ? bundled.data[dnFile] || null : await (await fetch(dnFile)).json();
+      } catch (e) { DONATIONS[ch.id] = null; }
       try {
         const mkFile = `data/${ch.id}/makeup.json`;
         MAKEUP[ch.id] = bundled ? bundled.data[mkFile] || null : await (await fetch(mkFile)).json();
@@ -581,10 +586,93 @@
           <td class="num">${c.small[0] ? int.format(c.small[0]) : "—"}</td>
           <td class="num">${money0(c.spent)}</td></tr>`; }).join("")}</tbody></table></div>
         <div class="legend"><span><i class="cf-a"></i>Individuals</span><span><i class="cf-b"></i>Corporations</span><span><i class="cf-c"></i>PACs, unions &amp; other</span><span><i class="cf-d"></i>In-kind</span><span><i class="cf-g"></i>Transfers in</span></div>` : `<p class="summary">No 2025–26 contributions found for a committee we could link to a candidate in this district.</p>`}
+      ${DONATIONS[CH.id] && DONATIONS[CH.id].districts[String(district)] ? `<p><a class="btn" href="${buildHash("donations/" + district, {})}">Donations in depth: donors, where they live, biggest organizational donors ${I.r}</a></p>` : ""}
       ${unlinked.length ? `<p class="summary">Also registered here, with no linked committee activity: ${unlinked.map((c) => esc(c.name)).join(", ")}.</p>` : ""}
       <p class="summary">Itemized contributions and expenditures filed with the <a href="https://publicreporting.elections.ny.gov/" target="_blank" rel="noopener">NYS Board of Elections</a> for 2025 and 2026 (<a href="https://data.ny.gov/d/4j2b-6a2j" target="_blank" rel="noopener">data.ny.gov</a>). Committees are linked to candidates by name, so each committee is listed; public matching funds from the Public Campaign Finance Board aren't included. Raised counts monetary and in-kind contributions plus transfers from other committees.</p>
     </section>`;
   }
+  /* ---------- Donations in depth ---------- */
+  const DN_GEO = [["inDistrict", "In the district", "g-in"], ["restOfNy", "Elsewhere in New York", "g-ny"], ["outOfState", "Out of state", "g-out"], ["unknown", "Address unclear", "g-unk"]];
+  function dnTotals(c) {
+    const orgs = Object.values(c.types).reduce((a, b) => a + b, 0);
+    const smallDonors = c.sizes[0][0] + c.sizes[1][0];
+    return { monetary: orgs, individuals: c.individuals, smallShare: c.donors ? smallDonors / c.donors : 0, inShareAmt: c.individuals ? c.inDistrict[1] / c.individuals : 0, inShareDonors: c.donors ? c.inDistrict[0] / c.donors : 0, outShareAmt: c.individuals ? c.outOfState[1] / c.individuals : 0 };
+  }
+  const pctf = (x) => (x * 100).toFixed(0) + "%";
+  function viewDonations(params) {
+    const dn = DONATIONS[CH.id];
+    if (!dn) return `<h1>Donations</h1><p class="empty">Donation details aren't available.</p>`;
+    const state = { sort: params.sort || "monetary", dir: params.dir || "desc" };
+    const rows = [];
+    for (const [d, cands] of Object.entries(dn.districts)) {
+      const dist = DISTRICTS.find((x) => String(x.district) === d);
+      const tot = cands.reduce((a, c) => { const t = dnTotals(c); a.monetary += t.monetary; a.individuals += c.individuals; a.donors += c.donors; a.inAmt += c.inDistrict[1]; a.outAmt += c.outOfState[1]; a.small += c.sizes[0][0] + c.sizes[1][0]; return a; }, { monetary: 0, individuals: 0, donors: 0, inAmt: 0, outAmt: 0, small: 0 });
+      rows.push({ d: Number(d), member: dist ? dist.member : "", cands: cands.length, ...tot, inShare: tot.individuals ? tot.inAmt / tot.individuals : 0, outShare: tot.individuals ? tot.outAmt / tot.individuals : 0, smallShare: tot.donors ? tot.small / tot.donors : 0, orgShare: tot.monetary ? 1 - tot.individuals / tot.monetary : 0 });
+    }
+    const key = { district: (r) => r.d, monetary: (r) => r.monetary, donors: (r) => r.donors, inShare: (r) => r.inShare, outShare: (r) => r.outShare, smallShare: (r) => r.smallShare, orgShare: (r) => r.orgShare, cands: (r) => r.cands }[state.sort] || ((r) => r.monetary);
+    rows.sort((a, b) => (key(a) - key(b)) * (state.dir === "asc" ? 1 : -1));
+    const all = rows.reduce((a, r) => { a.m += r.monetary; a.i += r.individuals; a.in += r.inAmt; a.out += r.outAmt; a.dn += r.donors; return a; }, { m: 0, i: 0, in: 0, out: 0, dn: 0 });
+    const maxM = Math.max(1, ...rows.map((r) => r.monetary));
+    setTimeout(() => wireSortHeaders(app, state, (st) => go("donations", { sort: st.sort, dir: st.dir }, true), { district: "asc" }), 0);
+    return `<h1>Donations by district</h1>
+      <p class="lede">Itemized monetary contributions to ${esc(CH.name)} candidates in 2025 and 2026, district by district: who gave, from where, and how much. Open a district for each candidate's donors, money by month and biggest organizational donors.</p>
+      <div class="grid kpis">
+        ${kpi("Itemized contributions", compact(all.m), `${rows.length} districts with reported money`)}
+        ${kpi("From individuals", pctf(all.m ? all.i / all.m : 0), `${int.format(all.dn)} donor–candidate pairs`)}
+        ${kpi("Individual money from inside the district", pctf(all.i ? all.in / all.i : 0), "estimated from donor ZIP codes")}
+        ${kpi("Individual money from out of state", pctf(all.i ? all.out / all.i : 0), "")}
+      </div>
+      <div class="table-wrap"><table>
+        <caption class="sr-only">Donations by ${esc(CH.name)} district, sortable</caption>
+        <thead><tr>${sortHeader("District", "district", state)}<th scope="col">Member now</th>${sortHeader("Candidates", "cands", state, "num")}${sortHeader("Contributions", "monetary", state, "num")}${sortHeader("Donors", "donors", state, "num")}${sortHeader("From organizations", "orgShare", state, "num")}${sortHeader("In-district $", "inShare", state, "num")}${sortHeader("Out-of-state $", "outShare", state, "num")}${sortHeader("Donors ≤ $250", "smallShare", state, "num")}</tr></thead>
+        <tbody>${rows.map((r) => `<tr><td><a href="${buildHash("donations/" + r.d, {})}">${CH.abbr} ${r.d}</a></td><td>${esc(r.member)}</td><td class="num">${r.cands}</td>
+          <td class="num"><span class="inlinebar"><span style="width:${(r.monetary / maxM * 100).toFixed(1)}%"></span></span>${money0(r.monetary)}</td><td class="num">${int.format(r.donors)}</td>
+          <td class="num">${pctf(r.orgShare)}</td><td class="num">${pctf(r.inShare)}</td><td class="num">${pctf(r.outShare)}</td><td class="num">${pctf(r.smallShare)}</td></tr>`).join("")}</tbody></table></div>
+      <p class="summary">${donationsNote(dn)}</p>`;
+  }
+  function donationsNote(dn) {
+    return `Source: itemized monetary contributions (schedules A–C) filed with the <a href="https://publicreporting.elections.ny.gov/" target="_blank" rel="noopener">NYS Board of Elections</a> for 2025–26, from <a href="https://data.ny.gov/d/e9ss-239a" target="_blank" rel="noopener">data.ny.gov</a>, as of ${esc(fmtDay(dn.asOf))}. Committees are linked to candidates by name (see each district page). A donor is one name and ZIP code; "in the district" places the donor's ZIP code at its Census center point, so it's an estimate where ZIPs cross district lines. Shares of "$" are of money from individuals. Donor names aren't shown; organizations are. Unitemized contributions, transfers, in-kind gifts and public matching funds aren't included.`;
+  }
+  function viewDonationDistrict(arg) {
+    const dn = DONATIONS[CH.id];
+    const d = String(Number(arg));
+    const cands = dn && dn.districts[d];
+    const dist = DISTRICTS.find((x) => String(x.district) === d);
+    const head = `<a class="back" href="${buildHash("donations", {})}">${I.l} Donations by district</a>
+      <h1>Donations in ${esc(CH.name)} District ${esc(d)}</h1>
+      <p class="lede">${dist ? `Represented now by ${esc(dist.member)}. ` : ""}Itemized monetary contributions to each candidate's committees in 2025 and 2026. <a href="${dist ? buildHash("district/" + d, {}) : "#"}">District spending and results ${I.r}</a></p>`;
+    if (!cands) return head + `<p class="empty">No itemized contributions found for a committee linked to a candidate here.</p>`;
+    const months = [...new Set(cands.flatMap((c) => Object.keys(c.months)))].sort();
+    const maxMonth = Math.max(1, ...cands.flatMap((c) => Object.values(c.months)));
+    const maxSize = Math.max(1, ...cands.flatMap((c) => c.sizes.map((x) => x[0])));
+    return head + cands.map((c) => {
+      const t = dnTotals(c);
+      const geoTot = DN_GEO.reduce((a, [k]) => a + c[k][1], 0) || 1;
+      const typeTot = Object.values(c.types).reduce((a, b) => a + b, 0) || 1;
+      return `<section class="card dn"><div class="card-head"><h2>${esc(c.name)}</h2><span class="summary">${money0(t.monetary)} in itemized contributions</span></div>
+        <div class="grid kpis small">
+          ${kpi("Individual donors", int.format(c.donors), `${int.format(c.repeat)} gave more than once · ${int.format(c.gifts)} gifts`)}
+          ${kpi("From individuals", money0(c.individuals), pctf(t.monetary ? c.individuals / t.monetary : 0) + " of contributions")}
+          ${kpi("Donors in the district", pctf(t.inShareDonors), `${pctf(t.inShareAmt)} of individual money`)}
+          ${kpi("Donors giving $250 or less", pctf(t.smallShare), `average ${c.donors ? money0(c.individuals / c.donors) : "—"} per donor`)}
+        </div>
+        <div class="grid two">
+          <div><h3 class="mini">Where individual money came from</h3>
+            <div class="stack big" role="img" aria-label="${esc(DN_GEO.filter(([k]) => c[k][1] > 0).map(([k, l]) => `${l}: ${money0(c[k][1])} from ${c[k][0]} donors`).join("; "))}">${DN_GEO.map(([k, l, cls]) => c[k][1] > 0 ? `<span class="${cls}" style="flex:${c[k][1]}" title="${l}: ${money(c[k][1])}, ${c[k][0]} donors"></span>` : "").join("")}</div>
+            <div class="legend">${DN_GEO.filter(([k]) => c[k][0]).map(([k, l, cls]) => `<span><i class="${cls}"></i>${l} ${pctf(c[k][1] / geoTot)} · ${int.format(c[k][0])}</span>`).join("")}</div>
+            <h3 class="mini" style="margin-top:14px">Donors by how much they gave in total</h3>
+            <ul class="bars sizes">${dn.buckets.map((b, i) => `<li><span class="name">${esc(b)}</span><span class="amt">${int.format(c.sizes[i][0])} ${c.sizes[i][0] === 1 ? "donor" : "donors"} · ${money0(c.sizes[i][1])}</span><span class="track"><span class="fill" style="width:${(c.sizes[i][0] / maxSize * 100).toFixed(1)}%"></span></span></li>`).join("")}</ul>
+          </div>
+          <div><h3 class="mini">Who gave</h3>
+            <ul class="bars">${Object.entries(c.types).slice(0, 7).map(([k, v]) => `<li><span class="name">${esc(k === "Not specified" ? "Type not specified" : k)}</span><span class="amt">${money0(v)} · ${pctf(v / typeTot)}</span><span class="track"><span class="fill alt" style="width:${(v / typeTot * 100).toFixed(1)}%"></span></span></li>`).join("")}</ul>
+            ${c.topOrgs.length ? `<h3 class="mini" style="margin-top:14px">Biggest organizational donors</h3><table class="mini-results"><tbody>${c.topOrgs.slice(0, 8).map((o) => `<tr><td>${esc(o[0])}<br><span class="summary">${esc(o[1])}${o[3] > 1 ? ` · ${o[3]} gifts` : ""}</span></td><td class="num">${money0(o[2])}</td></tr>`).join("")}</tbody></table>` : `<p class="summary">No contributions from organizations.</p>`}
+          </div>
+        </div>
+        ${months.length > 1 ? `<h3 class="mini" style="margin-top:14px">Contributions by month</h3><div class="cols small">${months.map((m) => { const v = c.months[m] || 0; return `<div class="col" role="img" aria-label="${monthLabel(m)}: ${money0(v)}" title="${monthLabel(m)}: ${money(v)}"><span class="colval">${v ? compact(v) : ""}</span><span class="colbar" style="height:${(v / maxMonth * 100).toFixed(1)}%"></span><span class="collabel">${monthLabel(m)}</span></div>`; }).join("")}</div>` : ""}
+      </section>`;
+    }).join("") + `<p class="summary">${donationsNote(dn)}</p>`;
+  }
+
   function focusHref(district) {
     return `https://nysfocus.com/interactives/2026-election-results/${CH.id === "senate" ? "state-senate" : "assembly"}/district-${district}/`;
   }
@@ -1846,7 +1934,7 @@
     const v = el.value; el.value = ""; el.value = v;
   }
   function setActiveTab(view) {
-    const tab = { overview: "overview", units: "units", unit: "units", records: "records", payees: "payees", about: "about", compare: "compare", map: "map", district: "map", salaries: "salaries", person: "payroll", payroll: "payroll", stats: "stats" }[view] || "overview";
+    const tab = { overview: "overview", units: "units", unit: "units", records: "records", payees: "payees", about: "about", compare: "compare", map: "map", district: "map", salaries: "salaries", person: "payroll", payroll: "payroll", stats: "stats", donations: "donations" }[view] || "overview";
     document.querySelectorAll(".tabs a").forEach((a) => { const on = a.dataset.tab === tab; a.classList.toggle("active", on); if (on) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
   }
   let lastView = "";
@@ -1914,6 +2002,7 @@
       case "person": html = viewPerson(params); break;
       case "payroll": html = viewPayroll(params); break;
       case "stats": html = viewStats(); break;
+      case "donations": html = arg ? viewDonationDistrict(arg) : viewDonations(params); break;
       case "about": html = viewAbout(); if (params.s) setTimeout(() => { const t = document.getElementById(params.s); if (t) { t.setAttribute("tabindex", "-1"); t.scrollIntoView(); t.focus({ preventScroll: true }); } }, 0); break;
       case "compare": html = viewCompare(params); break;
       case "map": html = viewMap(params); break;
@@ -2010,7 +2099,7 @@
     sw.querySelectorAll("button").forEach((b) => { b.classList.toggle("on", b.dataset.c === CH.id); b.setAttribute("aria-pressed", b.dataset.c === CH.id); });
     document.title = `NY ${CH.name} Expenditures · ${periodName(DB)}`;
     // Keep the chamber and period when moving between tabs.
-    const tabView = { overview: "", units: "units", records: "records", map: "map", compare: "compare", salaries: "salaries", payroll: "payroll", stats: "stats", payees: "payees", about: "about" };
+    const tabView = { overview: "", units: "units", records: "records", map: "map", compare: "compare", salaries: "salaries", payroll: "payroll", stats: "stats", donations: "donations", payees: "payees", about: "about" };
     document.querySelectorAll(".tabs a[data-tab]").forEach((a) => { a.href = buildHash(tabView[a.dataset.tab] ?? a.dataset.tab, {}); });
     const brand = document.querySelector(".brand-title");
     if (brand) brand.href = buildHash("", {});
