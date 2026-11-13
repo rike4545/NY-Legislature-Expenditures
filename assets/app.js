@@ -2981,6 +2981,14 @@
       ["schools", "Connect with school districts and BOCES for family-facing outreach"],
       ["guide", "Publish a plain-language resource guide in English and Spanish (and any other language widely spoken in the district)"],
     ] },
+    { id: "pc", title: "Communications: set up the plan", items: [
+      ["audiences", "Agree on the audience list (below) and name who on staff owns each one"],
+      ["calendar", "Put every channel on a calendar at its set frequency, with a backup person for each"],
+      ["civility", "Adopt the civility statement and a public comment policy for the office's social media pages"],
+      ["style", "Write releases and posts in AP style; keep a one-page office style sheet for names, titles and places"],
+      ["separate", "Keep official and campaign accounts, lists and messages fully separate, and check the chamber's mass-mailing rules before any mailing"],
+      ["survey", "Run a short constituent survey, and publish what it found and what the office will do about it"],
+    ] },
     { id: "pq", title: "Every quarter: turn casework into policy", items: [
       ["pull", "Pull the quarter's casework data: volume by agency, average days to resolve, still-open cases"],
       ["patterns", "Flag repeat failures (the same glitch for many people) and hand them to policy staff as bill, budget or agency-letter items"],
@@ -3019,6 +3027,31 @@
     "Get a signed release before contacting an agency about someone's case, and keep case files private.",
     "Refer local problems to the right town, village or county office with a warm handoff, not a phone number.",
   ];
+  // Communications plan: who the office talks to, through what, how often, and who does it.
+  const NX_AUDIENCES = [
+    ["In the district", "Residents, businesses and visitors; people and businesses thinking of moving in"],
+    ["Local government", "Town boards, village boards, the county legislature, school boards, state agencies and boards, SUNY and other colleges"],
+    ["Other governments", "State and federal legislators whose districts overlap this one"],
+    ["Community groups", "Faith-based organizations, nonprofits, volunteer service groups, civic and chamber groups"],
+    ["News media", "Local papers, e-news sites, regional TV and radio"],
+  ];
+  const NX_CHANNELS = [
+    ["In-person contact", "Mobile office hours, events, meetings", "Residents, businesses, community groups", "Weekly rotation"],
+    ["E-newsletter", "Email list (official list only)", "Residents, businesses", "Monthly"],
+    ["Printed newsletter", "Mail", "Residents, businesses", "Quarterly"],
+    ["District info card", "Handout at every event and office visit", "Residents, businesses", "Kept current"],
+    ["Social media", "Facebook, Instagram and other platforms the district uses", "Residents, businesses, groups, visitors", "Several times a week"],
+    ["Press releases and statements", "Email to the media list, posted on the official site", "Media, residents", "As needed"],
+    ["Interviews and news conferences", "TV, radio, local press", "Media, residents", "As needed"],
+    ["Constituent survey", "Online form, also on paper at events", "Residents, businesses, groups", "Once or twice a year"],
+  ];
+  const NX_ROLES = [
+    ["Legislator", "Sets priorities and the main messages; interviews, news conferences, events", "Everyone, especially media and other officials"],
+    ["Chief of staff", "Approves outgoing messages; works with agencies, other governments and business groups", "Officials, agencies, business community"],
+    ["Communications director and aides", "Newsletter, social media, releases, media list, the calendar", "Residents, media, community groups"],
+    ["Constituent director", "Supplies the anonymized \"how we helped\" stories and casework trends; runs mobile office hours", "Residents, community groups"],
+  ];
+  const NX_CIVILITY = "The office welcomes spirited debate from every point of view and expects it to stay respectful, in person, in writing and online. People may disagree strongly; no one may threaten, harass or create a hostile environment for others. The office will respond to every constituent the same way, whatever their views.";
   // Senate District 1 only: local notes for the East End and North Shore Brookhaven.
   const NX_LOCAL = { "senate/1": {
     stops: ["Riverhead", "Greenport / Southold", "Shelter Island", "Hampton Bays", "Southampton", "East Hampton / Montauk", "Port Jefferson", "Rocky Point / Wading River"],
@@ -3132,6 +3165,20 @@
         </section>
         <section class="card"><h2>Ground rules</h2><ul>${NX_RULES.map((r) => `<li>${esc(r)}</li>`).join("")}</ul></section>
       </div>
+
+      <section class="card nx-comms"><div class="card-head"><h2>Communications plan</h2><span class="summary">who the office talks to, how and how often</span></div>
+        <p>Reach people in formats they already use, keep the official and campaign sides apart, and make every conversation two-way: what residents raise through casework and surveys should shape what the office says and does.</p>
+        <h3 class="mini">Audiences</h3>
+        <ul class="plainlist">${NX_AUDIENCES.map(([a, b]) => `<li><strong>${esc(a)}:</strong> ${esc(b)}</li>`).join("")}</ul>
+        <h3 class="mini">Channels</h3>
+        <div class="table-wrap"><table class="stack-sm"><thead><tr><th scope="col">Channel</th><th scope="col">How</th><th scope="col">Main audiences</th><th scope="col">How often</th></tr></thead>
+          <tbody>${NX_CHANNELS.map(([a, b, c2, f]) => `<tr><th scope="row">${esc(a)}</th><td>${esc(b)}</td><td>${esc(c2)}</td><td>${esc(f)}</td></tr>`).join("")}</tbody></table></div>
+        <h3 class="mini">Who does what</h3>
+        <div class="table-wrap"><table class="stack-sm"><thead><tr><th scope="col">Role</th><th scope="col">Responsible for</th><th scope="col">Main audiences</th></tr></thead>
+          <tbody>${NX_ROLES.map(([a, b, c2]) => `<tr><th scope="row">${esc(a)}</th><td>${esc(b)}</td><td>${esc(c2)}</td></tr>`).join("")}</tbody></table></div>
+        <h3 class="mini">Statement of civility</h3>
+        <p>${esc(NX_CIVILITY)}</p>
+      </section>
 
       <section class="card"><h2>Casework categories and agencies</h2>
         <p class="summary">Use these as the tracker's categories, and get a named liaison at each agency.</p>
