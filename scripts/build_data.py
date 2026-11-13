@@ -12,9 +12,12 @@ The reporting period comes from the file name's YYYYMMDD end date:
     ...0331.csv -> October 1 (prior year) - March 31
     ...0930.csv -> April 1 - September 30
 
+    data/raw/senate/nysenate_member_travel_YYYYMMDD.csv   Senate per-trip member travel detail
+
 Outputs:
     data/chambers.json                 list of chambers and their periods
     data/<chamber>/periods/<end>.json  one compact, dictionary-encoded file per report
+    data/senate/travel/<end>.json      Senate trips, each tied to its office (see build_senate_travel)
 
 Both chambers are normalised to the same row layout:
     [unit, type, date, voucher, payee, serviceDates, desc, status, amount]
@@ -223,6 +226,57 @@ def build_one(chamber: str, cfg: dict, src: pathlib.Path, dst: pathlib.Path) -> 
     return meta
 
 
+def words(s: str) -> set:
+    return set(re.findall(r"[a-z]+", s.lower())) - {"senator", "sen", "jr", "sr", "ii", "iii"}
+
+
+def build_senate_travel(src: pathlib.Path, period_file: pathlib.Path, dst: pathlib.Path) -> dict:
+    """Tie each trip in the Senate member-travel file to an office in the expenditure report.
+
+    Every trip is paid by one MEMBER TRAVEL voucher in the expenditure report, so a trip is
+    matched on its check date and amount; the traveller's name only breaks ties. The match
+    must be one-to-one and the totals must agree, or the build stops.
+    """
+    period = json.loads(period_file.read_text(encoding="utf-8"))
+    U, T = period["units"], period["types"]
+    vouchers = {}  # (date, amount) -> [unit index, ...] remaining to match
+    for r in period["rows"]:
+        if T[r[1]]["code"] == "MEMBER TRAVEL":
+            vouchers.setdefault((r[2], round(r[8], 2)), []).append(r[0])
+    with open(src, encoding="latin-1", newline="") as f:
+        rows = list(csv.DictReader(f))
+    fixed = ("Check Date", "Member Name", "Begin Travel", "End Travel", "Destination", "Purpose", "Total")
+    cats = [k for k in rows[0] if k not in fixed]
+    trips, unmatched = [], []
+    for r in rows:
+        total = round(float(r["Total"] or 0), 2)
+        key = (clean(r["Check Date"]), total)
+        cands = vouchers.get(key, [])
+        if len(set(cands)) > 1:
+            name = words(r["Member Name"])
+            best = [u for u in cands if words(U[u]["name"]) & name]
+            cands = best or cands
+        if not cands:
+            unmatched.append(f"{r['Member Name']} {key}")
+            continue
+        unit = cands[0]
+        vouchers[key].remove(unit)
+        trips.append([unit, clean(r["Check Date"]), clean(r["Begin Travel"]), clean(r["End Travel"]),
+                      clean(r["Destination"]).title(), clean(r["Purpose"]),
+                      [round(float(r[c] or 0), 2) for c in cats], total])
+    if unmatched:
+        raise SystemExit(f"{src.name}: {len(unmatched)} trips without a matching voucher: {unmatched[:5]}")
+    trips_total = round(sum(t[-1] for t in trips), 2)
+    report_total = round(sum(r[8] for r in period["rows"] if T[r[1]]["code"] == "MEMBER TRAVEL"), 2)
+    if trips_total != report_total:
+        raise SystemExit(f"{src.name}: trips total {trips_total} != report member travel {report_total}")
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    dst.write_text(json.dumps({"categories": [c.replace("_", " ") for c in cats], "trips": trips},
+                              separators=(",", ":")), encoding="utf-8")
+    print(f"senate   travel {src.name}: {len(trips)} trips matched, ${trips_total:,.2f} (= report member travel)")
+    return {"file": f"data/senate/travel/{dst.name}", "trips": len(trips)}
+
+
 def main() -> None:
     manifest = []
     for chamber, cfg in CHAMBERS.items():
@@ -230,7 +284,15 @@ def main() -> None:
         for src in sorted((ROOT / "data" / "raw" / chamber).glob(cfg["glob"])):
             end = period_from_filename(src.name)[1].isoformat()
             meta = build_one(chamber, cfg, src, ROOT / "data" / chamber / "periods" / f"{end}.json")
+            extra = {}
+            if chamber == "senate":
+                tsrc = src.with_name(src.name.replace("nysenate_expenditures_", "nysenate_member_travel_"))
+                if tsrc.exists():
+                    extra["travel"] = build_senate_travel(
+                        tsrc, ROOT / "data" / chamber / "periods" / f"{end}.json",
+                        ROOT / "data" / chamber / "travel" / f"{end}.json")["file"]
             periods.append({
+                **extra,
                 "id": end, "file": f"data/{chamber}/periods/{end}.json",
                 "start": meta["period"]["start"], "end": end, "sourceFile": meta["sourceFile"],
                 "rowCount": meta["rowCount"], "totalActual": meta["totalActual"],

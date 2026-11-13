@@ -64,6 +64,7 @@ The New York State Assembly and Senate each publish their spending twice a year:
 - 🗓️ **Switch report periods** — every view follows; member pages and comparisons carry across by name.
 - 📈 **Change over time** — period-over-period change on totals, members, maps and comparisons.
 - 🗺️ **District maps** — 2024 Assembly and Senate lines, NYC inset, keyboard and touch friendly.
+- ✈️ **Senator trips** — every trip from the Senate's member travel file (dates, destination, per diem, mileage, tolls, airfare…), each matched to its voucher in the expenditure report; totals agree to the cent.
 - 📍 **District profiles** — pick any district (menu, map click, or ← → keys): zoomed map with neighbors, percentile gauges, spending mix, neighbor comparison, period trend and monthly spending.
 - ⚖️ **Side-by-side comparison** — up to four members or offices.
 - 🔗 **Shareable links** — every chamber, period, search, filter and view lives in the URL.
@@ -75,7 +76,7 @@ The New York State Assembly and Senate each publish their spending twice a year:
 | Source | Used for |
 |---|---|
 | [NYS Assembly Expenditure Reports](https://assembly.ny.gov/expenditure/) | Every Assembly spending line (`data/raw/assembly/`, unmodified) |
-| [NYS Senate Open Data — Expenditure Reports](https://www.nysenate.gov/open-data) | Every Senate spending line (`data/raw/senate/`, unmodified) |
+| [NYS Senate Open Data — Expenditure Reports](https://www.nysenate.gov/open-data) | Every Senate spending line, plus the per-trip member travel detail (`data/raw/senate/`, unmodified) |
 | NYS ITS Geospatial Services — [Assembly](https://gisservices.its.ny.gov/arcgis/rest/services/NYS_Assembly_Districts/MapServer) and [Senate](https://gisservices.its.ny.gov/arcgis/rest/services/NYS_Senate_Districts/MapServer) Districts | District boundaries (2024 lines), member names and party |
 
 | Chamber | Period | Source file | Lines | Actual spending | Allocated |
@@ -92,6 +93,7 @@ The New York State Assembly and Senate each publish their spending twice a year:
 - **Allocated costs are kept separate** from actual spending (see above).
 - **Member offices** are offices whose payroll includes the member's salary line ("MEMBER OF ASSEMBLY" / "MEMBER"), so members who joined or left mid-period are included.
 - **Assembly voucher dates** have no year in the source; the year comes from the report period. **Senate voucher numbers** are taken from the end of each description.
+- **Senate trips** are tied to offices by matching each trip's check date and amount to a member travel voucher; every trip matches exactly one voucher and the trip totals equal the report's member travel ($497,462.48 and $373,547.12).
 - **Senate pay types** (RA, SA, TE, VA) are shown as published; the report doesn't define them.
 - **Period comparisons** match members and offices by name as printed in each report.
 - **Districts** are matched to report names by last name (`scripts/build_districts.py`; two Assembly matches set by hand and documented there). The GIS layers list current members, so members who left earlier have no district shading; Senate District 12 is listed as vacant.
@@ -125,6 +127,7 @@ data/raw/{assembly,senate}/   Original expenditure CSVs, unmodified
 data/chambers.json            Chambers and their reporting periods
 data/<chamber>/periods/*.json Compact, dictionary-encoded data per report
 data/<chamber>/districts.json Districts matched to member offices
+data/senate/travel/*.json     Senate trips matched to member offices
 data/geo/                     District boundaries (NYS GIS), unmodified downloads
 scripts/build_data.py         CSV -> JSON for both chambers, with validation
 scripts/build_districts.py    District/member matching

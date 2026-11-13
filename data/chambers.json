@@ -40,6 +40,7 @@
     "districts": "data/senate/districts.json",
     "periods": [
       {
+        "travel": "data/senate/travel/2026-03-31.json",
         "id": "2026-03-31",
         "file": "data/senate/periods/2026-03-31.json",
         "start": "2025-10-01",
@@ -50,6 +51,7 @@
         "totalAllocated": 5152383.1
       },
       {
+        "travel": "data/senate/travel/2025-09-30.json",
         "id": "2025-09-30",
         "file": "data/senate/periods/2025-09-30.json",
         "start": "2025-04-01",

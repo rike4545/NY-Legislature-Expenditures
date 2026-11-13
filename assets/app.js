@@ -95,7 +95,19 @@
     await Promise.all(CHAMBERS.map(async (ch) => {
       await Promise.all(ch.periods.map(async (pm) => {
         const raw = bundled ? bundled.data[pm.file] : await (await fetch(pm.file)).json();
-        DBS[ch.id + "/" + pm.id] = indexPeriod(pm.id, raw);
+        const db = indexPeriod(pm.id, raw);
+        if (pm.travel) {
+          try {
+            const t = bundled ? bundled.data[pm.travel] : await (await fetch(pm.travel)).json();
+            db.travel = { categories: t.categories, byUnit: new Map() };
+            for (const trip of t.trips) {
+              const [u, check, begin, end, dest, purpose, amounts, total] = trip;
+              if (!db.travel.byUnit.has(u)) db.travel.byUnit.set(u, []);
+              db.travel.byUnit.get(u).push({ check, begin, end, dest, purpose, amounts, total });
+            }
+          } catch (e) { /* trips are optional */ }
+        }
+        DBS[ch.id + "/" + pm.id] = db;
       }));
       try {
         DIST[ch.id] = bundled ? bundled.data[ch.districts] || [] : await (await fetch(ch.districts)).json();
@@ -299,8 +311,27 @@
         <section class="card"><div class="card-head"><h2>Largest central offices &amp; committees</h2><a href="${buildHash("units", { kind: "office" })}">All offices →</a></div>${bars(topOffices)}</section>
         <section class="card"><div class="card-head"><h2>Top vendors (M&amp;O)</h2><a href="${buildHash("payees", { group: "vendor" })}">All payees →</a></div>${bars(topVendors)}</section>
         <section class="card"><div class="card-head"><h2>What M&amp;O money bought</h2></div>${bars(topDescs)}</section>
+        ${travelCard()}
         ${PREV ? moversCard() : ""}
       </div>`;
+  }
+
+  function tripsSummary(trips) {
+    const cats = DB.travel.categories.map((c, i) => ({ label: c, value: trips.reduce((a, t) => a + t.amounts[i], 0) })).filter((x) => x.value);
+    const dest = sumBy(trips.map((t) => ({ dest: t.dest, amt: t.total })), (t) => t.dest).sort((a, b) => b.total - a.total);
+    const days = trips.reduce((a, t) => a + (t.begin && t.end ? Math.round((Date.parse(t.end) - Date.parse(t.begin)) / 864e5) + 1 : 0), 0);
+    return { cats: cats.sort((a, b) => b.value - a.value), dest, days };
+  }
+  function travelCard() {
+    if (!DB.travel) return "";
+    const all = [...DB.travel.byUnit.values()].flat();
+    if (!all.length) return "";
+    const { cats, dest, days } = tripsSummary(all);
+    return `<section class="card"><div class="card-head"><h2>Senator travel: what it paid for</h2><span class="summary">${int.format(all.length)} trips · ${int.format(days)} travel days</span></div>
+      ${bars(cats.map((c) => ({ label: c.label, value: c.value })))}
+      <h3 class="mini" style="margin-top:12px">Most common destinations</h3>
+      <ul class="bars plain">${dest.slice(0, 6).map((d) => `<li><span class="name">${esc(d.key)} · ${d.count} trips</span><span class="amt">${money0(d.total)}</span></li>`).join("")}</ul>
+    </section>`;
   }
 
   function chambersCard() {
@@ -460,7 +491,7 @@
             <td><a href="${buildHash("records", { payee: payees[r.p] })}">${esc(payees[r.p])}</a></td>
             <td>${esc(titleCase(descs[r.d]))}</td>
             <td class="nowrap mono">${esc(r.svc)}</td>
-            <td>${r.st ? `<span class="chip muted" title="${esc(statusName(r.st))}">${esc(r.st)} · ${esc(statusName(r.st).split(" (")[0])}</span>` : ""}</td>
+            <td>${r.st ? `<span class="chip muted" title="${esc(statusName(r.st))}">${esc(r.st)}${/as published/.test(statusName(r.st)) ? "" : ` · ${esc(statusName(r.st).split(" (")[0])}`}</span>` : ""}</td>
             <td class="num${r.amt < 0 ? " neg" : ""}">${money(r.amt)}</td></tr>`).join("")}</tbody>
         </table></div>` : `<p class="empty">No payroll lines.</p>`}
       </section>
@@ -472,6 +503,7 @@
           ${bars(moDescs.map((v) => ({ label: titleCase(descs[v.key]), value: v.total })))}</section>
       </div>
 
+      ${unitTrips(s)}
       <section class="card">
         <div class="card-head"><h2>Travel</h2><span class="summary">${money(s.byType.travel || 0)}</span></div>
         ${travel.length ? `<div class="table-wrap"><table>
@@ -484,6 +516,26 @@
 
       ${otherPeriodLinks(s)}
       <p><a class="btn" href="${buildHash("records", { unit: s.id })}">See all ${int.format(recs.length)} records for this ${s.kind === "member" ? "member" : "office"} →</a></p>`;
+  }
+
+  function unitTrips(s) {
+    const trips = DB.travel && DB.travel.byUnit.get(s.id);
+    if (!trips || !trips.length) return "";
+    const { cats, dest, days } = tripsSummary(trips);
+    const cols = DB.travel.categories.map((c, i) => ({ c, i })).filter(({ i }) => trips.some((t) => t.amounts[i]));
+    const sorted = trips.slice().sort((a, b) => (a.begin || "").localeCompare(b.begin || ""));
+    return `<section class="card"><div class="card-head"><h2>Member trips</h2><span class="summary">${trips.length} trips · ${int.format(days)} travel days · ${money(trips.reduce((a, t) => a + t.total, 0))}</span></div>
+      <div class="grid two">
+        <div><h3 class="mini">What it paid for</h3>${bars(cats.map((c) => ({ label: c.label, value: c.value })))}</div>
+        <div><h3 class="mini">Destinations</h3><ul class="bars plain">${dest.slice(0, 8).map((d) => `<li><span class="name">${esc(d.key)} · ${d.count} ${d.count === 1 ? "trip" : "trips"}</span><span class="amt">${money0(d.total)}</span></li>`).join("")}</ul></div>
+      </div>
+      <div class="table-wrap" style="margin-top:12px"><table>
+        <thead><tr><th>Travel dates</th><th>Destination</th><th>Purpose</th>${cols.map(({ c }) => `<th class="num">${esc(c)}</th>`).join("")}<th class="num">Total</th></tr></thead>
+        <tbody>${sorted.map((t) => `<tr><td class="nowrap">${fmtDate(t.begin)}${t.end && t.end !== t.begin ? ` – ${fmtDate(t.end)}` : ""}</td><td>${esc(t.dest)}</td><td>${esc(titleCase(t.purpose))}</td>
+          ${cols.map(({ i }) => `<td class="num">${t.amounts[i] ? money(t.amounts[i]) : ""}</td>`).join("")}<td class="num"><strong>${money(t.total)}</strong></td></tr>`).join("")}</tbody>
+      </table></div>
+      <p class="summary">From the Senate's member travel detail file; each trip is matched to its voucher in the expenditure report by check date and amount.</p>
+    </section>`;
   }
 
   function otherPeriodLinks(s) {

@@ -35,7 +35,7 @@ jobs:
           cp index.html _site/
           cp -r assets _site/
           cp data/chambers.json _site/data/
-          for c in assembly senate; do mkdir -p _site/data/$c && cp -r data/$c/periods data/$c/districts.json _site/data/$c/; done
+          for c in assembly senate; do mkdir -p _site/data/$c && cp -r data/$c/periods data/$c/districts.json _site/data/$c/; [ -d data/$c/travel ] && cp -r data/$c/travel _site/data/$c/; done
           cp docs/social-preview.png _site/
           touch _site/.nojekyll
       - uses: actions/configure-pages@v5
