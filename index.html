@@ -10,7 +10,10 @@
   <meta property="og:type" content="website">
   <meta property="og:image" content="https://rike4545.github.io/NYS-Assembly-Expenditures/social-preview.png">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="theme-color" content="#1f5fa8">
+  <meta name="theme-color" content="#0f2a4a">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 16 16%27%3E%3Crect width=%2716%27 height=%2716%27 rx=%273%27 fill=%27%231f5fa8%27/%3E%3Cpath d=%27M4 12V7m4 5V4m4 8V9%27 stroke=%27white%27 stroke-width=%272%27/%3E%3C/svg%3E">
   <link rel="stylesheet" href="assets/styles.css">
 </head>
@@ -18,7 +21,7 @@
   <header class="site-header">
     <div class="wrap header-row">
       <div class="brand">
-        <a class="brand-title" href="#/">NY Legislature Expenditures</a>
+        <a class="brand-title" href="#/"><svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="currentColor" opacity=".14"/><path d="M6 13h20L16 6 6 13Zm2 2h3v8H8v-8Zm6.5 0h3v8h-3v-8Zm6.5 0h3v8h-3v-8ZM6 25h20v2H6v-2Z" fill="currentColor"/></svg><span>NY Legislature Expenditures</span></a>
         <div class="brand-controls">
           <div class="chamber-switch" id="chamberSwitch" role="group" aria-label="Chamber"></div>
           <label class="period-pick"><span>Report period</span>
@@ -46,10 +49,25 @@
     <p class="loading">Loading expenditure data…</p>
   </main>
 
-  <footer class="wrap site-footer">
-    Sources: <a href="https://assembly.ny.gov/expenditure/" target="_blank" rel="noopener">NYS Assembly</a> and <a href="https://www.nysenate.gov/open-data" target="_blank" rel="noopener">NYS Senate</a> expenditure reports
-    · Viewing <code id="sourceFile"></code>
-    · Independent presentation of public records; not affiliated with the Legislature.
+  <footer class="site-footer">
+    <div class="wrap footer-grid">
+      <div>
+        <div class="footer-brand">NY Legislature Expenditures</div>
+        <p>An independent, searchable presentation of public records. Not affiliated with or endorsed by the New York State Assembly or Senate.</p>
+      </div>
+      <div>
+        <div class="footer-head">Sources</div>
+        <a href="https://assembly.ny.gov/expenditure/" target="_blank" rel="noopener">Assembly expenditure reports</a>
+        <a href="https://www.nysenate.gov/open-data" target="_blank" rel="noopener">Senate open data</a>
+        <a href="https://gisservices.its.ny.gov/arcgis/rest/services/NYS_Assembly_Districts/MapServer" target="_blank" rel="noopener">NYS GIS district boundaries</a>
+        <a href="https://ballotpedia.org/Main_Page" target="_blank" rel="noopener">Ballotpedia</a>
+      </div>
+      <div>
+        <div class="footer-head">This view</div>
+        <span>File <code id="sourceFile"></code></span>
+        <a href="https://github.com/rike4545/NYS-Assembly-Expenditures" target="_blank" rel="noopener">Code &amp; data on GitHub</a>
+      </div>
+    </div>
   </footer>
 
   <script src="assets/app.js"></script>

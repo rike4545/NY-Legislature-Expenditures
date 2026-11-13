@@ -166,6 +166,19 @@
     }
     unitStats.forEach((s) => { s.staffCount = s.staff.size; });
 
+    // Months of the report period each office was active. A member office counts the days
+    // covered by the member's own salary line (joiners and leavers); everything else gets the
+    // full period. Per-month cost = actual spending / months active.
+    const periodDays = (Date.parse(meta.period.end) - Date.parse(meta.period.start)) / 864e5 + 1;
+    const periodMonths = Math.round(periodDays / 30.44);
+    const memberDays = new Map();
+    for (const x of salaries) if (/^MEMBER( OF ASSEMBLY)?$/.test(x.titles)) memberDays.set(x.u, Math.max(memberDays.get(x.u) || 0, x.days));
+    unitStats.forEach((s) => {
+      const d = memberDays.get(s.id);
+      s.months = d ? Math.min(periodMonths, Math.max(0.5, Math.round(d / 30.44 * 2) / 2)) : periodMonths;
+      s.partial = s.months < periodMonths;
+      s.perMonth = s.actual / s.months;
+    });
     const members = unitStats.filter((s) => s.kind === "member").sort((a, b) => b.actual - a.actual);
     members.forEach((s, i) => { s.rank = i + 1; });
     const sortedActual = members.map((s) => s.actual).sort((a, b) => a - b);
@@ -177,7 +190,8 @@
     const typeIndex = Object.fromEntries(types.map((t, i) => [t.code, i]));
 
     const byName = new Map(unitStats.map((s) => [s.name, s]));
-    return { id, meta, units, types, payees, descs, records, unitStats, members, memberMedian, months, statuses, typeIndex, byName, salaries, salaryByKey };
+    const memberMonthlyMedian = (() => { const a = members.map((s) => s.perMonth).sort((x, y) => x - y), m = Math.floor(a.length / 2); return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2; })();
+    return { id, meta, units, types, payees, descs, records, unitStats, members, memberMedian, memberMonthlyMedian, periodMonths, months, statuses, typeIndex, byName, salaries, salaryByKey };
   }
 
   /* ---------- period comparison helpers ---------- */
@@ -306,12 +320,22 @@
     const typeBars = types.map((t) => ({ label: t.label, value: totalBy[t.code], alt: t.allocated, href: buildHash("records", { type: t.code }) }))
       .sort((a, b) => b.value - a.value);
 
+    const chg = PREV ? change(meta.totalActual, PREV.meta.totalActual) : null;
     return `
-      <h1>Where the ${esc(CH.name)}'s money went</h1>
-      <p class="lede">Every line of the ${esc(CH.title)} Expenditure Report for ${fmtDate(meta.period.start)} – ${fmtDate(meta.period.end)}:
-        ${int.format(meta.rowCount)} records across ${meta.members} member offices and ${meta.offices} central offices and committees.</p>
+      <section class="hero">
+        <div class="hero-text">
+          <div class="eyebrow">${esc(CH.title)} · ${esc(periodName(DB))}</div>
+          <h1>Where the ${esc(CH.name)}'s money went</h1>
+          <p>Every line of the ${esc(CH.name)}'s expenditure report: ${int.format(meta.rowCount)} records across ${meta.members} member offices and ${meta.offices} central offices and committees.</p>
+          <form class="hero-search" id="heroSearch" role="search"><input type="search" id="heroSearchInput" placeholder="Search a member, staffer, vendor or expense…" aria-label="Search all records"><button class="primary" type="submit">Search</button></form>
+        </div>
+        <div class="hero-figure">
+          <div class="hero-label">Actual spending</div>
+          <div class="hero-value">${compact(meta.totalActual)}</div>
+          <div class="hero-sub">≈${compact(meta.totalActual / DB.periodMonths)} a month${chg ? ` · <span class="${chg.diff >= 0 ? "up" : "down"}">${chg.diff >= 0 ? "▲" : "▼"} ${Math.abs(chg.pct).toFixed(1)}%</span> vs ${esc(periodName(PREV))}` : ""}</div>
+        </div>
+      </section>
       <div class="grid kpis">
-        ${kpi("Actual spending", compact(meta.totalActual), PREV ? changeText(change(meta.totalActual, PREV.meta.totalActual)) : "Payroll + M&amp;O + travel")}
         ${kpi("Payroll", compact(totalBy.ps), `${int.format(staffAll.size)} people paid${PREV ? "<br>" + vs("ps") : ""}`)}
         ${kpi("Maintenance &amp; operations", compact(totalBy.mo), PREV ? vs("mo") : "Rent, utilities, services")}
         ${kpi("Travel", compact(totalBy.travel), PREV ? vs("travel") : "Reimbursed to members &amp; staff")}
@@ -339,21 +363,33 @@
       </div>`;
   }
 
+  // IRS business mileage rates (the State reimburses personal-car mileage at the IRS rate).
+  // 2025: 70¢; Jan 1 2026: 72.5¢; Jul 1 2026: 76¢. Applied by the trip's start date, which is
+  // what the Senate's amounts fit: ~95% of trips divide into whole miles this way.
+  const IRS_RATES = [["2026-07-01", 0.76], ["2026-01-01", 0.725], ["2025-01-01", 0.70], ["2024-01-01", 0.67]];
+  function irsRate(iso) { const r = IRS_RATES.find(([from]) => (iso || "") >= from); return r ? r[1] : null; }
+  function tripMiles(t) {
+    const i = DB.travel.categories.indexOf("Personal Car Mileage");
+    const rate = irsRate(t.begin || t.check);
+    return i >= 0 && t.amounts[i] && rate ? t.amounts[i] / rate : 0;
+  }
   function tripsSummary(trips) {
     const cats = DB.travel.categories.map((c, i) => ({ label: c, value: trips.reduce((a, t) => a + t.amounts[i], 0) })).filter((x) => x.value);
     const dest = sumBy(trips.map((t) => ({ dest: t.dest, amt: t.total })), (t) => t.dest).sort((a, b) => b.total - a.total);
     const days = trips.reduce((a, t) => a + (t.begin && t.end ? Math.round((Date.parse(t.end) - Date.parse(t.begin)) / 864e5) + 1 : 0), 0);
-    return { cats: cats.sort((a, b) => b.value - a.value), dest, days };
+    const miles = trips.reduce((a, t) => a + tripMiles(t), 0);
+    return { cats: cats.sort((a, b) => b.value - a.value), dest, days, miles };
   }
   function travelCard() {
     if (!DB.travel) return "";
     const all = [...DB.travel.byUnit.values()].flat();
     if (!all.length) return "";
-    const { cats, dest, days } = tripsSummary(all);
-    return `<section class="card"><div class="card-head"><h2>Senator travel: what it paid for</h2><span class="summary">${int.format(all.length)} trips · ${int.format(days)} travel days</span></div>
+    const { cats, dest, days, miles } = tripsSummary(all);
+    return `<section class="card"><div class="card-head"><h2>Senator travel: what it paid for</h2><span class="summary">${int.format(all.length)} trips · ${int.format(days)} travel days · ≈${int.format(Math.round(miles))} miles driven</span></div>
       ${bars(cats.map((c) => ({ label: c.label, value: c.value })))}
       <h3 class="mini" style="margin-top:12px">Most common destinations</h3>
       <ul class="bars plain">${dest.slice(0, 6).map((d) => `<li><span class="name">${esc(d.key)} · ${d.count} trips</span><span class="amt">${money0(d.total)}</span></li>`).join("")}</ul>
+      <p class="summary">Miles are recovered from mileage reimbursements at the IRS rate on each trip's start date. <a href="${buildHash("about", {})}">Travel rules on the About page →</a></p>
     </section>`;
   }
 
@@ -375,7 +411,7 @@
           <span class="seg-mo" style="flex:${Math.max(r.t.mo, 0)}" title="M&amp;O ${money(r.t.mo)}"></span>
           <span class="seg-tr" style="flex:${Math.max(r.t.travel, 0)}" title="Travel ${money(r.t.travel)}"></span></div>
         <span class="chamber-amt">${money0(r.db.meta.totalActual)}</span>
-        <span class="chamber-meta">${r.db.meta.members} member offices · median ${money0(r.db.memberMedian)}</span>
+        <span class="chamber-meta">${money0(r.db.meta.totalActual / r.db.periodMonths)} a month · ${r.db.meta.members} member offices · median member office ${money0(r.db.memberMonthlyMedian)} a month</span>
       </div>`).join("")}
       <div class="legend"><span><i class="seg-ps"></i>Payroll</span><span><i class="seg-mo"></i>M&amp;O</span><span><i class="seg-tr"></i>Travel</span></div>
     </section>`;
@@ -402,6 +438,7 @@
       name: (s) => s.name, district: (s) => (dist(s) ? dist(s).district : 999), actual: (s) => s.actual, ps: (s) => s.byType.ps || 0, mo: (s) => s.byType.mo || 0,
       travel: (s) => s.byType.travel || 0, allocated: (s) => s.allocated, staff: (s) => s.staffCount,
       change: (s) => { const p = prevUnit(s); return p ? s.actual - p.actual : -Infinity; },
+      month: (s) => s.perMonth,
     }[state.sort] || ((s) => s.actual);
     list.sort((a, b) => {
       const x = val(a), y = val(b);
@@ -422,7 +459,7 @@
         </select></label>
         ${DISTRICTS.length ? `<label>Party<select id="uparty"><option value="">Any</option>${[...new Set(DISTRICTS.map((d) => d.party).filter(Boolean))].sort().map((p) => `<option${p === state.party ? " selected" : ""}>${esc(p)}</option>`).join("")}</select></label>` : ""}
       </div>
-      <div class="toolbar"><span class="summary"><strong>${int.format(list.length)}</strong> shown · actual spending <strong>${money0(total)}</strong></span>
+      <div class="toolbar"><span class="summary"><strong>${int.format(list.length)}</strong> shown · actual spending <strong>${money0(total)}</strong> · <strong>${money0(total / DB.periodMonths)}</strong> a month · * active part of the period, per month uses months active</span>
         <button id="uexport">Export CSV</button></div>
       <div class="table-wrap"><table>
         <thead><tr>
@@ -434,6 +471,7 @@
           ${sortHeader("M&amp;O", "mo", state, "num")}
           ${sortHeader("Travel", "travel", state, "num")}
           ${sortHeader("Actual total", "actual", state, "num")}
+          ${sortHeader("Per month", "month", state, "num")}
           ${sortHeader("Allocated", "allocated", state, "num")}
           ${sortHeader("People paid", "staff", state, "num")}
           ${PREV ? sortHeader("vs prior", "change", state, "num") : ""}
@@ -447,10 +485,11 @@
           <td class="num">${money0(s.byType.mo || 0)}</td>
           <td class="num">${money0(s.byType.travel || 0)}</td>
           <td class="num"><strong>${money0(s.actual)}</strong></td>
+          <td class="num" title="${s.partial ? `Active about ${s.months} of ${DB.periodMonths} months` : `${DB.periodMonths}-month report period`}">${money0(s.perMonth)}${s.partial ? "*" : ""}</td>
           <td class="num">${money0(s.allocated)}</td>
           <td class="num">${s.staffCount}</td>
           ${PREV ? (() => { const c = change(s.actual, prevUnit(s) && prevUnit(s).actual); return `<td class="num${c && c.diff < 0 ? " neg" : ""}" title="${c ? esc(changeText(c)) : "Not in prior period"}">${changeText(c, true)}</td>`; })() : ""}
-        </tr>`).join("") : `<tr><td colspan="11" class="empty">No members or offices match.</td></tr>`}</tbody>
+        </tr>`).join("") : `<tr><td colspan="12" class="empty">No members or offices match.</td></tr>`}</tbody>
       </table></div>`;
     app.innerHTML = html;
 
@@ -463,8 +502,8 @@
     if (up) up.addEventListener("change", (e) => update({ party: e.target.value }));
     wireSortHeaders(app, state, update, { name: "asc", district: "asc" });
     app.querySelector("#uexport").addEventListener("click", () => downloadCSV("assembly-units.csv",
-      ["Period", "Name", "District", "Party", "Type", "Payroll", "M&O", "Travel", "Actual total", "Allocated", "People paid"],
-      list.map((s) => [periodName(DB), s.name, dist(s) ? dist(s).district : "", dist(s) ? dist(s).party : "", s.kind, (s.byType.ps || 0).toFixed(2), (s.byType.mo || 0).toFixed(2), (s.byType.travel || 0).toFixed(2), s.actual.toFixed(2), s.allocated.toFixed(2), s.staffCount])));
+      ["Period", "Name", "District", "Party", "Type", "Months active", "Per month", "Payroll", "M&O", "Travel", "Actual total", "Allocated", "People paid"],
+      list.map((s) => [periodName(DB), s.name, dist(s) ? dist(s).district : "", dist(s) ? dist(s).party : "", s.kind, s.months, s.perMonth.toFixed(2), (s.byType.ps || 0).toFixed(2), (s.byType.mo || 0).toFixed(2), (s.byType.travel || 0).toFixed(2), s.actual.toFixed(2), s.allocated.toFixed(2), s.staffCount])));
     return null;
   }
 
@@ -498,6 +537,7 @@
       <p class="lede">${rankNote || "Central office, committee, or task force."}</p>
       <div class="grid kpis">
         ${kpi("Actual spending", money0(s.actual), ps ? changeText(change(s.actual, ps.actual)) : (PREV ? "Not in prior period" : ""))}
+        ${kpi("Per month", money0(s.perMonth), s.partial ? `active ≈${s.months} of ${DB.periodMonths} months` : `${DB.periodMonths}-month period${s.kind === "member" ? ` · member median ${money0(DB.memberMonthlyMedian)}` : ""}`)}
         ${kpi("Payroll", money0(s.byType.ps || 0), `${s.staffCount} ${s.staffCount === 1 ? "person" : "people"} paid${vsPrev(s.byType.ps || 0, ps && (ps.byType.ps || 0))}`)}
         ${kpi("Maintenance &amp; operations", money0(s.byType.mo || 0), `${vendors.length} payees${vsPrev(s.byType.mo || 0, ps && (ps.byType.mo || 0))}`)}
         ${kpi("Travel", money0(s.byType.travel || 0), `${travel.length} reimbursements${vsPrev(s.byType.travel || 0, ps && (ps.byType.travel || 0))}`)}
@@ -547,20 +587,21 @@
   function unitTrips(s) {
     const trips = DB.travel && DB.travel.byUnit.get(s.id);
     if (!trips || !trips.length) return "";
-    const { cats, dest, days } = tripsSummary(trips);
+    const { cats, dest, days, miles } = tripsSummary(trips);
     const cols = DB.travel.categories.map((c, i) => ({ c, i })).filter(({ i }) => trips.some((t) => t.amounts[i]));
+    const hasMiles = miles > 0;
     const sorted = trips.slice().sort((a, b) => (a.begin || "").localeCompare(b.begin || ""));
-    return `<section class="card"><div class="card-head"><h2>Member trips</h2><span class="summary">${trips.length} trips · ${int.format(days)} travel days · ${money(trips.reduce((a, t) => a + t.total, 0))}</span></div>
+    return `<section class="card"><div class="card-head"><h2>Member trips</h2><span class="summary">${trips.length} trips · ${int.format(days)} travel days${hasMiles ? ` · ≈${int.format(Math.round(miles))} miles` : ""} · ${money(trips.reduce((a, t) => a + t.total, 0))}</span></div>
       <div class="grid two">
         <div><h3 class="mini">What it paid for</h3>${bars(cats.map((c) => ({ label: c.label, value: c.value })))}</div>
         <div><h3 class="mini">Destinations</h3><ul class="bars plain">${dest.slice(0, 8).map((d) => `<li><span class="name">${esc(d.key)} · ${d.count} ${d.count === 1 ? "trip" : "trips"}</span><span class="amt">${money0(d.total)}</span></li>`).join("")}</ul></div>
       </div>
       <div class="table-wrap" style="margin-top:12px"><table>
-        <thead><tr><th>Travel dates</th><th>Destination</th><th>Purpose</th>${cols.map(({ c }) => `<th class="num">${esc(c)}</th>`).join("")}<th class="num">Total</th></tr></thead>
+        <thead><tr><th>Travel dates</th><th>Destination</th><th>Purpose</th>${cols.map(({ c }) => `<th class="num">${esc(c)}</th>`).join("")}${hasMiles ? `<th class="num" title="Mileage reimbursement ÷ IRS rate on the trip's start date">≈ Miles</th>` : ""}<th class="num">Total</th></tr></thead>
         <tbody>${sorted.map((t) => `<tr><td class="nowrap">${fmtDate(t.begin)}${t.end && t.end !== t.begin ? ` – ${fmtDate(t.end)}` : ""}</td><td>${esc(t.dest)}</td><td>${esc(titleCase(t.purpose))}</td>
-          ${cols.map(({ i }) => `<td class="num">${t.amounts[i] ? money(t.amounts[i]) : ""}</td>`).join("")}<td class="num"><strong>${money(t.total)}</strong></td></tr>`).join("")}</tbody>
+          ${cols.map(({ i }) => `<td class="num">${t.amounts[i] ? money(t.amounts[i]) : ""}</td>`).join("")}${hasMiles ? `<td class="num">${tripMiles(t) ? int.format(Math.round(tripMiles(t))) : ""}</td>` : ""}<td class="num"><strong>${money(t.total)}</strong></td></tr>`).join("")}</tbody>
       </table></div>
-      <p class="summary">From the Senate's member travel detail file; each trip is matched to its voucher in the expenditure report by check date and amount.</p>
+      <p class="summary">From the Senate's member travel detail file; each trip is matched to its voucher in the expenditure report by check date and amount. Miles are recovered from the mileage reimbursement at the IRS rate in effect on the trip's start date. <a href="${buildHash("about", {})}">Travel rules on the About page →</a></p>
     </section>`;
   }
 
@@ -870,6 +911,7 @@
           <button class="link remove" data-name="${esc(s.name)}" aria-label="Remove ${esc(s.name)}">✕</button></th>`).join("")}</tr></thead>
         <tbody>
           ${metric("Actual spending", (s) => s.actual)}
+          ${metric("Per month", (s) => s.perMonth)}
           ${metric("Payroll", typeVal("ps"))}
           ${metric("Maintenance &amp; operations", typeVal("mo"))}
           ${metric("Travel", typeVal("travel"))}
@@ -940,6 +982,7 @@
   /* ---------- district map (plain SVG, no map library) ---------- */
   const MAP_METRICS = {
     actual: { label: "Actual spending", get: (s) => s.actual },
+    month: { label: "Cost per month", get: (s) => s.perMonth },
     ps: { label: "Payroll", get: (s) => s.byType.ps || 0 },
     mo: { label: "Maintenance & operations", get: (s) => s.byType.mo || 0 },
     travel: { label: "Travel", get: (s) => s.byType.travel || 0 },
@@ -1166,6 +1209,7 @@
     const members = DB.members;
     const metrics = [
       ["Actual spending", (u) => u.actual, money0],
+      ["Cost per month", (u) => u.perMonth, money0],
       ["Payroll", (u) => u.byType.ps || 0, money0],
       ["Maintenance & operations", (u) => u.byType.mo || 0, money0],
       ["Travel", (u) => u.byType.travel || 0, money0],
@@ -1268,6 +1312,16 @@
         <li><strong>Negative amounts</strong> (${int.format(DB.records.filter((r) => r.amt < 0).length)} lines here) are refunds or adjustments and are included in totals as reported.</li>
         <li><strong>District map.</strong> Boundaries are the 2024 ${esc(CH.name)} district lines from the New York State GIS "${gisLayer}" layer, which also supplies each district's member name and party. Those names are matched to the reports by last name${isA ? ` (two by hand: AD 20 "Ari Brown" = BROWN, ERIC G.; AD 59 "Jaime R. Williams" = RIVAS-WILLIAMS, JAIME)` : ""}. Because the layer lists current members, a member who left before it was published (or joined after a report period) has no district shading for that period.${isA ? "" : " The layer lists Senate District 12 as vacant."}</li>
       </ul></section>
+      <section class="card" id="travel-rules"><h2>Travel rules and benchmarks</h2>
+        <p>The Legislature sets its own travel rules; the Comptroller's travel manual for state agencies is shown here as a point of comparison, not as the rule legislators are held to.</p>
+        <ul>
+          <li><strong>Legislators' per diems.</strong> Under Legislative Law §5(2), members receive actual and necessary transportation expenses and a full or partial per diem equal to the federal (GSA) per diem rates, under regulations set by the Temporary President of the Senate and the Speaker of the Assembly. In the Senate files, full per diems are multiples of the GSA rate for the destination (e.g. $203 a night in Albany), and partial per diems match the GSA meals-and-incidentals rate.</li>
+          <li><strong>Mileage.</strong> Personal-car mileage is reimbursed at the IRS business rate: 70¢ a mile in 2025, 72.5¢ from January 1, 2026 and 76¢ from July 1, 2026. Dividing a trip's mileage reimbursement by the rate on its start date gives whole miles for about 95% of Senate trips, so this site shows the miles implied by each reimbursement.</li>
+          <li><strong>State agency employees (for comparison).</strong> The Comptroller's Travel Manual (revised 2/22/2024) puts employees in travel status only when they are 35 miles or more from both their official station and their home, treats home-to-station travel as non-reimbursable commuting, reimburses personal-vehicle mileage at IRS rates, and offers an unreceipted overnight per diem of $50 (New York City and Nassau, Suffolk, Rockland and Westchester), $40 (Albany, Binghamton, Buffalo, Rochester, Syracuse areas), $35 (elsewhere in New York) or $50 (out of state), or actual lodging plus a GSA-based meal allowance with receipts.</li>
+          <li><strong>Assembly travel</strong> is reported only as voucher totals with a destination, so these breakdowns are available for the Senate only.</li>
+        </ul>
+        <p>Sources: <a href="https://www.osc.ny.gov/files/state-agencies/travel/pdf/agencies-travel-manual-attachment.pdf" target="_blank" rel="noopener">OSC Travel Manual</a> · <a href="https://www.nysenate.gov/open-data/expenditure-report-and-member-travel-detail-period-ending-2026-03-31" target="_blank" rel="noopener">Senate member travel detail</a> · <a href="https://www.irs.gov/newsroom/irs-sets-2026-business-standard-mileage-rate-at-725-cents-per-mile-up-25-cents" target="_blank" rel="noopener">IRS 2026 mileage rate</a></p>
+      </section>
       <section class="card"><h2>Sources</h2><ul>
         <li>Assembly expenditure reports: <a href="https://assembly.ny.gov/expenditure/" target="_blank" rel="noopener">assembly.ny.gov/expenditure</a></li>
         <li>Senate expenditure reports: <a href="https://www.nysenate.gov/open-data" target="_blank" rel="noopener">nysenate.gov/open-data</a></li>
@@ -1312,6 +1366,8 @@
       default: html = viewOverview();
     }
     if (html != null) app.innerHTML = html;
+    const hs = app.querySelector("#heroSearch");
+    if (hs) hs.addEventListener("submit", (e) => { e.preventDefault(); go("records", { q: app.querySelector("#heroSearchInput").value.trim() }); });
     const key = view + (arg || "");
     if (key !== lastView) { window.scrollTo(0, 0); lastView = key; }
     if (view === "records") document.getElementById("globalSearchInput").value = params.q || "";
