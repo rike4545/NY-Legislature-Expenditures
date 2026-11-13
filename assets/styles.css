@@ -932,3 +932,7 @@ th.csort-th .th-sort:focus-visible { outline: 2px solid var(--accent); outline-o
 @media print { .nx-track span { background: #000 !important; } .nx-check fieldset { break-inside: avoid; } }
 .nx-pick { display: inline-flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
 .nx-pick select { font-size: 14px; text-transform: none; letter-spacing: 0; max-width: 280px; }
+.nx-letter { border-top: 1px solid var(--border); padding: 10px 0; }
+.nx-letter > summary { cursor: pointer; line-height: 1.4; }
+.nx-letter-body { white-space: pre-wrap; font-size: 14.5px; line-height: 1.55; background: var(--surface, transparent); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; margin: 10px 0 8px; max-width: 72ch; }
+@media print { .nx-letters details { break-inside: avoid; } .nx-letters details:not([open]) { display: none; } }

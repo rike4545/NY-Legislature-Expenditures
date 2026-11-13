@@ -3065,6 +3065,21 @@
       "Shellfish and fishing licenses and DEC permits",
     ],
   } };
+  // Sample constituent letters. Office details fill in from the district's current office; [bracketed] fields are for staff to complete.
+  function nxLetters(x) {
+    const sign = `Sincerely,\n\n${x.title} ${x.name}\n${x.chamber} District ${x.district}${x.office ? `\n${x.office}` : ""}${x.phone ? `\n${x.phone}` : ""}${x.email ? `\n${x.email}` : ""}`;
+    const hello = "Dear [Constituent name],";
+    return [
+      { id: "ack", title: "We received your request", when: "Within 1 business day of a new case", body: `${hello}\n\nThank you for contacting my office about [short description of the issue]. I want you to know we have your request and are working on it.\n\n[Staff name] on my staff is handling your case and can be reached at ${x.phone || "[office phone]"}${x.email ? ` or ${x.email}` : ""}. Your case number is [case number]; please mention it if you call.\n\nBefore [agency name] can discuss your case with my office, they need your written permission. A release form is enclosed. Please sign and return it by mail, email or in person, along with copies of any letters or notices you have received.\n\nWe will give you an update within five business days.\n\n${sign}` },
+      { id: "release", title: "Privacy release needed", when: "When a case can't move until the release is signed", body: `${hello}\n\nThank you again for asking my office for help with [issue]. We are ready to contact [agency name] for you, but agencies will not discuss your case with us until we have your signed permission.\n\nPlease sign the enclosed release form and return it to my district office${x.office ? ` at ${x.office}` : ""}, or email a photo or scan of it to ${x.email || "[office email]"}. If you would rather sign it in person, you are welcome to stop by or meet us at mobile office hours.\n\nIf you have any questions, please call [staff name] at ${x.phone || "[office phone]"}.\n\n${sign}` },
+      { id: "status", title: "Status update", when: "Within 5 business days, then every 10 while the case is open", body: `${hello}\n\nI am writing with an update on your case with [agency name] (case number [case number]).\n\nOn [date], my office [contacted / sent your information to] [agency office or liaison]. They have told us that [what the agency said, in plain language]. The next step is [next step], which they expect by [date].\n\nWe will keep following up and will contact you again by [date]. If anything changes on your end, such as a new letter from the agency, please let [staff name] know at ${x.phone || "[office phone]"}.\n\n${sign}` },
+      { id: "resolved", title: "Case resolved", when: "When the agency fixes the problem", body: `${hello}\n\nI am glad to tell you that your case with [agency name] has been resolved. [What happened, e.g. "Your unemployment benefits were approved, and back payments of $[amount] were issued on [date]."]\n\nIf you do not see [the payment / the corrected record / the document] by [date], or if the problem comes back, please call [staff name] at ${x.phone || "[office phone]"} and we will reopen your case right away.\n\nThank you for letting my office help. If you ever need assistance with a state agency again, please don't hesitate to reach out.\n\n${sign}` },
+      { id: "denied", title: "Case closed: the answer was no", when: "When the agency denies the request after review", body: `${hello}\n\nMy office has done everything it can on your case with [agency name], and I am sorry to report that the agency has [denied / not approved] your request. The reason they gave is: [reason, in plain language].\n\nYou still have options. You can [appeal / request a hearing / reapply] by [deadline]: [how to do it, with phone number or website]. Free help may be available from [legal services or advocacy organization].\n\nIf you decide to appeal and need help with the paperwork or have new information, please call [staff name] at ${x.phone || "[office phone]"}. I wish we had better news, and my office is here if you need us.\n\n${sign}` },
+      { id: "handoff", title: "Referral to the right government office", when: "When the issue belongs to a town, village, county or federal office", body: `${hello}\n\nThank you for contacting my office about [issue]. This matter is handled by [the Town of ___ / the Village of ___ / Suffolk County ___ / the office of Representative ___], not by the State, so they are the people who can act on it.\n\nRather than just give you a phone number, my office has [spoken with / sent your information to] [name and title] at [office], who is expecting to hear from you. You can reach them at [phone] or [email]. [Your request was forwarded on (date), with your permission.]\n\nIf you don't hear back within [number] business days, or if a State agency turns out to be involved, please call [staff name] at ${x.phone || "[office phone]"} and we will follow up.\n\n${sign}` },
+      { id: "opinion", title: "Reply to an opinion on legislation", when: "When a constituent writes for or against a bill", body: `${hello}\n\nThank you for writing to share your views on [bill number and short title], which would [one-sentence neutral description of what the bill does].\n\nThe bill is currently [in the ___ Committee / on the floor calendar / passed the ${x.chamber} on (date) / signed into law on (date)]. [The ${x.title}'s position, if public: "I (support / oppose / am reviewing) this bill because ___."] You can follow its progress at ${x.chamber === "Senate" ? "nysenate.gov/legislation" : "nyassembly.gov/leg"}.\n\nHearing from the people I represent helps me make decisions in Albany. I appreciate you taking the time to write, and I hope you will continue to share your views.\n\n${sign}` },
+      { id: "hours", title: "Mobile office hours notice", when: "Before each stop on the mobile-office rotation", body: `Dear Neighbor,\n\nMy staff will hold mobile office hours in [community] on [day, date] from [time] to [time] at [location and address].\n\nStop by for help with a State agency, including unemployment, DMV, tax and STAR questions, benefits such as SNAP or HEAP, health insurance, licenses and permits. Please bring any letters or notices about your issue. No appointment is needed, and help is available in [English and Spanish].\n\nIf you can't make it, call my district office at ${x.phone || "[office phone]"}${x.email ? ` or email ${x.email}` : ""} any weekday.\n\n${sign}` },
+    ];
+  }
   function nxKey(d) { return `nascar:${CH.id}:${d}`; }
   function nxLoad(d) { try { const v = JSON.parse(localStorage.getItem(nxKey(d)) || "[]"); return new Set(Array.isArray(v) ? v : []); } catch (e) { return new Set(); } }
   function nxSave(d, set) { try { localStorage.setItem(nxKey(d), JSON.stringify([...set])); } catch (e) { /* storage unavailable: progress lasts this visit */ } }
@@ -3082,6 +3097,10 @@
     if (!ZIPS) loadZips().then(() => { if (parseHash().view === "nascar") render(); });
     const zips = ZIPS ? Object.keys(ZIPS).filter((z) => ZIPS[z][CH.id === "senate" ? 1 : 0] === d.district).sort() : null;
     const done = nxLoad(d.district);
+    const letters = nxLetters({
+      title: CH.id === "senate" ? "Senator" : "Assemblymember", name: d.member || "[Name]", chamber: CH.name, district: d.district,
+      office: c.districtOffice || "", phone: c.districtPhone || "", email: c.email || "",
+    });
     const total = NX_PHASES.reduce((a, p) => a + p.items.length, 0);
 
     setTimeout(() => {
@@ -3112,6 +3131,18 @@
         list.querySelectorAll("input[type=checkbox]").forEach((b) => { b.checked = false; });
         paint(); announce("Checklist cleared");
       });
+      app.querySelectorAll("[data-copy]").forEach((btn) => btn.addEventListener("click", async () => {
+        const src = app.querySelector("#" + btn.dataset.copy);
+        const text = src ? src.textContent : "";
+        let ok = false;
+        try { await navigator.clipboard.writeText(text); ok = true; } catch (err) {
+          // Clipboard blocked: select the text so it can be copied by hand.
+          const r = document.createRange(); r.selectNodeContents(src); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+        }
+        btn.textContent = ok ? "Copied" : "Selected: press Ctrl+C";
+        announce(ok ? "Letter copied" : "Letter selected; press Control C to copy");
+        setTimeout(() => { btn.textContent = "Copy letter"; }, 2500);
+      }));
       const pr = app.querySelector("#nxPrint");
       if (pr) pr.addEventListener("click", () => window.print());
       paint();
@@ -3178,6 +3209,13 @@
           <tbody>${NX_ROLES.map(([a, b, c2]) => `<tr><th scope="row">${esc(a)}</th><td>${esc(b)}</td><td>${esc(c2)}</td></tr>`).join("")}</tbody></table></div>
         <h3 class="mini">Statement of civility</h3>
         <p>${esc(NX_CIVILITY)}</p>
+      </section>
+
+      <section class="card nx-letters"><div class="card-head"><h2>Sample constituent letters</h2><span class="summary">${letters.length} templates</span></div>
+        <p class="summary">Office details fill in from the current ${esc(CH.name)} District ${d.district} office. Complete the <mark>[bracketed]</mark> fields before sending, and keep each letter to facts the office has confirmed.</p>
+        ${letters.map((L) => `<details class="nx-letter"><summary><strong>${esc(L.title)}</strong> <span class="summary">· ${esc(L.when)}</span></summary>
+          <div class="nx-letter-body" id="nxL-${L.id}">${esc(L.body).replace(/\[[^\]]+\]/g, (m) => `<mark>${m}</mark>`)}</div>
+          <p class="noprint"><button type="button" data-copy="nxL-${L.id}">Copy letter</button></p></details>`).join("")}
       </section>
 
       <section class="card"><h2>Casework categories and agencies</h2>
