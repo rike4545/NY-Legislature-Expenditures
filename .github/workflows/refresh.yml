@@ -1,4 +1,4 @@
-name: Refresh campaign, legislation and lobbying data
+name: Refresh data (campaign, legislation, lobbying, expenditure reports)
 
 # Weekly: pull fresh State Board of Elections campaign finance, public financing and independent
 # expenditure data, and ethics-commission lobbying reports; rebuild the site's data files; commit any
@@ -15,6 +15,7 @@ on:
 permissions:
   contents: write
   actions: write
+  issues: write
 
 concurrency:
   group: refresh
@@ -57,6 +58,16 @@ jobs:
           python3 scripts/fetch_lobbying.py --workers 4 --max-age "$MAX_AGE"
       - name: Build lobbying summary
         run: python3 scripts/build_lobbying.py
+      - name: Check for new expenditure and payroll reports
+        id: reports
+        continue-on-error: true
+        run: python3 scripts/check_new_reports.py
+      - name: Rebuild for a new Assembly report
+        if: steps.reports.outputs.assembly_new == 'true'
+        run: |
+          python3 scripts/build_data.py
+          python3 scripts/build_members.py
+          python3 scripts/build_history.py
       - name: Commit changes
         id: commit
         run: |
@@ -76,3 +87,15 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh workflow run pages.yml --ref main
+      - name: Ask for the Senate reports that need a hand download
+        if: steps.reports.outputs.senate_due == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          title="Senate reports to download"
+          open=$(gh issue list --state open --search "\"$title\" in:title" --json number --jq '.[0].number')
+          if [ -n "$open" ]; then
+            gh issue comment "$open" --body-file data/raw/.senate_due.md
+          else
+            gh issue create --title "$title" --body-file data/raw/.senate_due.md
+          fi

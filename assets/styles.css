@@ -749,3 +749,16 @@ a.back { padding: 4px 0; }
 .bh-ap { background: color-mix(in srgb, var(--muted) 35%, transparent); margin-bottom: 3px; }
 .bh-sp { background: var(--accent); }
 .legend i.bh-ap, .legend i.bh-sp { display: inline-block; height: 10px; }
+
+/* ---------- Payroll report by report ---------- */
+.cols.reps { gap: 1px; height: 150px; align-items: flex-end; }
+.cols.reps .col { min-width: 0; flex: 1 1 0; }
+.cols.reps .colbar { border-radius: 2px 2px 0 0; }
+.cols.reps .col.cur .colbar { background: var(--accent); }
+.cols.reps .collabel { font-size: 10px; white-space: nowrap; overflow: visible; width: 0; }
+.cols.reps.dense { gap: 0; }
+.seg-links { font-size: 13px; margin: 8px 0; }
+.seg-links a[aria-current="true"] { font-weight: 700; text-decoration: none; color: var(--text); }
+.cols.reps .col { overflow: visible; position: relative; padding-bottom: 16px; }
+.cols.reps .collabel { position: absolute; bottom: 0; left: 0; width: auto; color: var(--muted); }
+.cols.reps .collabel:not(:empty)::before { content: ""; position: absolute; left: 0; bottom: 14px; height: 4px; border-left: 1px solid var(--muted); }

@@ -15,7 +15,9 @@ Output:
         {source, reports: [[periodEnd, checkDate, people]], offices: [...], titles: [...],
          people: {name: [[office, title, rate, type, firstReport, lastReport, reportsPaid], ...]},
          years: {year: {reports, salary, ra, sa, people, ra_people, sa_people, te_people, te_lines, te_median_rate}},
-         officeYears: {office index: {year: [salary, people]}}}
+         officeYears: {office index: {year: [salary, people]}},
+         reportTotals: per report [ra, sa, raPeople, saPeople, tePeople, joined, left] (joined/left vs the previous report),
+         officeReports: {office index: [[report, salary, salaried, hourly]]} for the last three years of reports}
         Years go by check date. salary = the sum of the biweekly rates of RA and SA lines on that year's
         reports, i.e. salaried payroll at listed rates; TE (hourly) lines have a rate but no hours, so
         they are counted, not summed.
@@ -121,11 +123,41 @@ def main() -> None:
                  for y, Y in sorted(years.items())}
     office_out = {str(oi): {y: [round(v[0], 2), len(v[1])] for y, v in ys.items()} for oi, ys in office_years.items()}
 
+    # Report by report: salaried payroll at listed rates, headcounts, and who joined or left since the
+    # previous report; and the same per office for the last RECENT reports.
+    RECENT = 78  # three years of biweekly reports
+    per_rep = [[0.0, 0.0, 0, 0, 0, set()] for _ in order]
+    office_rep = {}
+    for name, by_rep in lines.items():
+        for i, (oi, _ti, rate, t) in by_rep.items():
+            R = per_rep[i]
+            R[5].add(name)
+            if t in ("RA", "SA"):
+                R[0 if t == "RA" else 1] += rate
+                R[2 if t == "RA" else 3] += 1
+            elif t == "TE":
+                R[4] += 1
+            if i >= len(order) - RECENT:
+                o = office_rep.setdefault(oi, {}).setdefault(i, [0.0, 0, 0])
+                if t in ("RA", "SA"):
+                    o[0] += rate; o[1] += 1
+                elif t == "TE":
+                    o[2] += 1
+    report_totals = []
+    for i, R in enumerate(per_rep):
+        prev = per_rep[i - 1][5] if i else set()
+        joined = len(R[5] - prev) if i else 0
+        left = len(prev - R[5]) if i else 0
+        report_totals.append([round(R[0], 2), round(R[1], 2), R[2], R[3], R[4], joined, left])
+    office_reports = {str(oi): [[i, round(v[0], 2), v[1], v[2]] for i, v in sorted(d.items())] for oi, d in office_rep.items()}
+
     OUT.write_text(json.dumps({
         "source": "NY Senate biweekly payroll reports, nysenate.gov/open-data",
         "reports": [[d.isoformat(), reports[d]["check"].isoformat() if reports[d]["check"] else "", len(reports[d]["people"])] for d in order],
         "offices": list(offices), "titles": list(titles), "people": people,
         "years": years_out, "officeYears": office_out,
+        "reportFields": ["ra", "sa", "raPeople", "saPeople", "tePeople", "joined", "left"], "reportTotals": report_totals,
+        "officeReportFields": ["report", "salary", "salaried", "hourly"], "officeReports": office_reports,
     }, ensure_ascii=False, separators=(",", ":")))
     nseg = sum(len(v) for v in people.values())
     print(f"senate payroll: {len(order)} reports {order[0]} .. {order[-1]}, {len(rows):,} lines, "

@@ -236,6 +236,81 @@
   }
   function fmtRepDay(pr, i) { return fmtDay(pr.reports[i][0]); }
 
+  /* Report by report: each biweekly payroll report's salaried payroll, headcount, and turnover. */
+  function payrollReportsCard(pr, params) {
+    if (!pr || !pr.reportTotals) return "";
+    const span = Math.max(13, Math.min(pr.reports.length, Number(params && params.n) || 52));
+    const idx = pr.reports.map((_, i) => i).slice(-span);
+    const val = (i) => pr.reportTotals[i][0] + pr.reportTotals[i][1];
+    const max = Math.max(1, ...idx.map(val));
+    const lbl = (i) => { const d = new Date(pr.reports[i][0] + "T12:00:00"); return d.toLocaleDateString("en-US", { month: "short", day: "numeric" }); };
+    const yr = (i) => pr.reports[i][0].slice(0, 4);
+    const t = (i) => pr.reportTotals[i];
+    const prevYear = (i) => i - 26 >= 0 ? val(i - 26) : null;
+    const last = pr.last, ly = prevYear(last);
+    const opts = [26, 52, 104, 156, pr.reports.length].filter((n, k, a) => n <= pr.reports.length && a.indexOf(n) === k);
+    return `<section class="card" id="byReport"><div class="card-head"><h2>Report by report</h2><span class="summary">salaried payroll on each biweekly report, at listed rates · ${pr.reports.length} reports on file</span></div>
+      <div class="grid kpis small">
+        ${kpi("Latest report", money0(val(last)), `period ending ${esc(fmtRepDay(pr, last))} · check ${esc(fmtDay(pr.reports[last][1]))}`)}
+        ${ly != null ? kpi("Same report a year earlier", money0(ly), `${chgShort(val(last), ly)}`) : ""}
+        ${kpi("People paid", int.format(t(last)[2] + t(last)[3] + t(last)[4]), `${int.format(t(last)[2])} regular annual · ${int.format(t(last)[3])} special annual · ${int.format(t(last)[4])} hourly`)}
+        ${kpi("Turnover on this report", `+${t(last)[5]} / −${t(last)[6]}`, "people new since the previous report / no longer on it")}
+      </div>
+      <p class="seg-links" aria-label="How many reports to show">Show: ${opts.map((n) => `<a href="${buildHash("payroll", { n })}"${n === span ? ' aria-current="true"' : ""}>${n === pr.reports.length ? "all" : n / 26 + (n === 26 ? " year" : " years")}</a>`).join(" · ")}</p>
+      <div class="cols small reps${span > 104 ? " dense" : ""}">${idx.map((i) => { const a = `${fmtRepDay(pr, i)}: ${money0(val(i))} salaried payroll, ${t(i)[2] + t(i)[3]} salaried and ${t(i)[4]} hourly staff, ${t(i)[5]} new, ${t(i)[6]} left`;
+        return `<div class="col${i === last ? " cur" : ""}" role="img" aria-label="${esc(a)}" title="${esc(a)}"><span class="colbar" style="height:${(val(i) / max * 100).toFixed(1)}%"></span><span class="collabel">${(i === idx[0] && span <= 156) || (i !== idx[0] && yr(i) !== yr(i - 1) && (span <= 156 || Number(yr(i)) % 5 === 0)) ? yr(i) : ""}</span></div>`; }).join("")}</div>
+      <details class="yeartable"><summary>Report-by-report table (${idx.length} reports)</summary><div class="table-wrap"><table>
+        <caption class="sr-only">Senate payroll on each biweekly report</caption>
+        <thead><tr><th scope="col">Period ending</th><th scope="col">Check date</th><th scope="col" class="num">Salaried payroll</th><th scope="col" class="num">Regular annual</th><th scope="col" class="num">Special annual</th><th scope="col" class="num">Hourly staff</th><th scope="col" class="num">New</th><th scope="col" class="num">Left</th></tr></thead>
+        <tbody>${idx.slice().reverse().map((i) => `<tr><th scope="row" class="nowrap">${esc(fmtRepDay(pr, i))}</th><td class="nowrap">${esc(fmtDay(pr.reports[i][1]))}</td><td class="num"><strong>${money0(val(i))}</strong></td><td class="num">${money0(t(i)[0])} <span class="summary">· ${t(i)[2]}</span></td><td class="num">${money0(t(i)[1])} <span class="summary">· ${t(i)[3]}</span></td><td class="num">${t(i)[4]}</td><td class="num">${i ? "+" + t(i)[5] : "—"}</td><td class="num">${i ? "−" + t(i)[6] : "—"}</td></tr>`).join("")}</tbody></table></div></details>
+      <p class="summary">Salaried payroll adds every regular- and special-annual employee's biweekly rate on that report; hourly staff are counted because the reports don't give hours. New and left compare each report with the one before it, so a few reports missing from the Senate's archive show up as larger jumps. Members' own salaries aren't in these reports.</p>
+    </section>`;
+  }
+  function officeReportsCard(pr, officeName) {
+    if (!pr || !pr.officeReports) return "";
+    const oi = pr.offices.indexOf(officeName);
+    const rows = oi >= 0 ? pr.officeReports[String(oi)] || [] : [];
+    if (rows.length < 3) return "";
+    const first = rows[0][0];
+    const by = new Map(rows.map((r) => [r[0], r]));
+    const idx = []; for (let i = first; i <= pr.last; i++) idx.push(i);
+    const max = Math.max(1, ...rows.map((r) => r[1]));
+    const lastRow = by.get(pr.last), yearAgo = by.get(pr.last - 26);
+    const yr = (i) => pr.reports[i][0].slice(0, 4);
+    return `<section class="card"><div class="card-head"><h2>Staff payroll, report by report</h2><span class="summary">salaried staff on each biweekly Senate payroll report, last ${idx.length} reports</span></div>
+      <div class="grid kpis small">
+        ${lastRow ? kpi("Latest report", money0(lastRow[1]), `${lastRow[2]} salaried · ${lastRow[3]} hourly · about ${compact(lastRow[1] * 26)} a year`) : kpi("Latest report", "—", "no staff on it")}
+        ${lastRow && yearAgo ? kpi("A year earlier", money0(yearAgo[1]), `${yearAgo[2]} salaried · ${chgShort(lastRow[1], yearAgo[1])}`) : ""}
+      </div>
+      <div class="cols small reps">${idx.map((i) => { const r = by.get(i); const a = `${fmtRepDay(pr, i)}: ${r ? `${money0(r[1])}, ${r[2]} salaried, ${r[3]} hourly` : "no staff on this report"}`;
+        return `<div class="col${i === pr.last ? " cur" : ""}" role="img" aria-label="${esc(a)}" title="${esc(a)}"><span class="colbar" style="height:${r ? (r[1] / max * 100).toFixed(1) : 0}%"></span><span class="collabel">${i === idx[0] || yr(i) !== yr(i - 1) ? yr(i) : ""}</span></div>`; }).join("")}</div>
+      <p class="summary">Biweekly rates of the office's salaried staff as listed on each report; hourly staff are counted, not summed. The senator's own salary isn't included. <a href="${buildHash("payroll", {})}">All Senate payroll reports</a></p>
+    </section>`;
+  }
+  function districtPayrollCard(s) {
+    if (CH.id !== "senate" || !s) return "";
+    const pr = payroll();
+    if (pr === undefined) return `<section class="card"><div class="card-head"><h2>Office staff payroll</h2></div><p class="summary">Loading the Senate payroll reports…</p></section>`;
+    if (!pr || !pr.officeReports) return "";
+    const oi = pr.offices.indexOf(s.name);
+    const rows = oi >= 0 ? pr.officeReports[String(oi)] || [] : [];
+    const by = new Map(rows.map((r) => [r[0], r]));
+    const cur = by.get(pr.last), ago = by.get(pr.last - 26);
+    const staff = [];
+    for (const [name, segs] of Object.entries(pr.people)) for (const g of segs) if (g[5] === pr.last && g[0] === oi) staff.push({ name, g });
+    staff.sort((a, b) => (b.g[3] !== "TE") - (a.g[3] !== "TE") || b.g[2] - a.g[2]);
+    return `<section class="card"><div class="card-head"><h2>Office staff payroll</h2><span class="summary">the Senate's biweekly payroll report for the period ending ${esc(fmtRepDay(pr, pr.last))}</span></div>
+      ${cur ? `<div class="grid kpis small">
+        ${kpi("Staff on the latest report", int.format(cur[2] + cur[3]), `${cur[2]} salaried · ${cur[3]} hourly`)}
+        ${kpi("Salaried payroll", `${money0(cur[1])} biweekly`, `about ${money0(cur[1] * 26)} a year at these rates`)}
+        ${ago ? kpi("A year earlier", `${money0(ago[1])} biweekly`, `${ago[2]} salaried · ${chgShort(cur[1], ago[1])}`) : ""}
+      </div>
+      <div class="table-wrap"><table><caption class="sr-only">Staff of this office on the latest Senate payroll report</caption>
+        <thead><tr><th scope="col">Name</th><th scope="col">Title</th><th scope="col">Pay type</th><th scope="col" class="num">Rate</th></tr></thead>
+        <tbody>${staff.map((x) => `<tr><td><a href="${buildHash("person", { name: x.name })}">${esc(x.name)}</a></td><td>${esc(titleCase(pr.titles[x.g[1]]))}</td><td>${esc(x.g[3])}</td><td class="num nowrap">${rateText(x.g[2], x.g[3], true)}</td></tr>`).join("")}</tbody></table></div>` : `<p class="summary">No staff listed under this office on the latest payroll report.</p>`}
+      <p class="summary">Pay types: RA regular annual, SA special annual (yearly rate = biweekly × 26), TE temporary, paid by the hour. <a href="${unitHref(s.id)}">The office's spending page</a> charts its payroll report by report.</p>
+    </section>`;
+  }
   /* Salaried payroll summed over every biweekly report, by check-date year. */
   function payrollYearsCard(pr) {
     if (!pr || !pr.years) return "";
@@ -412,6 +487,7 @@
         ${kpi("Median salary", d ? money0(d.median) : "—", d ? `middle half ${money0(d.p25)}–${money0(d.p75)}` : "")}
         ${kpi("Median hourly rate", te.length ? money(median(te.map((x) => x.g[2]))) : "—", `${int.format(te.length)} temporary staff`)}
       </div>
+      ${payrollReportsCard(pr, params)}
       ${payrollYearsCard(pr)}
       <div class="grid two">
         <section class="card"><div class="card-head"><h2>Largest offices by salaried payroll</h2><span class="summary">latest report, yearly rate</span></div>
@@ -1805,7 +1881,7 @@
       ${historyCard(s)}
       ${s.kind === "member" ? legislationCard(s) : ""}
       ${s.kind === "member" && memberInfo(s).district ? campaignCard(memberInfo(s).district, displayName(s)) + lobbyingCard(memberInfo(s).district) : ""}
-      ${CH.id === "senate" ? officeYearsCard(payroll(), s.name) : ""}
+      ${CH.id === "senate" ? officeReportsCard(payroll(), s.name) + officeYearsCard(payroll(), s.name) : ""}
       <div class="grid kpis">
         ${kpi("Actual spending", money0(s.actual), ps ? changeText(change(s.actual, ps.actual)) : (PREV ? "Not in prior period" : ""))}
         ${kpi("Per month", money0(s.perMonth), s.partial ? `active ≈${s.months} of ${DB.periodMonths} months` : `${DB.periodMonths}-month period${s.kind === "member" ? ` · member median ${money0(DB.memberMonthlyMedian)}` : ""}`)}
@@ -2560,6 +2636,7 @@
       </div>
       ${demogCard(d.district, s)}
       ${votersCard(d.district, s)}
+      ${districtPayrollCard(s)}
       ${campaignCard(d.district, d.member)}
       ${lobbyingCard(d.district)}
       <p class="summary">Neighbors are districts that share a boundary. Use ← → on your keyboard to step through districts.</p>`;

@@ -7,3 +7,4 @@ __pycache__/
 .env
 *.env
 *.key
+data/raw/.senate_due.md
