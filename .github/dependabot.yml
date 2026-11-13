@@ -1,0 +1,10 @@
+version: 2
+updates:
+  # Keeps the pinned GitHub Actions current; each update arrives as a pull request.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]

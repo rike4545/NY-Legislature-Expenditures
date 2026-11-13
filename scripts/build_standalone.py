@@ -25,6 +25,14 @@ bundle = {"chambers": chambers,
           "data": {f: json.loads((root / f).read_text(encoding="utf-8")) for f in files if (root / f).exists()}}
 data = json.dumps(bundle, separators=(",", ":"), ensure_ascii=False).replace("</", "<\\/")
 
+# The single-file copy runs from one inline document: drop the site's CSP (it only allows this
+# site's own files), the font preload, and embed the fonts as data URLs.
+import base64, re as _re
+html = _re.sub(r'\s*<meta http-equiv="Content-Security-Policy"[^>]*>', "", html)
+html = _re.sub(r'\s*<link rel="preload"[^>]*as="font"[^>]*>', "", html)
+for fname in _re.findall(r'url\("fonts/([^"]+)"\)', css):
+    b64 = base64.b64encode((root / "assets/fonts" / fname).read_bytes()).decode()
+    css = css.replace(f'url("fonts/{fname}")', f'url("data:font/woff2;base64,{b64}")')
 html = html.replace('<link rel="stylesheet" href="assets/styles.css">', f"<style>\n{css}\n</style>")
 html = html.replace('<script src="assets/app.js"></script>',
                     f"<script>window.__EXPENDITURE_BUNDLE__ = {data};</script>\n<script>\n{js}\n</script>")

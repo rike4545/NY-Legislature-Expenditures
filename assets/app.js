@@ -59,6 +59,8 @@
     return money0(n);
   };
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  // Links built from data files: only web, mail and in-page links, never javascript: or data: URLs.
+  const escUrl = (u) => { const v = String(u == null ? "" : u).trim(); return esc(/^(https?:\/\/|mailto:|#|\/|\.{0,2}\/|[a-z0-9_-]+(\/|\.[a-z]+))/i.test(v) && !/^\s*(javascript|data|vbscript):/i.test(v) ? v : "#"); };
   const fmtDate = (iso) => {
     if (!iso) return "";
     const [y, m, d] = iso.split("-").map(Number);
@@ -564,7 +566,7 @@
     if (s.kind !== "member") return "";
     const url = (BALLOTPEDIA[CH.id] || {})[s.name];
     const href = url || `https://ballotpedia.org/wiki/index.php?search=${encodeURIComponent(displayName(s))}`;
-    return `<a class="btn" href="${esc(href)}" target="_blank" rel="noopener" title="${url ? "Ballotpedia profile" : "Not on Ballotpedia's current-members list; opens a Ballotpedia search"}">${url ? "Ballotpedia profile" : "Search Ballotpedia"} ${I.ext}</a>`;
+    return `<a class="btn" href="${escUrl(href)}" target="_blank" rel="noopener" title="${url ? "Ballotpedia profile" : "Not on Ballotpedia's current-members list; opens a Ballotpedia search"}">${url ? "Ballotpedia profile" : "Search Ballotpedia"} ${I.ext}</a>`;
   }
   const ELECTION_LABEL = {
     retiring: ["Not seeking re-election", "change"], other_office: ["Ran for another office", "change"],
@@ -601,7 +603,7 @@
     return `<table class="mini-results"><tbody>${b.cands.map(([n, pty, v], i) => `<tr class="${i === b.incumbent ? "inc" : ""}">
         <td>${esc(n)}${i === b.incumbent ? ' <span class="summary">(incumbent)</span>' : ""}<br><span class="summary">${esc(pty)}</span></td>
         <td class="num">${int.format(v)}</td><td class="num">${b.total ? (v / b.total * 100).toFixed(1) : "0.0"}%</td></tr>`).join("")}</tbody></table>
-      <p class="summary">Unofficial count from the <a href="${esc(src.url || "https://nyenr.elections.ny.gov/")}" target="_blank" rel="noopener">NYS Board of Elections</a> as of ${esc(b.asOf)} · ${rep === null ? "" : `${int.format(rep)} of ${int.format(eds)} election districts reporting · `}${int.format(b.total)} ballots incl. blanks. Certification follows within about 25 days of the election.</p>`;
+      <p class="summary">Unofficial count from the <a href="${escUrl(src.url || "https://nyenr.elections.ny.gov/")}" target="_blank" rel="noopener">NYS Board of Elections</a> as of ${esc(b.asOf)} · ${rep === null ? "" : `${int.format(rep)} of ${int.format(eds)} election districts reporting · `}${int.format(b.total)} ballots incl. blanks. Certification follows within about 25 days of the election.</p>`;
   }
   function fmtLooseDate(t) {
     // "January 1, 2023" or "2011"
@@ -626,7 +628,7 @@
     return `<section class="card"><div class="card-head"><h2>Legislation, ${L.session}–${String(L.session + 1).slice(2)} session</h2><span class="summary">bills ${esc(r.name)} introduced as prime sponsor · Open Legislation, as of ${esc(fmtDay(L.fetched))}</span></div>
       <ul class="bars funnel">${steps.map(([l, v]) => `<li><span class="name">${l}</span><span class="amt">${int.format(v)}${r.introduced && l !== "Introduced" ? ` · ${pctf(v / r.introduced)}` : ""}</span><span class="track"><span class="fill" style="width:${(v / Math.max(1, r.introduced) * 100).toFixed(1)}%"></span></span></li>`).join("")}</ul>
       <p class="summary">The median ${esc(CH.name)} member introduced ${med("introduced")} bills and had ${med("signed")} signed. ${r.vetoed ? `${r.vetoed} of this member's bills were vetoed. ` : ""}${r.resolutions ? `Also ${r.resolutions} resolutions (not counted above). ` : ""}Majority-party members usually pass far more bills, so compare within a party.</p>
-      ${r.signedBills.length ? `<details><summary>Bills signed into law (${r.signed})</summary><ul class="plainlist">${r.signedBills.map(([no, t]) => `<li><a href="${esc(url(no))}" target="_blank" rel="noopener">${esc(no)}</a> · ${esc(t)}</li>`).join("")}</ul></details>` : ""}
+      ${r.signedBills.length ? `<details><summary>Bills signed into law (${r.signed})</summary><ul class="plainlist">${r.signedBills.map(([no, t]) => `<li><a href="${escUrl(url(no))}" target="_blank" rel="noopener">${esc(no)}</a> · ${esc(t)}</li>`).join("")}</ul></details>` : ""}
       <p class="summary">Counts bills the member sponsored, not co-sponsored, and leaves out budget bills and Rules Committee bills. When a bill was replaced on the floor by its same-as bill from the other house, the steps that bill went on to take count here too, so one law can be credited to both its Senate and Assembly sponsors. Source: <a href="https://legislation.nysenate.gov" target="_blank" rel="noopener">NY Open Legislation</a>.</p>
     </section>`;
   }
@@ -645,7 +647,7 @@
         <div><h3 class="mini">Subjects, by number of organizations</h3><ul class="bars">${x.subjects.slice(0, 10).map(([sub, n]) => `<li><span class="name">${esc(sub)}</span><span class="amt">${int.format(n)}</span><span class="track"><span class="fill alt" style="width:${(n / maxS * 100).toFixed(1)}%"></span></span></li>`).join("")}</ul>
           ${x.donors.length ? `<h3 class="mini" style="margin-top:14px">Lobbied and donated</h3><table class="mini-results"><tbody>${x.donors.slice(0, 10).map(([c, a]) => `<tr><td>${esc(c)}</td><td class="num">${money0(a)}</td></tr>`).join("")}</tbody></table>` : ""}</div>
       </div>
-      <p class="summary">An organization counts when a lobbyist's report for it names this legislator, or their staff, among the people lobbied. "Lobbied and donated" matches the client's name to organizations that gave to the member's own campaign committees in 2025–26; it doesn't include gifts from the lobbyists or the organization's employees. Source: <a href="${esc(lb.source)}" target="_blank" rel="noopener">Lobbyist Bi-Monthly Reports</a>, data.ny.gov${lb.fetched ? `, fetched ${esc(fmtDay(lb.fetched))}` : ""}.</p>
+      <p class="summary">An organization counts when a lobbyist's report for it names this legislator, or their staff, among the people lobbied. "Lobbied and donated" matches the client's name to organizations that gave to the member's own campaign committees in 2025–26; it doesn't include gifts from the lobbyists or the organization's employees. Source: <a href="${escUrl(lb.source)}" target="_blank" rel="noopener">Lobbyist Bi-Monthly Reports</a>, data.ny.gov${lb.fetched ? `, fetched ${esc(fmtDay(lb.fetched))}` : ""}.</p>
     </section>`;
   }
   function outsideBlock(district) {
@@ -659,14 +661,14 @@
         <thead><tr><th scope="col">Candidate</th><th scope="col" class="num">Spent to support</th><th scope="col" class="num">Spent to oppose</th><th scope="col">By</th></tr></thead>
         <tbody>${list.map((c) => `<tr><th scope="row"><span class="cf-name">${esc(c.candidate)}</span></th><td class="num">${c.support ? money0(c.support) : "—"}</td><td class="num">${c.oppose ? money0(c.oppose) : "—"}</td>
           <td>${c.committees.map((x) => `${esc(x[0])} <span class="summary">(${x[2] === "Support" ? "for" : "against"}, ${money0(x[3])}${x[4] > 1 ? `, ${x[4]} notices` : ""})</span>`).join("<br>")}</td></tr>`).join("")}</tbody></table></div>
-      <p class="summary">Independent expenditures are made by committees that aren't part of a candidate's campaign and can't coordinate with it, such as PACs, unions and party groups. They're not in Raised or the total above. From the State Board's <a href="${esc(om.source)}" target="_blank" rel="noopener">independent expenditure search</a>, retrieved ${esc(fmtDay(om.retrieved))}; identical repeated notices are counted once.</p>`;
+      <p class="summary">Independent expenditures are made by committees that aren't part of a candidate's campaign and can't coordinate with it, such as PACs, unions and party groups. They're not in Raised or the total above. From the State Board's <a href="${escUrl(om.source)}" target="_blank" rel="noopener">independent expenditure search</a>, retrieved ${esc(fmtDay(om.retrieved))}; identical repeated notices are counted once.</p>`;
   }
   function limitsLine(district) {
     const l = LIMITS && LIMITS[CH.id];
     if (!l) return "";
     const fg = l.familyGeneral[String(district)];
     const fp = l.familyPrimary[String(district)];
-    return `<p class="pfline"><strong>2026 contribution limits:</strong> ${money0(l.nonFamily.primary)} per donor for the primary and ${money0(l.nonFamily.general)} for the general. The candidate's family can give more, together: ${fp ? Object.entries(fp).map(([p, v]) => `${money0(v)} for the ${esc(p)} primary`).join(", ") : money0(l.familyPrimaryDefault) + " for a primary"}${fg ? ` and ${money0(fg)} for the general here` : ""}. Corporations and LLCs can give no more than $5,000 in all per year. The limits apply whether or not a candidate takes public financing. <a href="${esc(LIMITS.source)}" target="_blank" rel="noopener">State Board of Elections</a></p>`;
+    return `<p class="pfline"><strong>2026 contribution limits:</strong> ${money0(l.nonFamily.primary)} per donor for the primary and ${money0(l.nonFamily.general)} for the general. The candidate's family can give more, together: ${fp ? Object.entries(fp).map(([p, v]) => `${money0(v)} for the ${esc(p)} primary`).join(", ") : money0(l.familyPrimaryDefault) + " for a primary"}${fg ? ` and ${money0(fg)} for the general here` : ""}. Corporations and LLCs can give no more than $5,000 in all per year. The limits apply whether or not a candidate takes public financing. <a href="${escUrl(LIMITS.source)}" target="_blank" rel="noopener">State Board of Elections</a></p>`;
   }
   function pfNote(district, rows) {
     const list = pubfin(district);
@@ -1210,7 +1212,7 @@
       <h3 class="mini">Active voters by party enrollment</h3>
       <div class="stack big" role="img" aria-label="${esc(EN_PARTY.map(([l], i) => `${l} ${int.format(e.party[i])}`).join(", "))}">${EN_PARTY.map(([l, cls], i) => e.party[i] ? `<span class="${cls}" style="flex:${e.party[i]}" title="${l}: ${int.format(e.party[i])} (${pctf(e.party[i] / act)})"></span>` : "").join("")}</div>
       <div class="legend">${EN_PARTY.map(([l, cls], i) => `<span><i class="${cls}"></i>${l} ${pctf(e.party[i] / act)}</span>`).join("")}</div>
-      <p class="summary">Enrollment counts from the <a href="${esc(en.source)}" target="_blank" rel="noopener">NYS Board of Elections</a>. Inactive voters are still registered and can vote; they're marked inactive after mail to them is returned. Votes cast come from the State Board's unofficial 2026 general election count for this seat and include every candidate; blank ballots aren't counted.</p>
+      <p class="summary">Enrollment counts from the <a href="${escUrl(en.source)}" target="_blank" rel="noopener">NYS Board of Elections</a>. Inactive voters are still registered and can vote; they're marked inactive after mail to them is returned. Votes cast come from the State Board's unofficial 2026 general election count for this seat and include every candidate; blank ballots aren't counted.</p>
     </section>`;
   }
   function pubfin(district, chId) { const p = PUBFIN[chId || CH.id]; return p && district != null ? p.districts[String(district)] || [] : []; }
@@ -1237,7 +1239,7 @@
     const u = memberInfo(s).profileUrl;
     const d = DISTRICT_BY_UNIT.get(s.name);
     const href = u || (CH.id === "senate" ? "https://www.nysenate.gov/senators-committees" : "https://nyassembly.gov/mem/");
-    return s.kind === "member" ? `<a class="btn" href="${esc(href)}" target="_blank" rel="noopener" title="${u ? "Official page, with portrait, bio and contact details" : "Official member directory"}">${u ? "Official page" : "Member directory"} ${I.ext}</a>` : "";
+    return s.kind === "member" ? `<a class="btn" href="${escUrl(href)}" target="_blank" rel="noopener" title="${u ? "Official page, with portrait, bio and contact details" : "Official member directory"}">${u ? "Official page" : "Member directory"} ${I.ext}</a>` : "";
   }
 
   /* ---------- Find my legislators: address -> both districts ---------- */
@@ -1299,7 +1301,7 @@
         <p class="findlinks">${u ? `<a class="btn" href="${buildHash("unit/" + u.id, chq)}">Office spending &amp; staff ${I.r}</a>` : ""}
           <a class="btn" href="${buildHash("district/" + d.district, chq)}">District map &amp; results ${I.r}</a>
           ${DONATIONS[c.id] && DONATIONS[c.id].districts[String(d.district)] ? `<a class="btn" href="${buildHash("donations/" + d.district, chq)}">Campaign donations ${I.r}</a>` : ""}
-          ${m.profileUrl ? `<a class="btn" href="${esc(m.profileUrl)}" target="_blank" rel="noopener">Official page ${I.ext}</a>` : ""}</p>
+          ${m.profileUrl ? `<a class="btn" href="${escUrl(m.profileUrl)}" target="_blank" rel="noopener">Official page ${I.ext}</a>` : ""}</p>
       </section>`;
     }).join("") : "";
     return `<h1>Find your legislators</h1>
@@ -1357,7 +1359,7 @@
         <tbody>${rows.map(([g, l]) => `<tr><th scope="row">${l}</th><td class="num">${money0(appr[g])}</td><td class="num">${money0(spent[g])}</td><td class="share">${bar(appr[g], spent[g])}<span>${pct(appr[g], spent[g])}</span></td><td class="num">${money0(req[g])}</td></tr>`).join("")}
           <tr class="total"><th scope="row">Total</th><td class="num"><strong>${money0(tot(appr))}</strong></td><td class="num"><strong>${money0(tot(spent))}</strong></td><td class="share">${bar(tot(appr), tot(spent))}<span>${pct(tot(appr), tot(spent))}</span></td><td class="num"><strong>${money0(tot(req))}</strong></td></tr></tbody>
       </table></div>
-      <p class="summary">Appropriations from the <a href="${esc(BUDGET.url)}" target="_blank" rel="noopener">FY 2027 Executive Budget presentation for the Legislature</a> (NYS Division of the Budget). They include ${esc(mem[0].toLowerCase())}: ${money0(mem[2])}, exactly ${CH.id === "senate" ? 63 : 150} × $142,000. An appropriation is a spending ceiling, not a bill, and the reports don't line up with it exactly: payroll is paid in arrears (April checks pay for March work), bills from one year are often paid in the next, and unspent appropriations from earlier years can be reappropriated, so a line can show more than 100%. ${esc(BUDGET.separateNote)}${b.related ? " " + b.related.map((r) => typeof r[1] === "number" ? `${esc(r[0])} has its own appropriation (${money0(r[1])} in 2025–26).` : `The ${esc(r[0])} is ${esc(r[1])}.`).join(" ") : ""}</p>
+      <p class="summary">Appropriations from the <a href="${escUrl(BUDGET.url)}" target="_blank" rel="noopener">FY 2027 Executive Budget presentation for the Legislature</a> (NYS Division of the Budget). They include ${esc(mem[0].toLowerCase())}: ${money0(mem[2])}, exactly ${CH.id === "senate" ? 63 : 150} × $142,000. An appropriation is a spending ceiling, not a bill, and the reports don't line up with it exactly: payroll is paid in arrears (April checks pay for March work), bills from one year are often paid in the next, and unspent appropriations from earlier years can be reappropriated, so a line can show more than 100%. ${esc(BUDGET.separateNote)}${b.related ? " " + b.related.map((r) => typeof r[1] === "number" ? `${esc(r[0])} has its own appropriation (${money0(r[1])} in 2025–26).` : `The ${esc(r[0])} is ${esc(r[1])}.`).join(" ") : ""}</p>
     </section>`;
   }
 
@@ -1396,7 +1398,7 @@
           ${st.e ? `${(() => { const parts = [st.e.note ? esc(st.e.note) : "", st.e.successor ? `${successorLabel(st.e)}: <strong>${esc(st.e.successor)}</strong>${st.e.successorParty ? ` (${esc(st.e.successorParty)})` : ""}` : st.cls === "change" ? "Successor not yet reported in our sources" : ""].filter(Boolean); return parts.length ? `<p>${parts.join(". ")}.</p>` : ""; })()}
             ${boeResult(m)}
             ${m.district ? `<p class="summary"><a href="${focusHref(m.district)}" target="_blank" rel="noopener">Precinct-by-precinct results map ${I.ext}</a> (New York Focus)</p>` : ""}
-            <p class="summary">Sources: ${srcs.map((x) => `<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.title.split(":")[0])}</a> (${esc(x.as_of)})`).join(" · ")}. Results are unofficial until certified.</p>`
+            <p class="summary">Sources: ${srcs.map((x) => `<a href="${escUrl(x.url)}" target="_blank" rel="noopener">${esc(x.title.split(":")[0])}</a> (${esc(x.as_of)})`).join(" · ")}. Results are unofficial until certified.</p>`
           : `${boeResult(m)}<p class="summary">Not among the departures or losses reported in our sources (City &amp; State, Greenberg Traurig, Wikipedia). Results are unofficial until certified.</p>`}` : ""}
         </div>
         <div>
@@ -1650,7 +1652,7 @@
         <tbody>${rows.map((r) => `<tr><th scope="row">${esc(r.y.fy)}${r.y.kind === "requested" ? ` <span class="summary">(requested)</span>` : ""}</th><td class="num">${money0(r.ap)}</td><td class="num">${r.spent != null ? money0(r.spent) : `<span class="summary">${r.y.start > h.periods[h.periods.length - 1].end ? "not yet" : "no report on file"}</span>`}</td><td class="num">${r.spent != null ? pctf(r.spent / r.ap) : "—"}</td>
           <td class="bh-bars" aria-hidden="true"><span class="bh-ap" style="width:${(r.ap / max * 100).toFixed(1)}%"></span>${r.spent != null ? `<span class="bh-sp" style="width:${(r.spent / max * 100).toFixed(1)}%"></span>` : ""}</td></tr>`).join("")}</tbody></table></div>
       <div class="legend"><span><i class="bh-ap"></i>Appropriated</span><span><i class="bh-sp"></i>Spent</span></div>
-      <p class="summary">Appropriations come from each year's Executive Budget presentation on the Legislature (NYS Division of the Budget); a year marked requested is the Legislature's request, because the enacted figure wasn't in a later document we could read. Spent adds the two half-year expenditure reports that make up the fiscal year (April–September and October–March). Unspent appropriations can be carried into later years, so a share under 100% isn't money returned. <a href="${esc(B.sources["FY 2027"])}" target="_blank" rel="noopener">FY 2027 Executive Budget</a></p>
+      <p class="summary">Appropriations come from each year's Executive Budget presentation on the Legislature (NYS Division of the Budget); a year marked requested is the Legislature's request, because the enacted figure wasn't in a later document we could read. Spent adds the two half-year expenditure reports that make up the fiscal year (April–September and October–March). Unspent appropriations can be carried into later years, so a share under 100% isn't money returned. <a href="${escUrl(B.sources["FY 2027"])}" target="_blank" rel="noopener">FY 2027 Executive Budget</a></p>
     </section>`;
   }
   function chambersCard() {
@@ -2497,7 +2499,7 @@
       <div class="crumbs"><a href="${buildHash("map", {})}">${I.l} District map</a></div>
       <div class="title-row district-head">
         <div><h1>${esc(CH.name)} District ${d.district} ${s ? electionChip(s, true) : ""}</h1>
-          <p class="lede">${esc(d.member)}${d.party ? ` · ${esc(d.party)}` : ""}${s ? ` · <a href="${unitHref(s.id)}">member office page ${I.r}</a>` : ""}${s && (BALLOTPEDIA[CH.id] || {})[s.name] ? ` · <a href="${esc(BALLOTPEDIA[CH.id][s.name])}" target="_blank" rel="noopener">Ballotpedia ${I.ext}</a>` : ""} · <a href="${buildHash("sheet/" + d.district, {})}">printable fact sheet ${I.r}</a></p></div>
+          <p class="lede">${esc(d.member)}${d.party ? ` · ${esc(d.party)}` : ""}${s ? ` · <a href="${unitHref(s.id)}">member office page ${I.r}</a>` : ""}${s && (BALLOTPEDIA[CH.id] || {})[s.name] ? ` · <a href="${escUrl(BALLOTPEDIA[CH.id][s.name])}" target="_blank" rel="noopener">Ballotpedia ${I.ext}</a>` : ""} · <a href="${buildHash("sheet/" + d.district, {})}">printable fact sheet ${I.r}</a></p></div>
         <div class="dnav"><a class="btn" href="${dHref(prevD)}" aria-label="Previous district">${I.l} ${CH.abbr} ${prevD.district}</a>${picker}<a class="btn" href="${dHref(nextD)}" aria-label="Next district">${CH.abbr} ${nextD.district} ${I.r}</a></div>
       </div>`;
 
