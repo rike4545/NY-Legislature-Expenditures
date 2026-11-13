@@ -231,14 +231,39 @@ def annualize_people(rows, types_cfg):
         if rng[1] >= p["last"]:
             p["last"], p["status"] = rng[1], r["status"]
     out = []
+    # Senate member lines: the source gives no start date, only the check date and one amount for
+    # the whole report. The full-period amount (the most common one) is half a year of pay, so it
+    # sets the rate; other amounts are read as a share of the 13 biweekly periods in a report.
+    lump = [r for r in rows if types_cfg[r["type"]][1] == "ps" and r["desc"] == "MEMBER" and not service_range(r["svc"]) and r["amount"] > 0]
+    full = Counter(round(r["amount"], 2) for r in lump).most_common(1)[0][0] if lump else 0
+    lump_people = {}
+    for r in lump:
+        q = lump_people.setdefault((r["unit"], r["payee"]), {"paid": 0.0, "last": r["svc"] or r["date"]})
+        q["paid"] += r["amount"]
+        q["last"] = max(q["last"], r["svc"] or r["date"])
+    for (unit, payee), q in lump_people.items():
+        if (unit, payee) in people:
+            continue
+        periods = q["paid"] / (full / 13)
+        out.append([unit, payee, "MEMBER", "", q["last"], round(periods * PAY_PERIOD_DAYS), round(q["paid"], 2),
+                    round(full * 2, 2), "RA", "lump"])
     for (unit, payee), p in people.items():
         days = len(p["days"])
         if days < PAY_PERIOD_DAYS or p["paid"] <= 0:
             continue
         out.append([unit, payee, " → ".join(p["titles"]), date.fromordinal(min(p["days"])).isoformat(),
                     date.fromordinal(max(p["days"])).isoformat(), days, round(p["paid"], 2),
-                    round(p["paid"] * YEAR_DAYS / days, 2), p["status"]])
+                    round(p["paid"] * YEAR_DAYS / days, 2), p["status"], "svc"])
     return out
+
+
+def pay_window(rows, types_cfg):
+    """The service window most payroll lines in a report cover (payroll is paid in arrears)."""
+    c = Counter(r["svc"] for r in rows if types_cfg[r["type"]][1] == "ps" and service_range(r["svc"]))
+    if not c:
+        return None
+    a, b = service_range(c.most_common(1)[0][0])
+    return [a.isoformat(), b.isoformat()]
 
 
 def build_one(chamber: str, cfg: dict, src: pathlib.Path, dst: pathlib.Path) -> dict:
@@ -269,6 +294,7 @@ def build_one(chamber: str, cfg: dict, src: pathlib.Path, dst: pathlib.Path) -> 
         "chamber": chamber,
         "title": f"{cfg['title']} Expenditure Report",
         "period": {"start": start.isoformat(), "end": end.isoformat()},
+        "payWindow": pay_window(rows, cfg["types"]),
         "sourceFile": src.name,
         "sourceUrl": cfg["sourceUrl"],
         "rowCount": len(out_rows),
@@ -284,7 +310,7 @@ def build_one(chamber: str, cfg: dict, src: pathlib.Path, dst: pathlib.Path) -> 
         "meta": meta, "units": units, "types": types,
         "payees": list(tables["payees"]), "descs": list(tables["descs"]),
         "fields": ["unit", "type", "date", "voucher", "payee", "serviceDates", "desc", "status", "amount"],
-        "salaryFields": ["unit", "payee", "titles", "from", "to", "daysCovered", "regularPay", "annualized", "status"],
+        "salaryFields": ["unit", "payee", "titles", "from", "to", "daysCovered", "regularPay", "annualized", "status", "basis"],
         "salaries": salaries,
         "rows": out_rows,
     }

@@ -440,3 +440,10 @@ td .chip + .echip, td .echip { margin-top: 3px; }
 .hero-map:hover { color: var(--accent); text-decoration: none; }
 .hero-map:hover > svg { filter: saturate(1.15); }
 @media (max-width: 900px) { .hero { grid-template-columns: 1fr; } .hero-map { display: none; } }
+
+/* State Board result table on member pages */
+.mini-results { width: 100%; border-collapse: collapse; margin: 6px 0 4px; font-size: 13.5px; }
+.mini-results td { padding: 5px 6px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.mini-results tr:first-child td { font-weight: 600; }
+.mini-results tr.inc td { background: color-mix(in srgb, var(--accent) 7%, transparent); }
+.mini-results td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }

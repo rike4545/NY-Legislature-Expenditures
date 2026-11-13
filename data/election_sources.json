@@ -16,5 +16,11 @@
   "title": "Wikipedia: 2026 New York State Senate / Assembly elections (retirements and primary results)",
   "url": "https://en.wikipedia.org/wiki/2026_New_York_State_Assembly_election",
   "as_of": "pre-election"
+ },
+ "boe": {
+  "key": "boe",
+  "title": "NYS Board of Elections: Unofficial Election Night Results",
+  "url": "https://nyenr.elections.ny.gov/",
+  "as_of": "Nov 12, 2026, 7:26 p.m."
  }
 }

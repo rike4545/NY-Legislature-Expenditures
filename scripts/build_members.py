@@ -107,12 +107,73 @@ def build(chamber: str) -> None:
             "successorParty": r["successor_party"], "sources": r["source"].split(";"),
         }
 
+    attach_boe(chamber, out, by_district)
+
     (ROOT / f"data/{chamber}/members.json").write_text(json.dumps(out, ensure_ascii=False, separators=(",", ":")))
     n_roles = sum(len(v.get("roles", [])) for v in out.values())
     print(f"{chamber}: {sum(1 for v in out.values() if 'contact' in v)} offices with contacts, {n_roles} posts, "
           f"{sum(len(v.get('offices', [])) for v in out.values())} linked central offices")
     for n in unmatched:
         print("  no current member office for", n)
+
+
+CHANGE = {"retiring", "other_office", "lost_primary"}  # seats the general-election count can't keep
+CLOSE = 0.02  # margins under two points of the votes cast are treated as not yet decided
+CLOSE_PARTIAL = 0.05  # ... or under five points while election districts are still unreported
+
+
+def is_incumbent(cand: str, unit_words: set) -> bool:
+    w = words(cand)[1:]
+    return any(x in unit_words for x in w if len(x) > 2) or "".join(w) in unit_words or "".join(w[-2:]) in unit_words
+
+
+def attach_boe(chamber: str, out: dict, by_district: dict) -> None:
+    """Add the State Board of Elections' unofficial Nov 3 count to each member office.
+
+    The status from the State Board count replaces the news-sourced general-election status;
+    retirements, other-office runs and primary losses stay as the sources reported them.
+    """
+    path = ROOT / f"data/elections/boe_2026_{chamber}.json"
+    if not path.exists():
+        return
+    boe = json.loads(path.read_text())
+    changed = []
+    for d, rep, eds, cands, total in boe["districts"]:
+        unit = by_district.get(d)
+        if not unit or not cands:
+            continue
+        cands = sorted(cands, key=lambda c: -c[2])
+        uw = set(words(unit))
+        inc = next((i for i, c in enumerate(cands) if is_incumbent(c[0], uw)), None)
+        m = out.setdefault(unit, {})
+        m["boe"] = {"asOf": boe["as_of"], "reporting": [rep, eds], "total": total,
+                    "cands": [[n, pty, v] for n, pty, v in cands[:3]], "incumbent": inc}
+        e = m.get("election")
+        if e and e["status"] in CHANGE:
+            if not e.get("successor") and inc is None:
+                e["successor"], e["successorParty"] = cands[0][0], cands[0][1].split("/")[0]
+                e["sources"] = e["sources"] + ["boe"]
+            continue
+        lead = cands[0][2] - (cands[1][2] if len(cands) > 1 else 0)
+        margin = lead / total if total else 1
+        close = margin < (CLOSE_PARTIAL if rep is not None and rep < eds else CLOSE)
+        if inc is None:
+            status, note = "not_on_ballot", "Not on the Nov 3 ballot"
+            succ = cands[0]
+        elif inc == 0:
+            status = "leading_close" if close else "held"
+            note, succ = "", None
+        else:
+            status = "trailing" if close else "lost_general"
+            note, succ = "", cands[0]
+        old = e["status"] if e else "held"
+        if old != status:
+            changed.append(f"{chamber} {d}: {old} -> {status} ({cands[0][0]} leads by {lead:,})")
+        m["election"] = {"status": status, "note": note,
+                         "successor": succ[0] if succ else "", "successorParty": succ[1].split("/")[0] if succ else "",
+                         "sources": ["boe"]}
+    for c in changed:
+        print("  State Board count changes", c)
 
 
 if __name__ == "__main__":

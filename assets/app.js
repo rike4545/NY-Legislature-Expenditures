@@ -159,7 +159,7 @@
   function indexPeriod(id, raw) {
     const { meta, units, types, payees, descs, rows } = raw;
 
-    const salaries = (raw.salaries || []).map(([u, p, titles, from, to, days, paid, annual, status]) => ({ u, p, titles, from, to, days, paid, annual, status }));
+    const salaries = (raw.salaries || []).map(([u, p, titles, from, to, days, paid, annual, status, basis]) => ({ u, p, titles, from, to, days, paid, annual, status, basis: basis || "svc" }));
     const salaryByKey = new Map(salaries.map((x) => [x.u + "|" + x.p, x]));
     const records = rows.map((r, i) => {
       const [u, t, date, voucher, p, svc, d, st, amt] = r;
@@ -269,8 +269,8 @@
   const ELECTION_LABEL = {
     retiring: ["Not seeking re-election", "change"], other_office: ["Ran for another office", "change"],
     lost_primary: ["Lost June primary", "change"], lost_general: ["Lost Nov 3 (unofficial)", "change"],
-    trailing: ["Trailing — not yet called", "maybe"], leading_close: ["Leading — too close to call", "maybe"],
-    held: ["Re-elected (unofficial)", "same"],
+    trailing: ["Trailing — not yet decided", "maybe"], leading_close: ["Leading — too close to call", "maybe"],
+    held: ["Re-elected (unofficial)", "same"], not_on_ballot: ["Not on the Nov 3 ballot", "change"],
   };
   function memberInfo(s) { return s && s.kind === "member" ? (MEMBERS[CH.id] || {})[s.name] || {} : {}; }
   function electionState(s) {
@@ -288,9 +288,20 @@
   }
   function successorLabel(e) {
     if (e.status === "trailing") return "Leading";
+    if (e.sources.includes("boe") && e.status !== "lost_primary") return e.status === "lost_general" ? "Winner by the State Board count" : "Leading in the State Board count";
     if (e.sources.includes("gt")) return "Incoming member (per Greenberg Traurig)";
     if (e.status === "lost_primary") return "Primary winner";
     return "Reported winner";
+  }
+  function boeResult(m) {
+    const b = m.boe;
+    if (!b) return "";
+    const src = ELECTION_SOURCES.boe || {};
+    const [rep, eds] = b.reporting;
+    return `<table class="mini-results"><tbody>${b.cands.map(([n, pty, v], i) => `<tr class="${i === b.incumbent ? "inc" : ""}">
+        <td>${esc(n)}${i === b.incumbent ? ' <span class="summary">(incumbent)</span>' : ""}<br><span class="summary">${esc(pty)}</span></td>
+        <td class="num">${int.format(v)}</td><td class="num">${b.total ? (v / b.total * 100).toFixed(1) : "0.0"}%</td></tr>`).join("")}</tbody></table>
+      <p class="summary">Unofficial count from the <a href="${esc(src.url || "https://nyenr.elections.ny.gov/")}" target="_blank" rel="noopener">NYS Board of Elections</a> as of ${esc(b.asOf)} · ${rep === null ? "" : `${int.format(rep)} of ${int.format(eds)} election districts reporting · `}${int.format(b.total)} ballots incl. blanks. Certification follows within about 25 days of the election.</p>`;
   }
   function fmtLooseDate(t) {
     // "January 1, 2023" or "2011"
@@ -328,9 +339,10 @@
         <div>
           <h3 class="mini">2026 election</h3>
           ${st ? `<p>${electionChip(s)} ${st.cls === "change" ? `<span class="echip change soft">New member in Jan 2027</span>` : ""}</p>
-          ${st.e ? `<p>${esc(st.e.note)}${st.e.successor ? `. ${successorLabel(st.e)}: <strong>${esc(st.e.successor)}</strong>${st.e.successorParty ? ` (${esc(st.e.successorParty)})` : ""}` : st.cls === "change" ? ". Successor not yet reported in our sources" : ""}.</p>
+          ${st.e ? `${(() => { const parts = [st.e.note ? esc(st.e.note) : "", st.e.successor ? `${successorLabel(st.e)}: <strong>${esc(st.e.successor)}</strong>${st.e.successorParty ? ` (${esc(st.e.successorParty)})` : ""}` : st.cls === "change" ? "Successor not yet reported in our sources" : ""].filter(Boolean); return parts.length ? `<p>${parts.join(". ")}.</p>` : ""; })()}
+            ${boeResult(m)}
             <p class="summary">Sources: ${srcs.map((x) => `<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.title.split(":")[0])}</a> (${esc(x.as_of)})`).join(" · ")}. Results are unofficial until certified.</p>`
-          : `<p class="summary">Not among the departures or losses reported in our sources (City &amp; State, Greenberg Traurig, Wikipedia). Results are unofficial until certified.</p>`}` : ""}
+          : `${boeResult(m)}<p class="summary">Not among the departures or losses reported in our sources (City &amp; State, Greenberg Traurig, Wikipedia). Results are unofficial until certified.</p>`}` : ""}
         </div>
         <div>
           <h3 class="mini">Offices</h3>
@@ -436,7 +448,7 @@
         ${heroMap()}
       </section>
       <div class="grid kpis">
-        ${kpi("Payroll", compact(totalBy.ps), `${int.format(staffAll.size)} people paid${PREV ? "<br>" + vs("ps") : ""}`)}
+        ${kpi("Payroll", compact(totalBy.ps), `${int.format(staffAll.size)} people paid${DB.meta.payWindow ? `<br>for work ${esc(fmtShortDay(DB.meta.payWindow[0]))} – ${esc(fmtShortDay(DB.meta.payWindow[1]))}` : ""}${PREV ? "<br>" + vs("ps") : ""}`)}
         ${kpi("Maintenance &amp; operations", compact(totalBy.mo), PREV ? vs("mo") : "Rent, utilities, services")}
         ${kpi("Travel", compact(totalBy.travel), PREV ? vs("travel") : "Reimbursed to members &amp; staff")}
         ${kpi("Allocated costs", compact(meta.totalAllocated), "Informational only — see About")}
@@ -672,9 +684,9 @@
             <td class="nowrap mono">${esc(r.svc)}</td>
             <td>${r.st ? `<span class="chip muted" title="${esc(statusName(r.st))}">${esc(r.st)}${/as published/.test(statusName(r.st)) ? "" : ` · ${esc(statusName(r.st).split(" (")[0])}`}</span>` : ""}</td>
             <td class="num${r.amt < 0 ? " neg" : ""}">${money(r.amt)}</td>
-            <td class="num">${showSal ? `<a href="${buildHash("salaries", { q: `"${payees[r.p].toLowerCase()}"` })}" title="${esc(`${int.format(sal.days)} days of regular pay (${money(sal.paid)}) scaled to 364 days`)}">${money0(sal.annual)}</a>` : ""}</td></tr>`; }).join("")}</tbody>
+            <td class="num">${showSal ? `<a href="${buildHash("salaries", { q: `"${payees[r.p].toLowerCase()}"` })}" title="${esc(salaryTip(sal))}">${money0(sal.annual)}</a>` : ""}</td></tr>`; }).join("")}</tbody>
         </table></div>
-        <p class="summary">Annualized = a person's regular pay in this office divided by the days it covers, scaled to a year of 26 biweekly pay periods. One-time payments (lump sums, deferrals, stipends) aren't annualized. <a href="${buildHash("salaries", {})}">All salaries ${I.r}</a></p>` : `<p class="empty">No payroll lines.</p>`}
+        <p class="summary">Annualized = a person's regular pay in this office divided by the days it covers, scaled to a year of 26 biweekly pay periods. One-time payments (lump sums, deferrals, stipends) aren't annualized. ${payWindowNote(DB)} <a href="${buildHash("salaries", {})}">All salaries ${I.r}</a></p>` : `<p class="empty">No payroll lines.</p>`}
       </section>
 
       <div class="grid two">
@@ -842,6 +854,19 @@
     const a = arr.slice().sort((x, y) => x - y), m = Math.floor(a.length / 2);
     return a.length ? (a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2) : 0;
   }
+  function salaryTip(sal) {
+    return sal.basis === "lump"
+      ? `Senate member line: no start date in the report. ${money(sal.paid)} paid ≈ ${(sal.days / 14).toFixed(1)} of the report's 13 biweekly pay periods; the full-period amount (half of ${money0(sal.annual)}) sets the yearly rate.`
+      : `${int.format(sal.days)} days of regular pay (${money(sal.paid)}) scaled to 364 days`;
+  }
+  function payWindowNote(db) {
+    const w = db.meta.payWindow;
+    if (!w) return "";
+    return `Payroll is paid in arrears: most pay lines in this ${esc(periodName(db))} report cover work from <strong>${esc(fmtDay(w[0]))}</strong> to <strong>${esc(fmtDay(w[1]))}</strong>, as the report lists them.`;
+  }
+  function fmtShortDay(iso) { return new Date(iso + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" }).replace(/, (\d\d)$/, " ’$1"); }
+  function fmtDay(iso) { return new Date(iso + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }); }
+
   function viewSalaries(params) {
     const state = { q: params.q || "", kind: params.kind || "", min: params.min || "", sort: params.sort || "annual", dir: params.dir || "desc", page: Math.max(1, Number(params.page) || 1) };
     const tokens = tokenize(state.q);
@@ -871,7 +896,8 @@
     app.innerHTML = `
       <h1>Salaries</h1>
       <p class="lede">Every person on the ${esc(CH.name)} payroll in ${esc(periodName(DB))}, with their regular pay normalized to a yearly rate so part-period and full-period employees can be compared.</p>
-      <div class="callout"><strong>How it's calculated.</strong> For each person in each office, regular pay lines are added up and divided by the days their service dates cover, then scaled to 364 days (26 biweekly pay periods). A member paid $70,999.98 for 182 days annualizes to $142,000, the legislative base salary. One-time payments (lump-sum vacation, deferral payments, stipends, allowances, back pay) and stints under one pay period are left out. ${CH.id === "senate" ? "Most Senate member salary lines have no start date in the source, so senators' own salaries mostly can't be annualized." : ""} It's an estimate of a yearly rate, not a reported salary.</div>
+      <div class="callout"><strong>How it's calculated.</strong> For each person in each office, regular pay lines are added up and divided by the days their service dates cover, then scaled to 364 days (26 biweekly pay periods). A member paid $70,999.98 for 182 days annualizes to $142,000, the legislative base salary. One-time payments (lump-sum vacation, deferral payments, stipends, allowances, back pay) and stints under one pay period are left out. ${CH.id === "senate" ? "Senators' own MEMBER lines are different: the Senate reports them with only a check date and one amount for the whole report (usually $71,000). That full-period amount sets the yearly rate, and a smaller or larger amount is shown as a share of the report's 13 biweekly pay periods. Leadership stipends (Temporary President, Minority Leader and so on) are paid in uneven lumps and are shown as reported on each senator's page, not annualized." : ""} New York's base legislator salary is $142,000 (<a href="https://www.ncsl.org/about-state-legislatures/2025-legislator-compensation" target="_blank" rel="noopener">NCSL, 2025</a>). It's an estimate of a yearly rate, not a reported salary.</div>
+      <p class="summary paywin">${payWindowNote(DB)}</p>
       <div class="grid kpis">
         ${kpi("People annualized", int.format(list.length), `of ${int.format(all.length)} in this report`)}
         ${kpi("Median staff rate", money0(median(staff.map((x) => x.annual))), "excluding members")}
@@ -896,8 +922,8 @@
           <td><a href="${buildHash("records", { payee: payees[x.p] })}">${highlight(payees[x.p], tokens)}</a></td>
           <td>${highlight(titleCase(x.titles), tokens)}</td>
           <td><a href="${unitHref(x.u)}">${highlight(units[x.u].name, tokens)}</a></td>
-          <td class="nowrap mono">${esc(x.from)} – ${esc(x.to)}</td>
-          <td class="num">${int.format(x.days)}</td>
+          <td class="nowrap mono">${x.basis === "lump" ? `check ${esc(x.to)}` : `${esc(x.from)} – ${esc(x.to)}`}</td>
+          <td class="num"${x.basis === "lump" ? ` title="${esc(salaryTip(x))}"` : ""}>${x.basis === "lump" ? "≈" : ""}${int.format(x.days)}</td>
           <td class="num">${money(x.paid)}</td>
           <td class="num"><strong>${money0(x.annual)}</strong></td></tr>`).join("") : `<tr><td colspan="7" class="empty">No one matches.</td></tr>`}</tbody>
       </table></div>
@@ -1429,7 +1455,7 @@
       </ul></section>
       <section class="card"><h2>Members: terms, the 2026 election, offices and posts</h2><ul>
         <li><strong>Terms.</strong> Assembly members and senators serve two-year terms; every seat was on the November 3, 2026 ballot for the term starting January 1, 2027. "In current district since" is Ballotpedia's assumed-office date for the current district number, so members who served before the 2022 redistricting can show 2023.</li>
-        <li><strong>2026 election.</strong> Seats are marked "New member in 2027" when the member retired, ran for another office, lost the June primary, or lost on November 3; "Not yet called" when the race was unresolved in our sources. Everyone else ran for re-election and isn't among the reported losses. Sources: City &amp; State (Nov 4, 2026), Greenberg Traurig's November 2026 election update, and Wikipedia's lists of retirements and primary results. All general-election results are unofficial until certified.</li>
+        <li><strong>2026 election.</strong> November 3 outcomes come from the <a href="https://nyenr.elections.ny.gov/" target="_blank" rel="noopener">NYS Board of Elections unofficial election-night results</a> (as of Nov 12, 2026, 7:26 PM), with every candidate's combined votes across party lines. A member is "Re-elected" or "Lost" when the margin is at least 2 points of the ballots cast, or 5 points while election districts are still unreported (the State Board notes that many Westchester emergency ballots are not yet scanned); closer races are "Not yet decided". Retirements, runs for other office and June primary losses come from Wikipedia, City &amp; State (Nov 4, 2026) and Greenberg Traurig's November 2026 update. All results are unofficial until certified.</li>
         <li><strong>Offices and contacts</strong> (district office, district and Albany phones, email) come from the state's GIS district layers.</li>
         <li><strong>Posts</strong> are current 2025–2026 leadership, committee and caucus posts (Assembly: nyassembly.gov committee list and Wikipedia; Senate: Wikipedia). Where a post directs a central office in the reports (e.g. Ways and Means chair → Ways and Means Committee), that office is linked from the member's page. "Staff also paid by other offices" lists people on a member's payroll who were also paid by another office in the same report.</li>
       </ul></section>
