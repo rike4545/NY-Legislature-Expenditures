@@ -31,13 +31,14 @@ jobs:
           python3 scripts/build_districts.py
           python3 scripts/build_ballotpedia.py
           python3 scripts/build_members.py
+          python3 scripts/build_payroll.py
       - name: Assemble site
         run: |
           mkdir -p _site/data
           cp index.html _site/
           cp -r assets _site/
           cp data/chambers.json data/election_sources.json _site/data/
-          for c in assembly senate; do mkdir -p _site/data/$c && cp -r data/$c/periods data/$c/districts.json data/$c/ballotpedia.json data/$c/members.json _site/data/$c/; [ -d data/$c/travel ] && cp -r data/$c/travel _site/data/$c/; done
+          for c in assembly senate; do mkdir -p _site/data/$c && cp -r data/$c/periods data/$c/districts.json data/$c/ballotpedia.json data/$c/members.json _site/data/$c/; [ -d data/$c/travel ] && cp -r data/$c/travel _site/data/$c/; if [ -f data/$c/payroll.json ]; then cp data/$c/payroll.json _site/data/$c/; fi; done
           cp docs/social-preview.png _site/
           touch _site/.nojekyll
       - uses: actions/configure-pages@v5

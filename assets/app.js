@@ -143,6 +143,58 @@
     try { ELECTION_SOURCES = bundled ? bundled.data["data/election_sources.json"] || {} : await (await fetch("data/election_sources.json")).json(); } catch (e) { ELECTION_SOURCES = {}; }
   }
 
+  /* Senate biweekly payroll history: loaded the first time a view needs it. */
+  const PAYROLL = {};
+  let payrollLoading = null;
+  function payroll() {
+    if (CH.id !== "senate") return null;
+    if (PAYROLL.senate !== undefined) return PAYROLL.senate;
+    if (!payrollLoading) payrollLoading = (async () => {
+      try {
+        const b = window.__EXPENDITURE_BUNDLE__;
+        const raw = b ? b.data["data/senate/payroll.json"] : await (await fetch("data/senate/payroll.json")).json();
+        PAYROLL.senate = raw ? { ...raw, last: raw.reports.length - 1 } : null;
+      } catch (e) { PAYROLL.senate = null; }
+      payrollLoading = null;
+      render();
+    })();
+    return undefined;
+  }
+  function rateText(rate, type, short) {
+    if (type === "TE") return `${money(rate)}/hr`;
+    return short ? `${money0(rate * 26)}/yr` : `${money(rate)} biweekly · ${money0(rate * 26)}/yr`;
+  }
+  function payNow(pr, name, office) {
+    const segs = pr && pr.people[name];
+    if (!segs) return null;
+    const cur = segs.filter((g) => g[5] === pr.last);
+    if (!cur.length) return { gone: segs[segs.length - 1] };
+    return { seg: cur.find((g) => pr.offices[g[0]] === office) || cur[0] };
+  }
+  function fmtRepDay(pr, i) { return fmtDay(pr.reports[i][0]); }
+
+  function viewPerson(params) {
+    const name = params.name || "";
+    const pr = payroll();
+    if (pr === undefined) return `<p class="empty">Loading Senate payroll history…</p>`;
+    if (pr === null) return `<h1>Pay history</h1><p class="empty">Payroll history is only available for the Senate.</p>`;
+    const segs = (pr.people[name] || []).slice().reverse();
+    const first = segs.length ? segs[segs.length - 1] : null, lastSeg = segs[0];
+    return `<a class="back" href="${buildHash("salaries", {})}">${I.l} Salaries</a>
+      <h1>${esc(name)}</h1>
+      <p class="lede">${segs.length ? `On ${int.format(segs.reduce((a, g) => a + g[6], 0))} of the Senate's ${int.format(pr.reports.length)} published biweekly payroll reports, from ${esc(fmtRepDay(pr, first[4]))} to ${esc(fmtRepDay(pr, lastSeg[5]))}${lastSeg[5] === pr.last ? " (the latest report)" : ""}.` : "Not found in the Senate's published payroll reports."}</p>
+      ${segs.length ? `<div class="table-wrap"><table>
+        <thead><tr><th>Office</th><th>Title</th><th>Pay type</th><th class="num">Rate</th><th>From</th><th>To</th><th class="num">Reports</th></tr></thead>
+        <tbody>${segs.map((g) => { const u = DB.byName.get(pr.offices[g[0]]); return `<tr>
+          <td>${u ? `<a href="${unitHref(u.id)}">${esc(pr.offices[g[0]])}</a>` : esc(pr.offices[g[0]])}</td>
+          <td>${esc(titleCase(pr.titles[g[1]]))}</td>
+          <td><span class="chip muted" title="${esc({ RA: "Regular Annual: appointed for at least 1,820 hours a year", SA: "Special Annual: fewer hours, or less than a full year", TE: "Temporary: irregular schedule, paid hourly" }[g[3]] || g[3])}">${esc(g[3])}</span></td>
+          <td class="num nowrap">${rateText(g[2], g[3])}</td>
+          <td class="nowrap">${esc(fmtRepDay(pr, g[4]))}</td><td class="nowrap">${esc(fmtRepDay(pr, g[5]))}</td>
+          <td class="num">${int.format(g[6])}</td></tr>`; }).join("")}</tbody></table></div>
+        <p class="summary">Each row is a run of payroll reports with the same office, title, pay type and rate; dates are the end of the first and last pay period in the run. RA and SA rates are biweekly (×26 for a yearly figure); TE is an hourly rate. Source: <a href="https://www.nysenate.gov/open-data" target="_blank" rel="noopener">NY Senate biweekly payroll reports</a>, ${esc(fmtRepDay(pr, 0))} to ${esc(fmtRepDay(pr, pr.last))}.</p>` : ""}`;
+  }
+
   function selectChamber(id) {
     CH = CHAMBERS.find((c) => c.id === id) || CHAMBERS[0];
     PERIODS = CH.periods;
@@ -908,6 +960,15 @@
     const tmax = Math.max(1, ...titles.map(([, v]) => Math.max(...v)));
 
     const staff = list.filter((x) => !/^MEMBER( OF ASSEMBLY)?$/.test(x.titles));
+    const pr = CH.id === "senate" ? payroll() : null;
+    const nowCell = (pr, name, office) => {
+      if (pr === undefined) return `<td class="num summary">…</td>`;
+      const n = payNow(pr, name, office);
+      const link = `<a href="${buildHash("person", { name })}" title="Pay history across every Senate payroll report">`;
+      if (!n) return `<td class="num summary">—</td>`;
+      if (n.gone) return `<td class="num summary">${link}left</a></td>`;
+      return `<td class="num nowrap">${link}${rateText(n.seg[2], n.seg[3], true)}</a>${pr.offices[n.seg[0]] !== office ? `<br><span class="summary">now ${esc(titleCase(pr.offices[n.seg[0]]))}</span>` : ""}</td>`;
+    };
     app.innerHTML = `
       <h1>Salaries</h1>
       <p class="lede">Every person on the ${esc(CH.name)} payroll in ${esc(periodName(DB))}, with their regular pay normalized to a yearly rate so part-period and full-period employees can be compared.</p>
@@ -932,7 +993,7 @@
       <div class="toolbar"><span class="summary"><strong>${int.format(list.length)}</strong> people · median <strong>${money0(median(list.map((x) => x.annual)))}</strong></span>
         <button id="sexport" class="primary"${list.length ? "" : " disabled"}>Export ${int.format(list.length)} as CSV</button></div>
       <div class="table-wrap"><table>
-        <thead><tr>${sortHeader("Name", "name", state)}${sortHeader("Title", "title", state)}${sortHeader("Office", "office", state)}<th>Covered</th>${sortHeader("Days", "days", state, "num")}${sortHeader("Regular pay", "paid", state, "num")}${sortHeader("Annualized", "annual", state, "num")}</tr></thead>
+        <thead><tr>${sortHeader("Name", "name", state)}${sortHeader("Title", "title", state)}${sortHeader("Office", "office", state)}<th>Covered</th>${sortHeader("Days", "days", state, "num")}${sortHeader("Regular pay", "paid", state, "num")}${sortHeader("Annualized", "annual", state, "num")}${CH.id === "senate" ? `<th class="num" title="Rate on the Senate's latest biweekly payroll report">Rate now</th>` : ""}</tr></thead>
         <tbody>${slice.length ? slice.map((x) => `<tr>
           <td><a href="${buildHash("records", { payee: payees[x.p] })}">${highlight(payees[x.p], tokens)}</a></td>
           <td>${highlight(titleCase(x.titles), tokens)}</td>
@@ -940,7 +1001,7 @@
           <td class="nowrap mono">${x.basis === "lump" ? `check ${esc(x.to)}` : `${esc(x.from)} – ${esc(x.to)}`}</td>
           <td class="num"${x.basis === "lump" ? ` title="${esc(salaryTip(x))}"` : ""}>${x.basis === "lump" ? "≈" : ""}${int.format(x.days)}</td>
           <td class="num">${money(x.paid)}</td>
-          <td class="num"><strong>${money0(x.annual)}</strong></td></tr>`).join("") : `<tr><td colspan="7" class="empty">No one matches.</td></tr>`}</tbody>
+          <td class="num"><strong>${money0(x.annual)}</strong></td>${CH.id === "senate" ? nowCell(pr, payees[x.p], units[x.u].name) : ""}</tr>`).join("") : `<tr><td colspan="8" class="empty">No one matches.</td></tr>`}</tbody>
       </table></div>
       <div class="pager"><button id="sprev"${page <= 1 ? " disabled" : ""}>${I.l} Prev</button><span>Page ${page} of ${int.format(pages)}</span><button id="snext"${page >= pages ? " disabled" : ""}>Next ${I.r}</button></div>`;
 
@@ -1470,6 +1531,7 @@
       </ul></section>
       <section class="card"><h2>Members: terms, the 2026 election, offices and posts</h2><ul>
         <li><strong>Terms.</strong> Assembly members and senators serve two-year terms; every seat was on the November 3, 2026 ballot for the term starting January 1, 2027. "In current district since" is Ballotpedia's assumed-office date for the current district number, so members who served before the 2022 redistricting can show 2023.</li>
+        <li><strong>Senate payroll history.</strong> Every Senate biweekly payroll report published as a spreadsheet on <a href="https://www.nysenate.gov/open-data" target="_blank" rel="noopener">nysenate.gov/open-data</a>: 416 reports, pay periods ending Sep 15, 2010 to Nov 4, 2026 (earlier 2009–2010 reports have no spreadsheet). Each lists every employee's office, title, pay type and biweekly or hourly rate; members' own pay isn't in them. The Salaries page shows each person's rate on the latest report next to the estimate from the expenditure report, and links to their full history. A few reports are missing from the Senate's archive (for example the pay period ending Feb 26, 2025).</li>
         <li><strong>2026 election.</strong> November 3 outcomes come from the <a href="https://nyenr.elections.ny.gov/" target="_blank" rel="noopener">NYS Board of Elections unofficial election-night results</a> (as of Nov 12, 2026, 7:26 PM), with every candidate's combined votes across party lines. A member is "Re-elected" or "Lost" when the margin is at least 2 points of the ballots cast, or 5 points while election districts are still unreported (the State Board notes that many Westchester emergency ballots are not yet scanned); closer races are "Not yet decided". Retirements, runs for other office and June primary losses come from Wikipedia, City &amp; State (Nov 4, 2026) and Greenberg Traurig's November 2026 update. All results are unofficial until certified.</li>
         <li><strong>Offices and contacts</strong> (district office, district and Albany phones, email) come from the state's GIS district layers.</li>
         <li><strong>Posts</strong> are current 2025–2026 leadership, committee and caucus posts (Assembly: nyassembly.gov committee list and Wikipedia; Senate: Wikipedia). Where a post directs a central office in the reports (e.g. Ways and Means chair → Ways and Means Committee), that office is linked from the member's page. "Staff also paid by other offices" lists people on a member's payroll who were also paid by another office in the same report.</li>
@@ -1501,7 +1563,7 @@
     const v = el.value; el.value = ""; el.value = v;
   }
   function setActiveTab(view) {
-    const tab = { overview: "overview", units: "units", unit: "units", records: "records", payees: "payees", about: "about", compare: "compare", map: "map", district: "map", salaries: "salaries" }[view] || "overview";
+    const tab = { overview: "overview", units: "units", unit: "units", records: "records", payees: "payees", about: "about", compare: "compare", map: "map", district: "map", salaries: "salaries", person: "salaries" }[view] || "overview";
     document.querySelectorAll(".tabs a").forEach((a) => a.classList.toggle("active", a.dataset.tab === tab));
   }
   let lastView = "";
@@ -1521,6 +1583,7 @@
       case "records": html = viewRecords(params); break;
       case "payees": html = viewPayees(params); break;
       case "salaries": html = viewSalaries(params); break;
+      case "person": html = viewPerson(params); break;
       case "about": html = viewAbout(); break;
       case "compare": html = viewCompare(params); break;
       case "map": html = viewMap(params); break;
