@@ -15,8 +15,9 @@ Linking committees to candidates. The open data has no candidate-to-committee ke
 is linked to a registered candidate when its name contains the candidate's surname and either the
 candidate's first name or the chamber ("Senate" / "Assembly"). A committee that fits more than one
 candidate is left unlinked, and every linked committee is listed by name so it can be checked on
-publicreporting.elections.ny.gov. Public matching funds paid by the Public Campaign Finance Board
-are not in these datasets.
+publicreporting.elections.ny.gov. Committees on the State Board's Public Campaign Finance candidate
+list (data/raw/campaign_finance/pcfb_candidate_list_2026.json) are linked to the candidate that list
+names. Public matching funds paid by the Public Campaign Finance Board are not in these datasets.
 
 Output: data/<chamber>/campaign_finance.json
     {asOf, source, districts: {district: [{name, filerId, member, committees: [[id, name, type]],
@@ -127,6 +128,36 @@ def main() -> None:
             found = [k for k in found if k["chamber"] == chamber_word] or found
         if len(found) == 1:
             links.setdefault(found[0]["f"]["filer_id"], []).append(c)
+
+    # The State Board's Public Campaign Finance candidate list names each participating candidate's
+    # committee, so it's an official link: it overrides name matching for the committees it covers.
+    pcfb = RAW / "pcfb_candidate_list_2026.json"
+    official = 0
+    if pcfb.exists():
+        raw = json.loads(pcfb.read_text())
+        col = {h: i for i, h in enumerate(raw["header"])}
+        comm_by_id = {c["filer_id"]: c for c in comms}
+        office_ch = {"Member of Assembly": "assembly", "State Senator": "senate"}
+        for r in raw["rows"]:
+            ch, dist, cid = office_ch.get(r[col["Office"]]), r[col["District"]], str(r[col["Filer ID"]])
+            c = comm_by_id.get(cid)
+            if not ch or not dist or not c:
+                continue
+            nw = [x for x in words(r[col["Candidate Name"]]) if x not in SUFFIX and len(x) > 1]
+            if not nw:
+                continue
+            match = [k for k in cands if k["chamber"] == ch and str(int(k["f"]["district"])) == str(int(dist))
+                     and (k["lasts"] & set(nw) or "".join(nw[-2:]) in k["lasts"]) and any(g[0] == nw[0][0] for g in k["given"] | k["lasts"])]
+            if len(match) != 1:
+                continue
+            fid = match[0]["f"]["filer_id"]
+            for other, cs in links.items():
+                if other != fid and c in cs:
+                    cs.remove(c)
+            if c not in links.setdefault(fid, []):
+                links[fid].append(c)
+                official += 1
+    print(f"committees linked from the public campaign finance list: {official}")
 
     by = {}
     for r in load("contributions"):

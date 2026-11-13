@@ -21,6 +21,8 @@
   const MAKEUP = {};
   const DONATIONS = {};
   const DEMOG = {}; // chamber id -> Census ACS 2020-24 by district
+  const ENROLL = {}; // chamber id -> State Board of Elections enrollment (registered voters) by district
+  const PUBFIN = {}; // chamber id -> Public Campaign Finance Program participants by district (2026)
   let VENDOR_DONORS = null; // chamber id -> donations in depth by district (2025-26) // chamber id -> party makeup now and after the Nov 3, 2026 count // chamber id -> campaign finance by district (State Board of Elections, 2025-26)
   let BUDGET = null; // Legislature appropriations from the FY 2027 Executive Budget
   const MEMBERS = {};     // chamber id -> {office name: {district, contact, roles, offices, assumedOffice, election}}
@@ -160,6 +162,14 @@
         const cfFile = `data/${ch.id}/campaign_finance.json`;
         CAMPAIGN[ch.id] = bundled ? bundled.data[cfFile] || null : await (await fetch(cfFile)).json();
       } catch (e) { CAMPAIGN[ch.id] = null; }
+      try {
+        const enFile = `data/${ch.id}/enrollment.json`;
+        ENROLL[ch.id] = bundled ? bundled.data[enFile] || null : await (await fetch(enFile)).json();
+      } catch (e) { ENROLL[ch.id] = null; }
+      try {
+        const pfFile = `data/${ch.id}/public_financing.json`;
+        PUBFIN[ch.id] = bundled ? bundled.data[pfFile] || null : await (await fetch(pfFile)).json();
+      } catch (e) { PUBFIN[ch.id] = null; }
     }));
   }
 
@@ -300,6 +310,8 @@
       ["Actual spending per member office", (db) => db.members.map((s) => s.actual), money0],
       ["Cost per month per member office", (db) => db.members.map((s) => s.perMonth), money0],
       ["Office cost per resident", (db) => db.members.map((s) => { const d = (DIST_BY_UNIT[db.meta.chamber] || new Map()).get(s.name); const g = d && demog(d.district, db.meta.chamber); return g && g.pop ? s.actual / g.pop : NaN; }), (v) => money(v)],
+      ["Registered voters per district", (db) => db.members.map((s) => { const d = (DIST_BY_UNIT[db.meta.chamber] || new Map()).get(s.name); const e = d && enroll(d.district, db.meta.chamber); return e ? e.total : NaN; }), (v) => int.format(Math.round(v))],
+      ["Office cost per registered voter", (db) => db.members.map((s) => { const d = (DIST_BY_UNIT[db.meta.chamber] || new Map()).get(s.name); const e = d && enroll(d.district, db.meta.chamber); return e && e.total ? s.actual / e.total : NaN; }), (v) => money(v)],
       ["Payroll per member office", (db) => db.members.map((s) => s.byType.ps || 0), money0],
       ["Maintenance & operations per member office", (db) => db.members.map((s) => s.byType.mo || 0), money0],
       ["Travel per member office", (db) => db.members.map((s) => s.byType.travel || 0), money0],
@@ -572,6 +584,16 @@
     return t || "";
   }
   /* Campaign finance for every registered candidate in a district, 2025-26. */
+  function pfNote(district, rows) {
+    const list = pubfin(district);
+    const pf = PUBFIN[CH.id];
+    if (!pf) return "";
+    const ids = new Set(rows.map((c) => c.filerId));
+    const extra = list.filter((p) => !p.filerId || !ids.has(p.filerId));
+    const inProg = rows.filter((c) => pfFor(district, c)).length;
+    const total = list.reduce((a, p) => a + p.received, 0);
+    return `<p class="pfline"><strong>Public financing:</strong> ${list.length ? `${list.length} ${list.length === 1 ? "candidate" : "candidates"} here registered for New York's 2026 public matching-funds program${total ? `, receiving ${money0(total)} in all` : ""}${rows.length ? ` (${inProg} of the ${rows.length} listed above)` : ""}.` : "no candidate here registered for New York's 2026 public matching-funds program."}${extra.length ? ` Also in the program: ${extra.map((p) => `${esc(p.name)}${p.received ? ` (${money0(p.received)})` : ""}`).join(", ")}.` : ""} <span class="summary">As listed by the State Board on ${esc(fmtDay(pf.retrieved))}; status by election: ${list.map((p) => `${esc(p.name)} — ${esc(pfStatus(p))}`).join("; ") || "none"}.</span></p>`;
+  }
   function campaignCard(district, memberName) {
     const cf = CAMPAIGN[CH.id];
     if (!cf || district == null) return "";
@@ -586,17 +608,19 @@
     return `<section class="card campaign"><div class="card-head"><h2>Campaign money in ${CH.abbr} ${esc(String(district))}, 2025–26</h2><span class="summary">raised and spent by each candidate's committees · State Board of Elections${asOf ? `, as of ${esc(asOf)}` : ""}</span></div>
       ${linked.length ? `<div class="table-wrap"><table class="cf-table">
         <caption class="sr-only">Money raised and spent by candidates in ${CH.abbr} ${esc(String(district))}</caption>
-        <thead><tr><th scope="col">Candidate</th><th scope="col" class="num">Raised</th><th scope="col">Where it came from</th><th scope="col" class="num" title="Itemized contributions from individuals of $250 or less">Gifts ≤ $250</th><th scope="col" class="num">Spent</th></tr></thead>
+        <thead><tr><th scope="col">Candidate</th><th scope="col" class="num">Raised</th><th scope="col">Where it came from</th><th scope="col" class="num" title="Itemized contributions from individuals of $250 or less">Gifts ≤ $250</th><th scope="col" class="num">Spent</th><th scope="col" class="num" title="Public matching funds received from the Public Campaign Finance Board for 2026">Public funds</th></tr></thead>
         <tbody>${linked.map((c) => { const t = total(c); const parts = [["A", "Individuals", "cf-a"], ["B", "Corporations", "cf-b"], ["C", "PACs, unions & other", "cf-c"], ["D", "In-kind", "cf-d"], ["G", "Transfers in", "cf-g"]]; return `<tr${isMember(c) ? ' class="inc"' : ""}>
-          <th scope="row"><span class="cf-name">${esc(c.name)}</span>${isMember(c) ? ' <span class="summary">(member)</span>' : ""}<br><span class="summary">${c.committees.map((x) => esc(x[1])).join(" · ")}</span></th>
+          <th scope="row"><span class="cf-name">${esc(c.name)}</span>${isMember(c) ? ' <span class="summary">(member)</span>' : ""}${pfBadge(pfFor(district, c))}<br><span class="summary">${c.committees.map((x) => esc(x[1])).join(" · ")}</span></th>
           <td class="num"><strong>${money0(t)}</strong></td>
           <td><div class="stack cf-stack" style="width:${Math.max(2, t / max * 100).toFixed(1)}%" role="img" aria-label="${esc(parts.filter(([k]) => c.raised[k] > 0).map(([k, l]) => `${l} ${money0(c.raised[k])}`).join(", ") || "nothing reported")}">${parts.map(([k, l, cls]) => c.raised[k] > 0 ? `<span class="${cls}" style="flex:${c.raised[k]}" title="${l}: ${money(c.raised[k])}"></span>` : "").join("")}</div></td>
           <td class="num">${c.small[0] ? int.format(c.small[0]) : "—"}</td>
-          <td class="num">${money0(c.spent)}</td></tr>`; }).join("")}</tbody></table></div>
+          <td class="num">${money0(c.spent)}</td>
+          <td class="num">${(() => { const p = pfFor(district, c); return p ? (p.received ? money0(p.received) : "$0") : `<span class="summary">not in program</span>`; })()}</td></tr>`; }).join("")}</tbody></table></div>
         <div class="legend"><span><i class="cf-a"></i>Individuals</span><span><i class="cf-b"></i>Corporations</span><span><i class="cf-c"></i>PACs, unions &amp; other</span><span><i class="cf-d"></i>In-kind</span><span><i class="cf-g"></i>Transfers in</span></div>` : `<p class="summary">No 2025–26 contributions found for a committee we could link to a candidate in this district.</p>`}
       ${DONATIONS[CH.id] && DONATIONS[CH.id].districts[String(district)] ? `<p><a class="btn" href="${buildHash("donations/" + district, {})}">Donations in depth: donors, where they live, biggest organizational donors ${I.r}</a></p>` : ""}
       ${unlinked.length ? `<p class="summary">Also registered here, with no linked committee activity: ${unlinked.map((c) => esc(c.name)).join(", ")}.</p>` : ""}
-      <p class="summary">Itemized contributions and expenditures filed with the <a href="https://publicreporting.elections.ny.gov/" target="_blank" rel="noopener">NYS Board of Elections</a> for 2025 and 2026 (<a href="https://data.ny.gov/d/4j2b-6a2j" target="_blank" rel="noopener">data.ny.gov</a>). Committees are linked to candidates by name, so each committee is listed; public matching funds from the Public Campaign Finance Board aren't included. Raised counts monetary and in-kind contributions plus transfers from other committees.</p>
+      ${pfNote(district, rows)}
+      <p class="summary">Itemized contributions and expenditures filed with the <a href="https://publicreporting.elections.ny.gov/" target="_blank" rel="noopener">NYS Board of Elections</a> for 2025 and 2026 (<a href="https://data.ny.gov/d/4j2b-6a2j" target="_blank" rel="noopener">data.ny.gov</a>). Committees are linked to candidates by name, so each committee is listed. Raised counts monetary and in-kind contributions plus transfers from other committees; public matching funds are shown separately, from the State Board's <a href="https://publicreporting.elections.ny.gov/PCFBCandidateRegList/PCFBCandidateRegList" target="_blank" rel="noopener">Public Campaign Finance candidate list</a>.</p>
     </section>`;
   }
   /* ---------- Donations in depth ---------- */
@@ -615,9 +639,10 @@
     for (const [d, cands] of Object.entries(dn.districts)) {
       const dist = DISTRICTS.find((x) => String(x.district) === d);
       const tot = cands.reduce((a, c) => { const t = dnTotals(c); a.monetary += t.monetary; a.individuals += c.individuals; a.donors += c.donors; a.inAmt += c.inDistrict[1]; a.outAmt += c.outOfState[1]; a.small += c.sizes[0][0] + c.sizes[1][0]; return a; }, { monetary: 0, individuals: 0, donors: 0, inAmt: 0, outAmt: 0, small: 0 });
-      rows.push({ d: Number(d), member: dist ? dist.member : "", cands: cands.length, ...tot, inShare: tot.individuals ? tot.inAmt / tot.individuals : 0, outShare: tot.individuals ? tot.outAmt / tot.individuals : 0, smallShare: tot.donors ? tot.small / tot.donors : 0, orgShare: tot.monetary ? 1 - tot.individuals / tot.monetary : 0 });
+      const pfl = pubfin(d);
+      rows.push({ d: Number(d), member: dist ? dist.member : "", cands: cands.length, pfCands: pfl.length, pfFunds: pfl.reduce((a, p) => a + p.received, 0), ...tot, inShare: tot.individuals ? tot.inAmt / tot.individuals : 0, outShare: tot.individuals ? tot.outAmt / tot.individuals : 0, smallShare: tot.donors ? tot.small / tot.donors : 0, orgShare: tot.monetary ? 1 - tot.individuals / tot.monetary : 0 });
     }
-    const key = { district: (r) => r.d, monetary: (r) => r.monetary, donors: (r) => r.donors, inShare: (r) => r.inShare, outShare: (r) => r.outShare, smallShare: (r) => r.smallShare, orgShare: (r) => r.orgShare, cands: (r) => r.cands }[state.sort] || ((r) => r.monetary);
+    const key = { district: (r) => r.d, monetary: (r) => r.monetary, donors: (r) => r.donors, inShare: (r) => r.inShare, outShare: (r) => r.outShare, smallShare: (r) => r.smallShare, orgShare: (r) => r.orgShare, cands: (r) => r.cands, pf: (r) => r.pfFunds }[state.sort] || ((r) => r.monetary);
     rows.sort((a, b) => (key(a) - key(b)) * (state.dir === "asc" ? 1 : -1));
     const all = rows.reduce((a, r) => { a.m += r.monetary; a.i += r.individuals; a.in += r.inAmt; a.out += r.outAmt; a.dn += r.donors; return a; }, { m: 0, i: 0, in: 0, out: 0, dn: 0 });
     const maxM = Math.max(1, ...rows.map((r) => r.monetary));
@@ -629,14 +654,15 @@
         ${kpi("From individuals", pctf(all.m ? all.i / all.m : 0), `${int.format(all.dn)} donor–candidate pairs`)}
         ${kpi("Individual money from inside the district", pctf(all.i ? all.in / all.i : 0), "estimated from donor ZIP codes")}
         ${kpi("Individual money from out of state", pctf(all.i ? all.out / all.i : 0), "")}
+        ${PUBFIN[CH.id] ? (() => { const L = Object.values(PUBFIN[CH.id].districts).flat(); return kpi("Public matching funds", compact(L.reduce((a, p) => a + p.received, 0)), `${L.length} candidates registered for the 2026 program`); })() : ""}
       </div>
       ${VENDOR_DONORS && VENDOR_DONORS.matches.length ? `<p><a class="btn" href="${buildHash("vendors", {})}">Vendors the Legislature pays that also donated (${VENDOR_DONORS.matches.length}) ${I.r}</a></p>` : ""}
       <div class="table-wrap"><table>
         <caption class="sr-only">Donations by ${esc(CH.name)} district, sortable</caption>
-        <thead><tr>${sortHeader("District", "district", state)}<th scope="col">Member now</th>${sortHeader("Candidates", "cands", state, "num")}${sortHeader("Contributions", "monetary", state, "num")}${sortHeader("Donors", "donors", state, "num")}${sortHeader("From organizations", "orgShare", state, "num")}${sortHeader("In-district $", "inShare", state, "num")}${sortHeader("Out-of-state $", "outShare", state, "num")}${sortHeader("Donors ≤ $250", "smallShare", state, "num")}</tr></thead>
+        <thead><tr>${sortHeader("District", "district", state)}<th scope="col">Member now</th>${sortHeader("Candidates", "cands", state, "num")}${sortHeader("Contributions", "monetary", state, "num")}${sortHeader("Donors", "donors", state, "num")}${sortHeader("From organizations", "orgShare", state, "num")}${sortHeader("In-district $", "inShare", state, "num")}${sortHeader("Out-of-state $", "outShare", state, "num")}${sortHeader("Donors ≤ $250", "smallShare", state, "num")}${sortHeader("Public funds", "pf", state, "num")}</tr></thead>
         <tbody>${rows.map((r) => `<tr><td><a href="${buildHash("donations/" + r.d, {})}">${CH.abbr} ${r.d}</a></td><td>${esc(r.member)}</td><td class="num">${r.cands}</td>
           <td class="num"><span class="inlinebar"><span style="width:${(r.monetary / maxM * 100).toFixed(1)}%"></span></span>${money0(r.monetary)}</td><td class="num">${int.format(r.donors)}</td>
-          <td class="num">${pctf(r.orgShare)}</td><td class="num">${pctf(r.inShare)}</td><td class="num">${pctf(r.outShare)}</td><td class="num">${pctf(r.smallShare)}</td></tr>`).join("")}</tbody></table></div>
+          <td class="num">${pctf(r.orgShare)}</td><td class="num">${pctf(r.inShare)}</td><td class="num">${pctf(r.outShare)}</td><td class="num">${pctf(r.smallShare)}</td><td class="num">${r.pfFunds ? money0(r.pfFunds) : "—"}${r.pfCands ? `<br><span class="summary">${r.pfCands} in program</span>` : ""}</td></tr>`).join("")}</tbody></table></div>
       <p class="summary">${donationsNote(dn)}</p>`;
   }
   function donationsNote(dn) {
@@ -658,7 +684,7 @@
       const t = dnTotals(c);
       const geoTot = DN_GEO.reduce((a, [k]) => a + c[k][1], 0) || 1;
       const typeTot = Object.values(c.types).reduce((a, b) => a + b, 0) || 1;
-      return `<section class="card dn"><div class="card-head"><h2>${esc(c.name)}</h2><span class="summary">${money0(t.monetary)} in itemized contributions</span></div>
+      return `<section class="card dn"><div class="card-head"><h2>${esc(c.name)}${pfBadge(pfFor(d, c))}</h2><span class="summary">${money0(t.monetary)} in itemized contributions${(() => { const p = pfFor(d, c); return p && p.received ? ` · ${money0(p.received)} in public matching funds` : ""; })()}</span></div>
         <div class="grid kpis small">
           ${kpi("Individual donors", int.format(c.donors), `${int.format(c.repeat)} gave more than once · ${int.format(c.gifts)} gifts`)}
           ${kpi("From individuals", money0(c.individuals), pctf(t.monetary ? c.individuals / t.monetary : 0) + " of contributions")}
@@ -775,6 +801,36 @@
 
   function demog(district, chId) { const d = DEMOG[chId || CH.id]; return d && district != null ? d.districts[String(district)] || null : null; }
   function perResident(s) { const d = DISTRICT_BY_UNIT.get(s.name); const g = d && demog(d.district); return g && g.pop ? s.actual / g.pop : null; }
+  function enroll(district, chId) { const e = ENROLL[chId || CH.id]; return e && district != null ? e.districts[String(district)] || null : null; }
+  function turnout(e) { return e && e.votes2026 && e.total ? e.votes2026[0] / e.total : null; }
+  function enrollFor(s) { const d = DISTRICT_BY_UNIT.get(s.name); return d ? enroll(d.district) : null; }
+  const EN_PARTY = [["Democratic", "en-d"], ["Republican", "en-r"], ["Conservative", "en-c"], ["Working Families", "en-w"], ["Other parties", "en-o"], ["No party", "en-b"]];
+  function votersCard(district, s) {
+    const e = enroll(district);
+    if (!e) return "";
+    const en = ENROLL[CH.id];
+    const act = e.party.reduce((a, b) => a + b, 0) || 1;
+    const t = turnout(e);
+    const partial = e.votes2026 && e.votes2026[1] < e.votes2026[2];
+    const per = s ? s.actual / e.total : null;
+    const lead = e.party.slice(0, 5).reduce((b, v, i) => v > e.party[b] ? i : b, 0);
+    return `<section class="card voters"><div class="card-head"><h2>Registered voters</h2><span class="summary">State Board of Elections enrollment, as of ${esc(fmtDay(en.asOf))}</span></div>
+      <div class="grid kpis small">
+        ${kpi("Registered voters", int.format(e.total), `${int.format(e.active)} active · ${int.format(e.inactive)} inactive`)}
+        ${kpi("Largest party enrollment", `${esc(EN_PARTY[lead][0])} ${pctf(e.party[lead] / act)}`, `${pctf(e.party[5] / act)} enrolled in no party`)}
+        ${t != null ? kpi("Votes cast for this seat, 2026", pctf(t), `${int.format(e.votes2026[0])} votes ÷ registered voters${partial ? ` · ${e.votes2026[1]} of ${e.votes2026[2]} election districts in` : ""}`) : ""}
+        ${per != null ? kpi("Office cost per registered voter", money(per), `${esc(periodName(DB))}`) : ""}
+      </div>
+      <h3 class="mini">Active voters by party enrollment</h3>
+      <div class="stack big" role="img" aria-label="${esc(EN_PARTY.map(([l], i) => `${l} ${int.format(e.party[i])}`).join(", "))}">${EN_PARTY.map(([l, cls], i) => e.party[i] ? `<span class="${cls}" style="flex:${e.party[i]}" title="${l}: ${int.format(e.party[i])} (${pctf(e.party[i] / act)})"></span>` : "").join("")}</div>
+      <div class="legend">${EN_PARTY.map(([l, cls], i) => `<span><i class="${cls}"></i>${l} ${pctf(e.party[i] / act)}</span>`).join("")}</div>
+      <p class="summary">Enrollment counts from the <a href="${esc(en.source)}" target="_blank" rel="noopener">NYS Board of Elections</a>. Inactive voters are still registered and can vote; they're marked inactive after mail to them is returned. Votes cast come from the State Board's unofficial 2026 general election count for this seat and include every candidate; blank ballots aren't counted.</p>
+    </section>`;
+  }
+  function pubfin(district, chId) { const p = PUBFIN[chId || CH.id]; return p && district != null ? p.districts[String(district)] || [] : []; }
+  function pfFor(district, cand, chId) { return cand && cand.filerId ? pubfin(district, chId).find((p) => p.filerId === cand.filerId) || null : null; }
+  function pfStatus(p) { const e = Object.entries(p.elections); return e.map(([k, v]) => `${k}: ${v.status}${v.terminated ? `, left ${fmtDay(v.terminated)}` : ""}`).join(" · "); }
+  function pfBadge(p) { return p ? ` <span class="pfbadge" title="In New York's public campaign finance program${p.certified ? ` · certified ${fmtDay(p.certified)}` : ""} · ${esc(pfStatus(p))}">Public financing</span>` : ""; }
   function povertyRate(g) { return g && g.poverty[1] ? g.poverty[0] / g.poverty[1] : null; }
   function demogCard(district, s) {
     const g = demog(district);
@@ -851,6 +907,7 @@
         <div class="grid kpis small">
           ${u ? kpi("Office spending", money0(u.actual), `${esc(periodName(db))} · ${money0(u.perMonth)} a month`) : ""}
           ${u && g && g.pop ? kpi("Cost per resident", money(u.actual / g.pop), `${int.format(g.pop)} residents`) : ""}
+          ${(() => { const en = enroll(d.district, c.id); return en ? kpi("Registered voters", int.format(en.total), `as of ${fmtDay(ENROLL[c.id].asOf)}`) : ""; })()}
           ${e ? kpi("2026 election", esc((ELECTION_LABEL[e.status] || [e.status])[0]), e.successor ? `${esc(e.successor)}` : "") : ""}
         </div>
         <p class="findlinks">${u ? `<a class="btn" href="${buildHash("unit/" + u.id, chq)}">Office spending &amp; staff ${I.r}</a>` : ""}
@@ -1293,7 +1350,7 @@
         <div class="title-actions">${officialLink(s)}${ballotpediaLink(s)}<a class="btn" href="${buildHash("compare", { u: s.kind === "member" ? [s.name, DB.members[Math.floor(DB.members.length / 2)].name].filter((v, i, a) => a.indexOf(v) === i).join("|") : s.name })}">Compare…</a></div></div>
       <p class="lede">${rankNote || "Central office, committee, or task force."}</p>
       ${profileCard(s)}
-      ${s.kind === "member" && memberInfo(s).district ? demogCard(memberInfo(s).district, s) : ""}
+      ${s.kind === "member" && memberInfo(s).district ? demogCard(memberInfo(s).district, s) + votersCard(memberInfo(s).district, s) : ""}
       ${s.kind === "member" && memberInfo(s).district ? campaignCard(memberInfo(s).district, displayName(s)) : ""}
       ${CH.id === "senate" ? officeYearsCard(payroll(), s.name) : ""}
       <div class="grid kpis">
@@ -1776,6 +1833,9 @@
     resident: { label: "Office cost per resident", get: (s) => perResident(s), fmt: (v) => money(v) },
     income: { label: "Median household income", get: (s) => { const d = DISTRICT_BY_UNIT.get(s.name); const g = d && demog(d.district); return g ? g.income : null; } },
     poverty: { label: "Poverty rate", get: (s) => { const d = DISTRICT_BY_UNIT.get(s.name); return povertyRate(d && demog(d.district)); }, fmt: (v) => (v * 100).toFixed(1) + "%" },
+    voters: { label: "Registered voters", get: (s) => { const e = enrollFor(s); return e ? e.total : null; }, fmt: (v) => int.format(v) },
+    voter: { label: "Office cost per registered voter", get: (s) => { const e = enrollFor(s); return e && e.total ? s.actual / e.total : null; }, fmt: (v) => money(v) },
+    turnout: { label: "2026 votes cast ÷ registered", get: (s) => turnout(enrollFor(s)), fmt: (v) => (v * 100).toFixed(1) + "%" },
     change: { label: "Change vs prior period", get: (s) => { const p = prevUnit(s); return p ? s.actual - p.actual : null; }, diverging: true },
   };
   const SEQ = ["var(--seq-0)", "var(--seq-1)", "var(--seq-2)", "var(--seq-3)", "var(--seq-4)"];
@@ -2046,6 +2106,7 @@
           ${columns(monthlyFor(DB, s.id).map((m) => ({ ...m, href: buildHash("records", { unit: s.id, month: m.key }) })))}</section>
       </div>
       ${demogCard(d.district, s)}
+      ${votersCard(d.district, s)}
       ${campaignCard(d.district, d.member)}
       <p class="summary">Neighbors are districts that share a boundary. Use ← → on your keyboard to step through districts.</p>`;
 
