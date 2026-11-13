@@ -741,8 +741,8 @@
     staff: { label: "People paid", get: (s) => s.staffCount, fmt: (v) => int.format(v) },
     change: { label: "Change vs prior period", get: (s) => { const p = prevUnit(s); return p ? s.actual - p.actual : null; }, diverging: true },
   };
-  const SEQ = ["#e3f1ee", "#b2dacf", "#72baa9", "#33907d", "#0d5c4f"];
-  const DIV = ["#b35806", "#f1a340", "#ececec", "#998ec3", "#542788"]; // decrease … increase
+  const SEQ = ["var(--seq-0)", "var(--seq-1)", "var(--seq-2)", "var(--seq-3)", "var(--seq-4)"];
+  const DIV = ["var(--div-0)", "var(--div-1)", "var(--div-2)", "var(--div-3)", "var(--div-4)"]; // decrease … increase
   const NYC_BOX = [-74.27, 40.49, -73.69, 40.92];
 
   function ringsOf(geom) {
@@ -778,15 +778,15 @@
   }
   function binsFor(values, diverging) {
     const v = values.filter((x) => x != null).sort((a, b) => a - b);
-    if (!v.length) return { color: () => "var(--border)", breaks: [] };
+    if (!v.length) return { color: () => "var(--map-none)", breaks: [] };
     if (diverging) {
       const m = Math.max(...v.map(Math.abs)) || 1;
       const breaks = [-m * 0.5, -m * 0.1, m * 0.1, m * 0.5];
-      return { breaks, colors: DIV, color: (x) => x == null ? "var(--border)" : DIV[breaks.filter((b) => x > b).length] };
+      return { breaks, colors: DIV, color: (x) => x == null ? "var(--map-none)" : DIV[breaks.filter((b) => x > b).length] };
     }
     const q = (p) => v[Math.min(v.length - 1, Math.floor(p * v.length))];
     const breaks = [q(0.2), q(0.4), q(0.6), q(0.8)];
-    return { breaks, colors: SEQ, color: (x) => x == null ? "var(--border)" : SEQ[breaks.filter((b) => x >= b).length] };
+    return { breaks, colors: SEQ, color: (x) => x == null ? "var(--map-none)" : SEQ[breaks.filter((b) => x >= b).length] };
   }
 
   function viewMap(params) {
@@ -822,7 +822,7 @@
         const label = lo == null ? `under ${f(hi)}` : hi == null ? `${f(lo)}+` : `${f(lo)} – ${f(hi)}`;
         return `<span><i style="background:${c}"></i>${label}</span>`;
       }).join("")}
-      <span><i style="background:var(--border)"></i>No data this period</span></div>` : "";
+      <span><i style="background:var(--map-none)"></i>No data this period</span></div>` : "";
 
     const metricOpts = Object.entries(MAP_METRICS).filter(([k]) => k !== "change" || PREV)
       .map(([k, m]) => `<option value="${k}"${k === metricKey ? " selected" : ""}>${esc(m.label)}</option>`).join("");

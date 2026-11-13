@@ -36,6 +36,7 @@ jobs:
           cp -r assets _site/
           cp data/periods.json data/districts.json _site/data/
           cp -r data/periods _site/data/
+          cp docs/social-preview.png _site/
           touch _site/.nojekyll
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

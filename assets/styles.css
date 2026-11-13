@@ -188,3 +188,10 @@ svg.map path.district.dim { stroke: var(--border); }
 .map-legend { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 13px; color: var(--muted); margin: 12px 0 16px; }
 .map-legend i { display: inline-block; width: 14px; height: 14px; border-radius: 3px; margin-right: 6px; vertical-align: -2px; border: 1px solid var(--border); }
 .map-tip { position: fixed; z-index: 20; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; font-size: 13px; box-shadow: 0 4px 16px rgba(0,0,0,.15); pointer-events: none; max-width: 260px; }
+
+:root { --seq-0: #e3f1ee; --seq-1: #b2dacf; --seq-2: #72baa9; --seq-3: #33907d; --seq-4: #0d5c4f;
+        --map-none: #c4c9cf; --div-0: #b35806; --div-1: #f1a340; --div-2: #ececec; --div-3: #998ec3; --div-4: #542788; }
+@media (prefers-color-scheme: dark) {
+  :root { --seq-0: #1d3a35; --seq-1: #24584e; --seq-2: #2f7d6c; --seq-3: #4fae97; --seq-4: #8fdcc6;
+          --map-none: #6b7380; --div-0: #e08a3c; --div-1: #9a6a3a; --div-2: #3a3f47; --div-3: #7c72b0; --div-4: #b3a6ec; }
+}
