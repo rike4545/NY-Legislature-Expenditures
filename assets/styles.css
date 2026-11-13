@@ -447,3 +447,6 @@ td .chip + .echip, td .echip { margin-top: 3px; }
 .mini-results tr:first-child td { font-weight: 600; }
 .mini-results tr.inc td { background: color-mix(in srgb, var(--accent) 7%, transparent); }
 .mini-results td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.cols .col.me .colbar { background: var(--accent); }
+.cols .col.me .collabel { color: var(--text); font-weight: 600; }

@@ -454,6 +454,7 @@
         ${kpi("Allocated costs", compact(meta.totalAllocated), "Informational only — see About")}
       </div>
       ${chambersCard()}
+      ${periodsCard()}
       <div class="grid two">
         <section class="card"><div class="card-head"><h2>By expense type</h2><span class="summary">grey = allocated</span></div>${bars(typeBars)}</section>
         <section class="card"><div class="card-head"><h2>Vouchered spending by month</h2><span class="summary">M&amp;O + travel</span></div>
@@ -514,6 +515,20 @@
     return `<a class="hero-map" href="${buildHash("map", {})}" aria-label="Open the district map">
       <svg viewBox="0 0 300 ${proj.height.toFixed(0)}" aria-hidden="true">${DISTRICTS.map((d, i) => `<path d="${pathFor(d.geometry, proj)}" fill="${scale.color(vals[i])}"></path>`).join("")}</svg>
       <span>Member office spending by district ${I.r}</span></a>`;
+  }
+
+  function periodsCard() {
+    const ps = (CH.periods || []).slice().sort((a, b) => a.end.localeCompare(b.end));
+    if (ps.length < 3) return "";
+    const max = Math.max(1, ...ps.map((p) => p.totalActual));
+    const lab = (p) => { const s = new Date(p.start + "T12:00:00"), e = new Date(p.end + "T12:00:00"); const m = (d) => d.toLocaleDateString("en-US", { month: "short" }); return `${m(s)}–${m(e)} ’${String(e.getFullYear()).slice(2)}`; };
+    const first = ps[0], last = ps[ps.length - 1];
+    const chg = first.totalActual ? (last.totalActual / first.totalActual - 1) * 100 : 0;
+    return `<section class="card"><div class="card-head"><h2>Every ${esc(CH.name)} report on file</h2><span class="summary">actual spending per six-month report · ${chg >= 0 ? "+" : ""}${chg.toFixed(1)}% from ${esc(lab(first))} to ${esc(lab(last))} · click a report to open it</span></div>
+      <div class="cols">${ps.map((p) => `<a class="col${p.id === DB.id ? " me" : ""}" href="${buildHash("", { p: p.id })}" title="${esc(lab(p))}: ${money(p.totalActual)} actual, ${int.format(p.rowCount)} lines">
+        <span class="colval">${compact(p.totalActual)}</span>
+        <span class="colbar" style="height:${(p.totalActual / max * 100).toFixed(1)}%"></span>
+        <span class="collabel">${esc(lab(p))}</span></a>`).join("")}</div></section>`;
   }
 
   function chambersCard() {
@@ -856,7 +871,7 @@
   }
   function salaryTip(sal) {
     return sal.basis === "lump"
-      ? `Senate member line: no start date in the report. ${money(sal.paid)} paid ≈ ${(sal.days / 14).toFixed(1)} of the report's 13 biweekly pay periods; the full-period amount (half of ${money0(sal.annual)}) sets the yearly rate.`
+      ? `Senate member line: the report gives only a check date and one amount. ${money(sal.paid)} is ≈ ${(sal.days / 14).toFixed(1)} biweekly checks at the ${money0(sal.annual)} base salary set in law.`
       : `${int.format(sal.days)} days of regular pay (${money(sal.paid)}) scaled to 364 days`;
   }
   function payWindowNote(db) {
@@ -896,7 +911,7 @@
     app.innerHTML = `
       <h1>Salaries</h1>
       <p class="lede">Every person on the ${esc(CH.name)} payroll in ${esc(periodName(DB))}, with their regular pay normalized to a yearly rate so part-period and full-period employees can be compared.</p>
-      <div class="callout"><strong>How it's calculated.</strong> For each person in each office, regular pay lines are added up and divided by the days their service dates cover, then scaled to 364 days (26 biweekly pay periods). A member paid $70,999.98 for 182 days annualizes to $142,000, the legislative base salary. One-time payments (lump-sum vacation, deferral payments, stipends, allowances, back pay) and stints under one pay period are left out. ${CH.id === "senate" ? "Senators' own MEMBER lines are different: the Senate reports them with only a check date and one amount for the whole report (usually $71,000). That full-period amount sets the yearly rate, and a smaller or larger amount is shown as a share of the report's 13 biweekly pay periods. Leadership stipends (Temporary President, Minority Leader and so on) are paid in uneven lumps and are shown as reported on each senator's page, not annualized." : ""} New York's base legislator salary is $142,000 (<a href="https://www.ncsl.org/about-state-legislatures/2025-legislator-compensation" target="_blank" rel="noopener">NCSL, 2025</a>). It's an estimate of a yearly rate, not a reported salary.</div>
+      <div class="callout"><strong>How it's calculated.</strong> For each person in each office, regular pay lines are added up and divided by the days their service dates cover, then scaled to 364 days (26 biweekly pay periods). A member paid $70,999.98 for 182 days annualizes to $142,000, the legislative base salary. One-time payments (lump-sum vacation, deferral payments, stipends, allowances, back pay) and stints under one pay period are left out. ${CH.id === "senate" ? "Senators' own MEMBER lines are different: the Senate reports them with only a check date and one amount for the whole report (usually $71,000, 13 checks; $65,538, 12 checks, in the report ending March 2025). Their rate is the base salary set in law, and the amount is shown as a number of biweekly checks at that rate. Leadership stipends (Temporary President, Minority Leader and so on) are paid in uneven lumps and are shown as reported on each senator's page, not annualized." : ""} New York's base legislator salary is $142,000 (<a href="https://www.ncsl.org/about-state-legislatures/2025-legislator-compensation" target="_blank" rel="noopener">NCSL, 2025</a>). It's an estimate of a yearly rate, not a reported salary.</div>
       <p class="summary paywin">${payWindowNote(DB)}</p>
       <div class="grid kpis">
         ${kpi("People annualized", int.format(list.length), `of ${int.format(all.length)} in this report`)}

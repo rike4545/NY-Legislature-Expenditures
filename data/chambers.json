@@ -60,6 +60,50 @@
         "rowCount": 4926,
         "totalActual": 53547054.14,
         "totalAllocated": 1932370.88
+      },
+      {
+        "travel": "data/senate/travel/2025-03-31.json",
+        "id": "2025-03-31",
+        "file": "data/senate/periods/2025-03-31.json",
+        "start": "2024-10-01",
+        "end": "2025-03-31",
+        "sourceFile": "nysenate_expenditures_20250331.csv",
+        "rowCount": 5286,
+        "totalActual": 54265108.55,
+        "totalAllocated": 2975378.35
+      },
+      {
+        "travel": "data/senate/travel/2024-09-30.json",
+        "id": "2024-09-30",
+        "file": "data/senate/periods/2024-09-30.json",
+        "start": "2024-04-01",
+        "end": "2024-09-30",
+        "sourceFile": "nysenate_expenditures_20240930.csv",
+        "rowCount": 5173,
+        "totalActual": 52815849.93,
+        "totalAllocated": 5568048.15
+      },
+      {
+        "travel": "data/senate/travel/2024-03-31.json",
+        "id": "2024-03-31",
+        "file": "data/senate/periods/2024-03-31.json",
+        "start": "2023-10-01",
+        "end": "2024-03-31",
+        "sourceFile": "nysenate_expenditures_20240331.csv",
+        "rowCount": 5248,
+        "totalActual": 51786041.19,
+        "totalAllocated": 5178961.54
+      },
+      {
+        "travel": "data/senate/travel/2023-09-30.json",
+        "id": "2023-09-30",
+        "file": "data/senate/periods/2023-09-30.json",
+        "start": "2023-04-01",
+        "end": "2023-09-30",
+        "sourceFile": "nysenate_expenditures_20230930.csv",
+        "rowCount": 5246,
+        "totalActual": 50408539.9,
+        "totalAllocated": 3703949.3
       }
     ]
   }

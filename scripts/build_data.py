@@ -187,6 +187,7 @@ CHAMBERS = {
 # 09/25/25-03/25/26 (182 days) annualizes to exactly $142,000, the legislative base salary.
 PAY_PERIOD_DAYS = 14
 YEAR_DAYS = 26 * PAY_PERIOD_DAYS
+MEMBER_BASE_SALARY = 142000.0  # NY legislator base salary since 2023 (NCSL 2025 compensation table)
 ONE_TIME = re.compile(r"LUMP SUM|DEFERRAL|STIPEND|ALLOWANCE|PAYMENT FOR SERVICES RENDERED|RETRO", re.I)
 
 
@@ -232,10 +233,12 @@ def annualize_people(rows, types_cfg):
             p["last"], p["status"] = rng[1], r["status"]
     out = []
     # Senate member lines: the source gives no start date, only the check date and one amount for
-    # the whole report. The full-period amount (the most common one) is half a year of pay, so it
-    # sets the rate; other amounts are read as a share of the 13 biweekly periods in a report.
+    # the whole report, and the number of member checks in a report varies (12 in the report ending
+    # 2025-03-31, 13 in most). So the rate is the base legislator salary set in law, $142,000 since
+    # 2023 (NCSL 2025 legislator compensation table), and the amount paid is shown as a number of
+    # biweekly checks at that rate.
     lump = [r for r in rows if types_cfg[r["type"]][1] == "ps" and r["desc"] == "MEMBER" and not service_range(r["svc"]) and r["amount"] > 0]
-    full = Counter(round(r["amount"], 2) for r in lump).most_common(1)[0][0] if lump else 0
+    biweekly = MEMBER_BASE_SALARY / 26
     lump_people = {}
     for r in lump:
         q = lump_people.setdefault((r["unit"], r["payee"]), {"paid": 0.0, "last": r["svc"] or r["date"]})
@@ -244,9 +247,9 @@ def annualize_people(rows, types_cfg):
     for (unit, payee), q in lump_people.items():
         if (unit, payee) in people:
             continue
-        periods = q["paid"] / (full / 13)
+        periods = q["paid"] / biweekly
         out.append([unit, payee, "MEMBER", "", q["last"], round(periods * PAY_PERIOD_DAYS), round(q["paid"], 2),
-                    round(full * 2, 2), "RA", "lump"])
+                    MEMBER_BASE_SALARY, "RA", "lump"])
     for (unit, payee), p in people.items():
         days = len(p["days"])
         if days < PAY_PERIOD_DAYS or p["paid"] <= 0:
