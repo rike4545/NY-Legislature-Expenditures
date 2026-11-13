@@ -195,3 +195,27 @@ svg.map path.district.dim { stroke: var(--border); }
   :root { --seq-0: #1d3a35; --seq-1: #24584e; --seq-2: #2f7d6c; --seq-3: #4fae97; --seq-4: #8fdcc6;
           --map-none: #6b7380; --div-0: #e08a3c; --div-1: #9a6a3a; --div-2: #3a3f47; --div-3: #7c72b0; --div-4: #b3a6ec; }
 }
+
+/* District profile */
+.district-head { align-items: flex-end; }
+.district-head .lede { margin-bottom: 8px; }
+.dnav { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+.dnav select { width: auto; max-width: 260px; }
+.map-layout > div > .card + .card { margin-top: 16px; }
+svg.map path.district.focus { stroke: var(--text); stroke-width: 2.5; }
+svg.map .dlabel { font-size: 11px; fill: var(--text); text-anchor: middle; dominant-baseline: middle; pointer-events: none; paint-order: stroke; stroke: var(--surface); stroke-width: 3px; }
+svg.map .dlabel.focus { font-size: 15px; font-weight: 700; }
+svg.locator { max-width: 260px; margin: 0 auto; }
+svg.locator path { stroke: var(--surface); stroke-width: 0.3; }
+svg.locator .locbox { fill: none; stroke: var(--text); stroke-width: 1.2; }
+.gauge { padding: 8px 0; }
+.gauge + .gauge { border-top: 1px solid var(--border); }
+.gauge-top { display: flex; justify-content: space-between; font-size: 14px; }
+.gauge-top strong { font-variant-numeric: tabular-nums; }
+.gauge-track { position: relative; height: 8px; border-radius: 4px; margin: 8px 0 6px; background: linear-gradient(90deg, var(--seq-0), var(--seq-4)); }
+.gauge-med { position: absolute; top: -3px; width: 2px; height: 14px; background: var(--muted); transform: translateX(-1px); }
+.gauge-dot { position: absolute; top: 50%; width: 14px; height: 14px; border-radius: 50%; background: var(--surface); border: 3px solid var(--text); transform: translate(-50%, -50%); }
+.gauge-foot { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
+.stack.big { height: 22px; width: 100%; }
+.bars li.me .name a { font-weight: 700; }
+.cols .colbar.dimbar { background: var(--bar-alt); }

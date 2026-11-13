@@ -179,7 +179,7 @@
   function districtChip(s) {
     const d = DISTRICT_BY_UNIT.get(s.name);
     if (!d) return "";
-    return ` <a class="chip muted" href="${buildHash("map", {})}" title="${esc(d.party)}">AD ${d.district}${d.party ? " · " + esc(d.party) : ""}</a>`;
+    return ` <a class="chip muted" href="${buildHash("district/" + d.district, {})}" title="District profile">AD ${d.district}${d.party ? " · " + esc(d.party) : ""}</a>`;
   }
   function kindChip(kind) {
     return kind === "member" ? `<span class="chip">Member</span>` : `<span class="chip muted">Office</span>`;
@@ -829,11 +829,11 @@
     const parties = [...new Set(DISTRICTS.map((d) => d.party).filter(Boolean))].sort();
 
     const ranked = rows.filter((r) => r.value != null && !r.dim).sort((a, b) => b.value - a.value);
-    const listItem = (r) => `<li><span class="name"><a href="${unitHref(r.s.id)}">AD ${r.d.district} · ${esc(r.d.member)}</a></span><span class="amt">${metric.diverging ? `${r.value >= 0 ? "+" : "−"}${money0(Math.abs(r.value))}` : fmt(r.value)}</span></li>`;
+    const listItem = (r) => `<li><span class="name"><a href="${buildHash("district/" + r.d.district, {})}">AD ${r.d.district} · ${esc(r.d.member)}</a></span><span class="amt">${metric.diverging ? `${r.value >= 0 ? "+" : "−"}${money0(Math.abs(r.value))}` : fmt(r.value)}</span></li>`;
 
     app.innerHTML = `
       <h1>District map</h1>
-      <p class="lede">Each member office's spending for ${esc(periodName(DB))}, shown on its Assembly district. Hover or tap a district for details; click to open the member's page.</p>
+      <p class="lede">Each member office's spending for ${esc(periodName(DB))}, shown on its Assembly district. Hover or tap a district for details; click it for the district's full profile.</p>
       <div class="filters">
         <label>Color districts by<select id="mmetric">${metricOpts}</select></label>
         <label>Party<select id="mparty"><option value="">All members</option>${parties.map((p) => `<option${p === party ? " selected" : ""}>${esc(p)}</option>`).join("")}</select></label>
@@ -867,7 +867,7 @@
       el.addEventListener("mouseleave", () => { tip.hidden = true; });
       el.addEventListener("focus", () => { const b = el.getBoundingClientRect(); show(el, b.left + b.width / 2, b.top); });
       el.addEventListener("blur", () => { tip.hidden = true; });
-      const open = () => { const r = byDistrict.get(el.dataset.d); if (r && r.s) location.hash = unitHref(r.s.id); };
+      const open = () => { location.hash = buildHash("district/" + el.dataset.d, {}); };
       el.addEventListener("click", (e) => {
         // On touch screens the first tap shows details, the second opens the member page.
         if (window.matchMedia("(hover: none)").matches && tip.dataset.d !== el.dataset.d) {
@@ -882,6 +882,151 @@
     app.querySelector("#mparty").addEventListener("change", (e) => update({ party: e.target.value }));
     return null;
   }
+
+  /* ---------- district profile ---------- */
+  const NEIGHBORS = new Map(); // district -> [district]
+  function bboxCache(d) { return d._bb || (d._bb = bboxOf([d])); }
+  function neighborsOf(d) {
+    if (NEIGHBORS.has(d.district)) return NEIGHBORS.get(d.district);
+    // Districts touch when any boundary point lies within ~150 m of the other's boundary.
+    const tol = 0.0018, tol2 = tol * tol;
+    const mine = ringsOf(d.geometry).flat();
+    const bb = bboxCache(d);
+    const out = [];
+    for (const o of DISTRICTS) {
+      if (o === d) continue;
+      const ob = bboxCache(o);
+      if (ob[0] > bb[2] + tol || ob[2] < bb[0] - tol || ob[1] > bb[3] + tol || ob[3] < bb[1] - tol) continue;
+      const theirs = ringsOf(o.geometry).flat().filter(([x, y]) => x >= bb[0] - tol && x <= bb[2] + tol && y >= bb[1] - tol && y <= bb[3] + tol);
+      let touch = false;
+      outer: for (const [x1, y1] of theirs) {
+        for (const [x2, y2] of mine) { const dx = x1 - x2, dy = y1 - y2; if (dx * dx + dy * dy < tol2) { touch = true; break outer; } }
+      }
+      if (touch) out.push(o);
+    }
+    NEIGHBORS.set(d.district, out);
+    return out;
+  }
+  function percentile(value, values) {
+    const v = values.filter((x) => x != null);
+    if (!v.length || value == null) return null;
+    return Math.round(v.filter((x) => x < value).length / v.length * 100);
+  }
+
+  function viewDistrict(arg) {
+    const num = Number(arg);
+    const d = DISTRICTS.find((x) => x.district === num);
+    if (!d) return `<p class="empty">District not found. <a href="${buildHash("map", {})}">Back to the map</a>.</p>`;
+    const s = d.unitName ? DB.byName.get(d.unitName) : null;
+    const nbrs = neighborsOf(d).slice().sort((a, b) => a.district - b.district);
+    const unitOf = (x) => (x.unitName ? DB.byName.get(x.unitName) : null);
+    const idx = DISTRICTS.findIndex((x) => x === d);
+    const prevD = DISTRICTS[(idx - 1 + DISTRICTS.length) % DISTRICTS.length], nextD = DISTRICTS[(idx + 1) % DISTRICTS.length];
+    const dHref = (x) => buildHash("district/" + x.district, {});
+
+    // Locator: zoom to the district and its neighbors; neighbors shaded by actual spending.
+    const focus = [d, ...nbrs];
+    const fb = bboxOf(focus.map((x) => ({ geometry: x.geometry })));
+    const padX = (fb[2] - fb[0]) * 0.06, padY = (fb[3] - fb[1]) * 0.06;
+    const box = [fb[0] - padX, fb[1] - padY, fb[2] + padX, fb[3] + padY];
+    const proj = makeProjection(box, 560);
+    const scale = binsFor(DISTRICTS.map((x) => (unitOf(x) ? unitOf(x).actual : null)), false);
+    const zoomSvg = `<svg class="map" id="mapZoom" viewBox="0 0 560 ${proj.height.toFixed(0)}" role="img" aria-label="District ${d.district} and neighboring districts">
+      ${focus.map((x) => { const u = unitOf(x); return `<path d="${pathFor(x.geometry, proj)}" class="district${x === d ? " focus" : ""}" data-d="${x.district}"
+        fill="${scale.color(u ? u.actual : null)}" tabindex="0" aria-label="District ${x.district}"></path>`; }).join("")}
+      ${focus.map((x) => { const b = bboxCache(x); const [cx, cy] = proj.pt([(b[0] + b[2]) / 2, (b[1] + b[3]) / 2]); return `<text x="${cx}" y="${cy}" class="dlabel${x === d ? " focus" : ""}">${x.district}</text>`; }).join("")}
+    </svg>`;
+    const stateBox = bboxOf(DISTRICTS.map((x) => ({ geometry: x.geometry })));
+    const sp = makeProjection(stateBox, 220);
+    const fbPx = [sp.pt([fb[0], fb[3]]), sp.pt([fb[2], fb[1]])].map((a) => a.map(Number));
+    const locator = `<svg class="map locator" viewBox="0 0 220 ${sp.height.toFixed(0)}" aria-hidden="true">
+      ${DISTRICTS.map((x) => `<path d="${pathFor(x.geometry, sp)}" fill="${x === d ? "var(--accent)" : "var(--border)"}"></path>`).join("")}
+      <rect x="${fbPx[0][0] - 3}" y="${fbPx[0][1] - 3}" width="${Math.max(6, fbPx[1][0] - fbPx[0][0] + 6)}" height="${Math.max(6, fbPx[1][1] - fbPx[0][1] + 6)}" class="locbox"></rect>
+    </svg>`;
+
+    const picker = `<select id="dpick" aria-label="Choose a district">${DISTRICTS.map((x) => `<option value="${x.district}"${x === d ? " selected" : ""}>AD ${x.district} · ${esc(x.member)}</option>`).join("")}</select>`;
+    const head = `
+      <div class="crumbs"><a href="${buildHash("map", {})}">← District map</a></div>
+      <div class="title-row district-head">
+        <div><h1>Assembly District ${d.district}</h1>
+          <p class="lede">${esc(d.member)}${d.party ? ` · ${esc(d.party)}` : ""}${s ? ` · <a href="${unitHref(s.id)}">member office page →</a>` : ""}</p></div>
+        <div class="dnav"><a class="btn" href="${dHref(prevD)}" aria-label="Previous district">← AD ${prevD.district}</a>${picker}<a class="btn" href="${dHref(nextD)}" aria-label="Next district">AD ${nextD.district} →</a></div>
+      </div>`;
+
+    if (!s) {
+      return `${head}<div class="map-layout"><section class="card">${zoomSvg}</section><section class="card">${locator}
+        <p class="empty">No spending data for this district's member in ${esc(periodName(DB))}. Their office may not appear in this report (for example, a member who took office after it). Try the other report period in the header.</p></section></div>`;
+    }
+
+    const members = DB.members;
+    const metrics = [
+      ["Actual spending", (u) => u.actual, money0],
+      ["Payroll", (u) => u.byType["PERSSERV"] || 0, money0],
+      ["Maintenance & operations", (u) => u.byType["M & O"] || 0, money0],
+      ["Travel", (u) => u.byType["TRAVEL"] || 0, money0],
+      ["People paid", (u) => u.staffCount, (v) => int.format(v)],
+    ];
+    const gauges = metrics.map(([label, fn, fmt]) => {
+      const v = fn(s), pct = percentile(v, members.map(fn));
+      const med = (() => { const a = members.map(fn).sort((x, y) => x - y); return a[Math.floor(a.length / 2)]; })();
+      return `<div class="gauge"><div class="gauge-top"><span>${esc(label)}</span><strong>${fmt(v)}</strong></div>
+        <div class="gauge-track" title="Higher than ${pct}% of member offices"><span class="gauge-med" style="left:50%"></span><span class="gauge-dot" style="left:${pct}%"></span></div>
+        <div class="gauge-foot"><span>Higher than <b>${pct}%</b> of members</span><span>median ${fmt(med)}</span></div></div>`;
+    }).join("");
+
+    const ps = prevUnit(s);
+    const periodsBars = PERIODS.slice().reverse().map((pm) => { const u = DBS[pm.id].byName.get(s.name); return { key: pm.id, label: periodName(DBS[pm.id]), total: u ? u.actual : 0, cur: pm.id === DB.id }; });
+    const maxP = Math.max(1, ...periodsBars.map((x) => x.total));
+
+    const nbrRows = [d, ...nbrs].map((x) => ({ x, u: unitOf(x) })).filter((r) => r.u).sort((a, b) => b.u.actual - a.u.actual);
+    const maxN = Math.max(1, ...nbrRows.map((r) => r.u.actual));
+    const mo = DB.records.filter((r) => r.u === s.id && DB.types[r.t].code === "M & O");
+    const topMo = sumBy(mo, (r) => r.d).sort((a, b) => b.total - a.total).slice(0, 6);
+    const seg = [["PERSSERV", "Payroll", "seg-ps"], ["M & O", "M&O", "seg-mo"], ["TRAVEL", "Travel", "seg-tr"]];
+    const compareHref = buildHash("compare", { u: [s, ...nbrRows.filter((r) => r.x !== d).slice(0, 3).map((r) => r.u)].map((u) => u.name).join("|") });
+
+    app.innerHTML = `${head}
+      <div class="map-layout">
+        <section class="card"><div class="card-head"><h2>District ${d.district} and its neighbors</h2><span class="summary">shaded by actual spending · click a neighbor</span></div>${zoomSvg}</section>
+        <div>
+          <section class="card"><div class="card-head"><h2>Where it is</h2></div>${locator}</section>
+          <section class="card"><div class="card-head"><h2>How it ranks</h2><span class="summary">#${s.rank} of ${members.length}</span></div>${gauges}</section>
+        </div>
+      </div>
+      <div class="grid two">
+        <section class="card"><div class="card-head"><h2>Where the money went</h2><span class="summary">${money0(s.actual)}</span></div>
+          <div class="stack big">${seg.map(([code, label, cls]) => { const v = Math.max(s.byType[code] || 0, 0); return v ? `<span class="${cls}" style="flex:${v}" title="${label}: ${money(v)}"></span>` : ""; }).join("")}</div>
+          <div class="legend">${seg.map(([code, label, cls]) => `<span><i class="${cls}"></i>${label} ${money0(s.byType[code] || 0)} (${((s.byType[code] || 0) / s.actual * 100).toFixed(0)}%)</span>`).join("")}</div>
+          <h3 class="mini" style="margin-top:14px">Top operating expenses</h3>${bars(topMo.map((v) => ({ label: titleCase(DB.descs[v.key]), value: v.total })))}</section>
+        <section class="card"><div class="card-head"><h2>Compared with neighboring districts</h2><a href="${compareHref}">Compare side by side →</a></div>
+          <ul class="bars">${nbrRows.map((r) => `<li class="${r.x === d ? "me" : ""}"><span class="name"><a href="${dHref(r.x)}">AD ${r.x.district} · ${esc(r.x.member)}</a></span><span class="amt">${money0(r.u.actual)}</span>
+            <span class="track"><span class="fill${r.x === d ? "" : " alt"}" style="width:${(r.u.actual / maxN * 100).toFixed(1)}%"></span></span></li>`).join("")}</ul></section>
+        <section class="card"><div class="card-head"><h2>Across report periods</h2>${ps ? `<span class="summary">${changeText(change(s.actual, ps.actual))}</span>` : ""}</div>
+          <div class="cols">${periodsBars.map((m) => `<a class="col" href="${buildHash("district/" + d.district, { p: m.key === PERIODS[0].id ? "" : m.key })}" title="${esc(m.label)}: ${money(m.total)}">
+            <span class="colval">${m.total ? compact(m.total) : "—"}</span><span class="colbar${m.cur ? "" : " dimbar"}" style="height:${(m.total / maxP * 100).toFixed(1)}%"></span><span class="collabel">${esc(m.label)}</span></a>`).join("")}</div></section>
+        <section class="card"><div class="card-head"><h2>M&amp;O + travel by month</h2><span class="summary">click a month for its records</span></div>
+          ${columns(monthlyFor(DB, s.id).map((m) => ({ ...m, href: buildHash("records", { unit: s.id, month: m.key }) })))}</section>
+      </div>
+      <p class="summary">Neighbors are districts that share a boundary. Use ← → on your keyboard to step through districts.</p>`;
+
+    app.querySelector("#dpick").addEventListener("change", (e) => { location.hash = buildHash("district/" + e.target.value, {}); });
+    app.querySelectorAll("#mapZoom path.district").forEach((el) => {
+      const go2 = () => { if (Number(el.dataset.d) !== d.district) location.hash = buildHash("district/" + el.dataset.d, {}); };
+      el.addEventListener("click", go2);
+      el.addEventListener("keydown", (e) => { if (e.key === "Enter") go2(); });
+      const x = DISTRICTS.find((q) => String(q.district) === el.dataset.d), u = unitOf(x);
+      const t = document.createElementNS("http://www.w3.org/2000/svg", "title");
+      t.textContent = `AD ${x.district} · ${x.member}${u ? ` · ${money0(u.actual)}` : ""}`;
+      el.appendChild(t);
+    });
+    return null;
+  }
+  document.addEventListener("keydown", (e) => {
+    if (parseHash().view !== "district" || /input|select|textarea/i.test((e.target.tagName || ""))) return;
+    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+    const a = app.querySelector(`.dnav a[aria-label="${e.key === "ArrowLeft" ? "Previous" : "Next"} district"]`);
+    if (a) location.hash = a.getAttribute("href");
+  });
 
   function viewAbout() {
     const { meta, types } = DB;
@@ -922,7 +1067,7 @@
     const v = el.value; el.value = ""; el.value = v;
   }
   function setActiveTab(view) {
-    const tab = { overview: "overview", units: "units", unit: "units", records: "records", payees: "payees", about: "about", compare: "compare", map: "map" }[view] || "overview";
+    const tab = { overview: "overview", units: "units", unit: "units", records: "records", payees: "payees", about: "about", compare: "compare", map: "map", district: "map" }[view] || "overview";
     document.querySelectorAll(".tabs a").forEach((a) => a.classList.toggle("active", a.dataset.tab === tab));
   }
   let lastView = "";
@@ -943,6 +1088,7 @@
       case "about": html = viewAbout(); break;
       case "compare": html = viewCompare(params); break;
       case "map": html = viewMap(params); break;
+      case "district": html = viewDistrict(arg); break;
       default: html = viewOverview();
     }
     if (html != null) app.innerHTML = html;

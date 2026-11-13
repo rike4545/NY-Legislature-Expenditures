@@ -53,6 +53,7 @@ Mail, telephone and supplies "allocated" costs are tracked separately: the Assem
 - 🗓️ **Switch report periods** — every view follows; member pages and comparisons carry across by name.
 - 📈 **Change over time** — period-over-period change on totals, members, map and comparisons.
 - 🗺️ **District map** — 2024 Assembly district lines, NYC inset, keyboard and touch friendly.
+- 📍 **District profiles** — pick any of the 150 districts (menu, map click, or ← → keys): zoomed map with neighbors, percentile gauges against all members, spending mix, neighbor comparison, period trend and monthly spending.
 - ⚖️ **Side-by-side comparison** — up to four members or offices.
 - 🔗 **Shareable links** — every search, filter and view lives in the URL.
 - ⬇️ **CSV export** — of member tables and filtered records.
