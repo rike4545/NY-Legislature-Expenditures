@@ -593,3 +593,17 @@ table.scorecard td { white-space: nowrap; }
 .ptag { display: inline-block; font-size: 11px; font-weight: 700; padding: 0 5px; border-radius: 4px; color: #fff; vertical-align: 1px; }
 .ptag.pD { background: var(--pD); } .ptag.pR { background: var(--pR); } .ptag.p { display: none; }
 @media (forced-colors: active) { .scbar span, .ptag { forced-color-adjust: none; } }
+
+/* Find your legislators */
+.hero-find { margin: 0 0 10px; font-weight: 600; }
+.findform { align-items: end; }
+.findbtns { display: flex; gap: 8px; }
+.findbtns button { height: 38px; padding: 0 16px; border-radius: 10px; }
+.findcard .findname { font-size: 22px; font-weight: 800; margin: 0 0 4px; letter-spacing: -0.01em; }
+.findcard .card-head .ptag { font-size: 13px; padding: 1px 7px; }
+.findlinks { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 0; }
+
+/* Vendors that also donate */
+.card.vd.own { border-left-width: 1px; box-shadow: var(--shadow), inset 0 0 0 1px color-mix(in srgb, var(--pR) 25%, transparent); }
+.card.vd h3.mini { font-size: 13.5px; margin: 0 0 6px; }
+.card.vd .plainlist li { margin: 4px 0; }

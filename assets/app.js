@@ -19,7 +19,9 @@
   const BALLOTPEDIA = {}; // chamber id -> {office name: profile url}
   const CAMPAIGN = {};
   const MAKEUP = {};
-  const DONATIONS = {}; // chamber id -> donations in depth by district (2025-26) // chamber id -> party makeup now and after the Nov 3, 2026 count // chamber id -> campaign finance by district (State Board of Elections, 2025-26)
+  const DONATIONS = {};
+  const DEMOG = {}; // chamber id -> Census ACS 2020-24 by district
+  let VENDOR_DONORS = null; // chamber id -> donations in depth by district (2025-26) // chamber id -> party makeup now and after the Nov 3, 2026 count // chamber id -> campaign finance by district (State Board of Elections, 2025-26)
   let BUDGET = null; // Legislature appropriations from the FY 2027 Executive Budget
   const MEMBERS = {};     // chamber id -> {office name: {district, contact, roles, offices, assumedOffice, election}}
   let ELECTION_SOURCES = {};
@@ -112,6 +114,7 @@
     CHAMBERS = bundled ? bundled.chambers : await (await fetch("data/chambers.json")).json();
     await loadElectionSources(bundled);
     await loadBudget(bundled);
+    try { VENDOR_DONORS = bundled ? bundled.data["data/vendor_donors.json"] || null : await (await fetch("data/vendor_donors.json")).json(); } catch (e) { VENDOR_DONORS = null; }
     await Promise.all(CHAMBERS.map(async (ch) => {
       await Promise.all(ch.periods.map(async (pm) => {
         const raw = bundled ? bundled.data[pm.file] : await (await fetch(pm.file)).json();
@@ -141,6 +144,10 @@
         const bpFile = `data/${ch.id}/ballotpedia.json`;
         BALLOTPEDIA[ch.id] = bundled ? bundled.data[bpFile] || {} : await (await fetch(bpFile)).json();
       } catch (e) { BALLOTPEDIA[ch.id] = {}; }
+      try {
+        const dmFile = `data/${ch.id}/demographics.json`;
+        DEMOG[ch.id] = bundled ? bundled.data[dmFile] || null : await (await fetch(dmFile)).json();
+      } catch (e) { DEMOG[ch.id] = null; }
       try {
         const dnFile = `data/${ch.id}/donations.json`;
         DONATIONS[ch.id] = bundled ? bundled.data[dnFile] || null : await (await fetch(dnFile)).json();
@@ -292,6 +299,7 @@
     const metrics = [
       ["Actual spending per member office", (db) => db.members.map((s) => s.actual), money0],
       ["Cost per month per member office", (db) => db.members.map((s) => s.perMonth), money0],
+      ["Office cost per resident", (db) => db.members.map((s) => { const d = (DIST_BY_UNIT[db.meta.chamber] || new Map()).get(s.name); const g = d && demog(d.district, db.meta.chamber); return g && g.pop ? s.actual / g.pop : NaN; }), (v) => money(v)],
       ["Payroll per member office", (db) => db.members.map((s) => s.byType.ps || 0), money0],
       ["Maintenance & operations per member office", (db) => db.members.map((s) => s.byType.mo || 0), money0],
       ["Travel per member office", (db) => db.members.map((s) => s.byType.travel || 0), money0],
@@ -622,6 +630,7 @@
         ${kpi("Individual money from inside the district", pctf(all.i ? all.in / all.i : 0), "estimated from donor ZIP codes")}
         ${kpi("Individual money from out of state", pctf(all.i ? all.out / all.i : 0), "")}
       </div>
+      ${VENDOR_DONORS && VENDOR_DONORS.matches.length ? `<p><a class="btn" href="${buildHash("vendors", {})}">Vendors the Legislature pays that also donated (${VENDOR_DONORS.matches.length}) ${I.r}</a></p>` : ""}
       <div class="table-wrap"><table>
         <caption class="sr-only">Donations by ${esc(CH.name)} district, sortable</caption>
         <thead><tr>${sortHeader("District", "district", state)}<th scope="col">Member now</th>${sortHeader("Candidates", "cands", state, "num")}${sortHeader("Contributions", "monetary", state, "num")}${sortHeader("Donors", "donors", state, "num")}${sortHeader("From organizations", "orgShare", state, "num")}${sortHeader("In-district $", "inShare", state, "num")}${sortHeader("Out-of-state $", "outShare", state, "num")}${sortHeader("Donors ≤ $250", "smallShare", state, "num")}</tr></thead>
@@ -762,6 +771,119 @@
           <li><strong>Why rank within party.</strong> The majority conference sets office budgets, and minority-party offices get smaller ones, so cost per month (and, once added, bills passed) mostly reflects party. Ranking within party compares like with like; switch to "whole chamber" to see the raw order.</li>
           <li><strong>Not yet here: lawmaking.</strong> Bills introduced, moved out of committee, passed and signed into law come from the Senate's Open Legislation service, which needs an API key; they'll be added as columns when it's connected. Majority-party members pass far more bills, which is why ranking within party is offered.</li></ul>
         <p class="summary">None of these measures says whether an office served its district well; they're checkable facts about cost, staffing, elections and fundraising. Members who left mid-period or have little data are ranked on what exists. Sources: the ${esc(CH.name)} expenditure reports, the State Board of Elections unofficial count, and campaign finance filings (see About the Data).</p></section>`;
+  }
+
+  function demog(district, chId) { const d = DEMOG[chId || CH.id]; return d && district != null ? d.districts[String(district)] || null : null; }
+  function perResident(s) { const d = DISTRICT_BY_UNIT.get(s.name); const g = d && demog(d.district); return g && g.pop ? s.actual / g.pop : null; }
+  function povertyRate(g) { return g && g.poverty[1] ? g.poverty[0] / g.poverty[1] : null; }
+  function demogCard(district, s) {
+    const g = demog(district);
+    if (!g) return "";
+    const pr = povertyRate(g);
+    const per = s ? s.actual / g.pop : null;
+    const all = Object.values(DEMOG[CH.id].districts).map((x) => x.income).filter((x) => x != null).sort((a, b) => a - b);
+    const incRank = g.income != null ? all.filter((x) => x < g.income).length : null;
+    return `<section class="card"><div class="card-head"><h2>The district</h2><span class="summary">Census Bureau, American Community Survey 2020–24 (5-year estimates)</span></div>
+      <div class="grid kpis small">
+        ${kpi("Residents", int.format(g.pop), g.popMoe ? `± ${int.format(g.popMoe)}` : "")}
+        ${kpi("Median household income", g.income != null ? money0(g.income) : "—", incRank != null ? `higher than ${pctf(incRank / Math.max(1, all.length - 1))} of ${esc(CH.name)} districts` : "")}
+        ${kpi("Below the poverty line", pr != null ? (pr * 100).toFixed(1) + "%" : "—", "of residents whose status is known")}
+        ${per != null ? kpi("Office cost per resident", money(per), `${esc(periodName(DB))} · ${money(per / DB.periodMonths * 12)} a year`) : ""}
+      </div></section>`;
+  }
+  function officialLink(s) {
+    const u = memberInfo(s).profileUrl;
+    const d = DISTRICT_BY_UNIT.get(s.name);
+    const href = u || (CH.id === "senate" ? "https://www.nysenate.gov/senators-committees" : "https://nyassembly.gov/mem/");
+    return s.kind === "member" ? `<a class="btn" href="${esc(href)}" target="_blank" rel="noopener" title="${u ? "Official page, with portrait, bio and contact details" : "Official member directory"}">${u ? "Official page" : "Member directory"} ${I.ext}</a>` : "";
+  }
+
+  /* ---------- Find my legislators: address -> both districts ---------- */
+  function pointInGeom(lon, lat, geom) {
+    const polys = geom.type === "MultiPolygon" ? geom.coordinates : [geom.coordinates];
+    for (const poly of polys) {
+      let hit = false;
+      for (const ring of poly) for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        const [xi, yi] = ring[i], [xj, yj] = ring[j];
+        if ((yi > lat) !== (yj > lat) && lon < (xj - xi) * (lat - yi) / (yj - yi) + xi) hit = !hit;
+      }
+      if (hit) return true;
+    }
+    return false;
+  }
+  function districtAt(chId, lon, lat) { return (DIST[chId] || []).find((d) => d.geometry && pointInGeom(lon, lat, d.geometry)) || null; }
+  function viewFind(params) {
+    const lon = Number(params.x), lat = Number(params.y);
+    const has = Number.isFinite(lon) && Number.isFinite(lat) && params.x;
+    setTimeout(() => {
+      const f = app.querySelector("#findForm"), inp = app.querySelector("#findAddr"), st = app.querySelector("#findStatus"), geo = app.querySelector("#findGeo");
+      if (!f) return;
+      f.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const q = inp.value.trim();
+        if (!q) return;
+        st.textContent = "Looking up the address…";
+        try {
+          const url = "https://gisservices.its.ny.gov/arcgis/rest/services/Locators/Street_and_Address_Composite/GeocodeServer/findAddressCandidates?" + new URLSearchParams({ SingleLine: q, outSR: "4326", maxLocations: "1", f: "json" });
+          const r = await (await fetch(url)).json();
+          const c = r.candidates && r.candidates[0];
+          if (!c || c.score < 80) { st.textContent = "That address wasn't found in New York State. Try adding the town and ZIP code."; return; }
+          go("find", { a: c.address, x: c.location.x.toFixed(6), y: c.location.y.toFixed(6) });
+        } catch (err) { st.textContent = "The state's address lookup didn't respond. Try again, or use your location."; }
+      });
+      if (geo) geo.addEventListener("click", () => {
+        if (!navigator.geolocation) { st.textContent = "This browser can't share your location."; return; }
+        st.textContent = "Finding your location…";
+        navigator.geolocation.getCurrentPosition((pos) => go("find", { a: "Your location", x: pos.coords.longitude.toFixed(6), y: pos.coords.latitude.toFixed(6) }),
+          () => { st.textContent = "Location wasn't shared. Enter an address instead."; }, { timeout: 10000 });
+      });
+    }, 0);
+    const results = has ? CHAMBERS.map((c) => {
+      const d = districtAt(c.id, lon, lat);
+      if (!d) return `<section class="card"><h2>${esc(c.name)}</h2><p class="empty">This point isn't inside a New York ${esc(c.name)} district.</p></section>`;
+      const db = dbFor(c.periods[0].id, c.id), u = d.unitName && db.byName.get(d.unitName);
+      const m = (MEMBERS[c.id] || {})[d.unitName] || {}, g = demog(d.district, c.id);
+      const e = m.election;
+      const chq = { c: c.id, p: "" };
+      return `<section class="card findcard"><div class="card-head"><h2>${esc(c.title || c.name)} District ${d.district}</h2>${d.party ? `<span class="ptag p${d.party.charAt(0)}">${esc(d.party.charAt(0))}</span>` : ""}</div>
+        <p class="findname">${d.member ? esc(d.member) : "Vacant"}</p>
+        ${m.contact && m.contact.districtOffice ? `<p class="summary">District office: ${esc(m.contact.districtOffice)}${m.contact.districtPhone ? ` · ${esc(m.contact.districtPhone)}` : ""}</p>` : ""}
+        <div class="grid kpis small">
+          ${u ? kpi("Office spending", money0(u.actual), `${esc(periodName(db))} · ${money0(u.perMonth)} a month`) : ""}
+          ${u && g && g.pop ? kpi("Cost per resident", money(u.actual / g.pop), `${int.format(g.pop)} residents`) : ""}
+          ${e ? kpi("2026 election", esc((ELECTION_LABEL[e.status] || [e.status])[0]), e.successor ? `${esc(e.successor)}` : "") : ""}
+        </div>
+        <p class="findlinks">${u ? `<a class="btn" href="${buildHash("unit/" + u.id, chq)}">Office spending &amp; staff ${I.r}</a>` : ""}
+          <a class="btn" href="${buildHash("district/" + d.district, chq)}">District map &amp; results ${I.r}</a>
+          ${DONATIONS[c.id] && DONATIONS[c.id].districts[String(d.district)] ? `<a class="btn" href="${buildHash("donations/" + d.district, chq)}">Campaign donations ${I.r}</a>` : ""}
+          ${m.profileUrl ? `<a class="btn" href="${esc(m.profileUrl)}" target="_blank" rel="noopener">Official page ${I.ext}</a>` : ""}</p>
+      </section>`;
+    }).join("") : "";
+    return `<h1>Find your legislators</h1>
+      <p class="lede">Enter a New York address to see your Assembly member and State Senator, what their offices spend, how their 2026 races went, and who funds their campaigns.</p>
+      <form class="filters findform" id="findForm" role="search" aria-label="Find legislators by address">
+        <label class="wide">Street address, town and ZIP<input type="search" id="findAddr" autocomplete="street-address" placeholder="e.g. 200 Howell Ave, Riverhead NY 11901" value="${esc(params.a && params.a !== "Your location" ? params.a : "")}"></label>
+        <div class="findbtns"><button class="primary" type="submit">Find</button><button type="button" id="findGeo">Use my location</button></div>
+      </form>
+      <p class="summary" id="findStatus" role="status" aria-live="polite">${has ? `Showing districts for <strong>${esc(params.a || "that point")}</strong>.` : "Addresses are looked up with the state's geocoding service (NYS ITS GIS); nothing is stored."}</p>
+      <div class="grid two">${results}</div>`;
+  }
+
+  /* ---------- Vendors that also donate ---------- */
+  function viewVendors() {
+    const v = VENDOR_DONORS;
+    if (!v) return `<h1>Vendors that also donate</h1><p class="empty">Not available.</p>`;
+    const own = v.matches.filter((m) => m.ownOffice).length;
+    return `<h1>Vendors that also donate</h1>
+      <p class="lede">Businesses the Assembly and Senate paid (from every expenditure report on this site) that also gave to an Assembly or Senate candidate in 2025–26. ${v.matches.length} match by name; for ${own}, the member whose office paid the vendor is one of the candidates it gave to.</p>
+      <div class="callout"><strong>What this does and doesn't show.</strong> Vendors may legally contribute to campaigns, and a match isn't evidence of wrongdoing. Names are matched only when they're the same after ignoring case, punctuation and suffixes like "Inc" or "LLC", or when the donor is the vendor's own PAC, so some real links are missed. Check any match against the expenditure records and the <a href="https://publicreporting.elections.ny.gov/" target="_blank" rel="noopener">State Board of Elections filings</a>.</div>
+      ${v.matches.map((m) => { const paid = m.paid.assembly + m.paid.senate; return `<section class="card vd${m.ownOffice ? " own" : ""}"><div class="card-head"><h2>${esc(titleCase(m.vendor))}</h2><span class="summary">${m.ownOffice ? `<span class="echip maybe">Gave to a member whose office paid it</span> ` : ""}matched by ${esc(m.how)}</span></div>
+        <div class="grid two">
+          <div><h3 class="mini">Paid by the Legislature: ${money0(paid)}</h3><ul class="plainlist">${m.offices.map(([c, o, a]) => { const db = dbFor(CHAMBERS.find((x) => x.id === c).periods[0].id, c); const u = db && db.byName.get(o); return `<li>${u ? `<a href="${buildHash("records", { c, p: "", q: `"${m.vendor.toLowerCase()}"` })}">${esc(o)}</a>` : esc(o)} <span class="summary">(${esc(c === "senate" ? "Senate" : "Assembly")})</span> · ${money0(a)}</li>`; }).join("")}</ul></div>
+          <div><h3 class="mini">Gave to candidates: ${money0(m.donated)} in ${m.gifts} ${m.gifts === 1 ? "gift" : "gifts"}</h3><ul class="plainlist">${m.recipients.map(([c, d, name, a, isOwn]) => `<li><a href="${buildHash("donations/" + d, { c, p: "" })}">${esc(name)}</a> <span class="summary">(${c === "senate" ? "SD" : "AD"} ${d})</span> · ${money0(a)}${isOwn ? ` <span class="echip maybe">own office paid this vendor</span>` : ""}</li>`).join("")}</ul>
+            <p class="summary">As listed by the donor: ${m.donors.map(esc).join("; ")}</p></div>
+        </div></section>`; }).join("")}
+      <p class="summary">Vendors: payees on maintenance, operations and travel lines in the Assembly and Senate expenditure reports on this site. Donors: organizations giving to 2025–26 Assembly and Senate candidates' committees (State Board of Elections, data.ny.gov, as of ${esc(fmtDay(v.asOf))}).</p>`;
   }
 
   function focusHref(district) {
@@ -933,6 +1055,7 @@
         <div class="hero-text">
         <h1>The ${esc(CH.name)} spent <span class="hero-num">${compact(meta.totalActual)}</span> in ${esc(periodName(DB))}</h1>
         <p class="hero-sub">That's about <strong>${compact(meta.totalActual / DB.periodMonths)} a month</strong> on payroll, operations and travel${chg ? `, <span class="${chg.diff >= 0 ? "up" : "down"}">${chg.diff >= 0 ? I.up : I.down}${Math.abs(chg.pct).toFixed(1)}% ${chg.diff >= 0 ? "more" : "less"}</span> than ${esc(periodName(PREV))}` : ""}. Every one of the report's ${int.format(meta.rowCount)} lines is here, across ${meta.members} member offices and ${meta.offices} central offices and committees.</p>
+        <p class="hero-find"><a href="${buildHash("find", {})}">Find your own Assembly member and Senator by address ${I.r}</a></p>
         <form class="hero-search" id="heroSearch" role="search" aria-label="Search this report"><input type="search" id="heroSearchInput" placeholder="Search a member, staffer, vendor or expense…" aria-label="Search this report"><button class="primary" type="submit">Search</button></form>
         </div>
         ${heroMap()}
@@ -1167,9 +1290,10 @@
     return `
       <div class="crumbs"><a href="${buildHash("units", { kind: s.kind })}">${I.l} ${s.kind === "member" ? "Members" : "Offices"}</a></div>
       <div class="title-row"><h1>${esc(s.name)} ${kindChip(s.kind)}${districtChip(s)}</h1>
-        <div class="title-actions">${ballotpediaLink(s)}<a class="btn" href="${buildHash("compare", { u: s.kind === "member" ? [s.name, DB.members[Math.floor(DB.members.length / 2)].name].filter((v, i, a) => a.indexOf(v) === i).join("|") : s.name })}">Compare…</a></div></div>
+        <div class="title-actions">${officialLink(s)}${ballotpediaLink(s)}<a class="btn" href="${buildHash("compare", { u: s.kind === "member" ? [s.name, DB.members[Math.floor(DB.members.length / 2)].name].filter((v, i, a) => a.indexOf(v) === i).join("|") : s.name })}">Compare…</a></div></div>
       <p class="lede">${rankNote || "Central office, committee, or task force."}</p>
       ${profileCard(s)}
+      ${s.kind === "member" && memberInfo(s).district ? demogCard(memberInfo(s).district, s) : ""}
       ${s.kind === "member" && memberInfo(s).district ? campaignCard(memberInfo(s).district, displayName(s)) : ""}
       ${CH.id === "senate" ? officeYearsCard(payroll(), s.name) : ""}
       <div class="grid kpis">
@@ -1489,6 +1613,7 @@
     app.innerHTML = `
       <h1>Payees</h1>
       <p class="lede">Everyone the ${esc(CH.name)} paid this period — vendors for operations, people on payroll, and travel reimbursements — combined across all members and offices. Allocated costs are excluded.</p>
+      ${VENDOR_DONORS && VENDOR_DONORS.matches.length ? `<p><a class="btn" href="${buildHash("vendors", {})}">Vendors that also donated to legislative campaigns (${VENDOR_DONORS.matches.length}) ${I.r}</a></p>` : ""}
       <div class="filters">
         <label class="wide">Search payees<input type="search" id="pq" value="${esc(state.q)}" placeholder="e.g. national grid, smith"></label>
         <label>Show<select id="pgroup">${opt("", "All payments")}${opt("vendor", "Vendors &amp; travel (no payroll)")}${opt("person", "Payroll only")}</select></label>
@@ -1648,6 +1773,9 @@
     mo: { label: "Maintenance & operations", get: (s) => s.byType.mo || 0 },
     travel: { label: "Travel", get: (s) => s.byType.travel || 0 },
     staff: { label: "People paid", get: (s) => s.staffCount, fmt: (v) => int.format(v) },
+    resident: { label: "Office cost per resident", get: (s) => perResident(s), fmt: (v) => money(v) },
+    income: { label: "Median household income", get: (s) => { const d = DISTRICT_BY_UNIT.get(s.name); const g = d && demog(d.district); return g ? g.income : null; } },
+    poverty: { label: "Poverty rate", get: (s) => { const d = DISTRICT_BY_UNIT.get(s.name); return povertyRate(d && demog(d.district)); }, fmt: (v) => (v * 100).toFixed(1) + "%" },
     change: { label: "Change vs prior period", get: (s) => { const p = prevUnit(s); return p ? s.actual - p.actual : null; }, diverging: true },
   };
   const SEQ = ["var(--seq-0)", "var(--seq-1)", "var(--seq-2)", "var(--seq-3)", "var(--seq-4)"];
@@ -1917,6 +2045,7 @@
         <section class="card"><div class="card-head"><h2>M&amp;O + travel by month</h2><span class="summary">click a month for its records</span></div>
           ${columns(monthlyFor(DB, s.id).map((m) => ({ ...m, href: buildHash("records", { unit: s.id, month: m.key }) })))}</section>
       </div>
+      ${demogCard(d.district, s)}
       ${campaignCard(d.district, d.member)}
       <p class="summary">Neighbors are districts that share a boundary. Use ← → on your keyboard to step through districts.</p>`;
 
@@ -2025,7 +2154,7 @@
     const v = el.value; el.value = ""; el.value = v;
   }
   function setActiveTab(view) {
-    const tab = { overview: "overview", units: "units", unit: "units", records: "records", payees: "payees", about: "about", compare: "compare", map: "map", district: "map", salaries: "salaries", person: "payroll", payroll: "payroll", stats: "stats", donations: "donations", scorecard: "scorecard" }[view] || "overview";
+    const tab = { overview: "overview", units: "units", unit: "units", records: "records", payees: "payees", about: "about", compare: "compare", map: "map", district: "map", salaries: "salaries", person: "payroll", payroll: "payroll", stats: "stats", donations: "donations", scorecard: "scorecard", find: "find", vendors: "payees" }[view] || "overview";
     document.querySelectorAll(".tabs a").forEach((a) => { const on = a.dataset.tab === tab; a.classList.toggle("active", on); if (on) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
   }
   let lastView = "";
@@ -2095,6 +2224,8 @@
       case "stats": html = viewStats(); break;
       case "donations": html = arg ? viewDonationDistrict(arg) : viewDonations(params); break;
       case "scorecard": html = viewScorecard(params); break;
+      case "find": html = viewFind(params); break;
+      case "vendors": html = viewVendors(); break;
       case "about": html = viewAbout(); if (params.s) setTimeout(() => { const t = document.getElementById(params.s); if (t) { t.setAttribute("tabindex", "-1"); t.scrollIntoView(); t.focus({ preventScroll: true }); } }, 0); break;
       case "compare": html = viewCompare(params); break;
       case "map": html = viewMap(params); break;
@@ -2191,7 +2322,7 @@
     sw.querySelectorAll("button").forEach((b) => { b.classList.toggle("on", b.dataset.c === CH.id); b.setAttribute("aria-pressed", b.dataset.c === CH.id); });
     document.title = `NY ${CH.name} Expenditures · ${periodName(DB)}`;
     // Keep the chamber and period when moving between tabs.
-    const tabView = { overview: "", units: "units", records: "records", map: "map", compare: "compare", salaries: "salaries", payroll: "payroll", stats: "stats", donations: "donations", scorecard: "scorecard", payees: "payees", about: "about" };
+    const tabView = { overview: "", units: "units", records: "records", map: "map", compare: "compare", salaries: "salaries", payroll: "payroll", stats: "stats", donations: "donations", scorecard: "scorecard", find: "find", payees: "payees", about: "about" };
     document.querySelectorAll(".tabs a[data-tab]").forEach((a) => { a.href = buildHash(tabView[a.dataset.tab] ?? a.dataset.tab, {}); });
     const brand = document.querySelector(".brand-title");
     if (brand) brand.href = buildHash("", {});

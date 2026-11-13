@@ -146,6 +146,20 @@ def main():
             "months": {k: round(v, 2) for k, v in sorted(a["months"].items())},
             "topOrgs": top,
         })
+    # Every organizational donor, for cross-checking against vendors the Legislature pays.
+    orgs = {}
+    for cid, a in acc.items():
+        for (n, t), v in a["orgs"].items():
+            if not n:
+                continue
+            o = orgs.setdefault(n.strip().upper(), {"name": n.strip(), "type": t, "amount": 0.0, "gifts": 0, "to": {}})
+            o["amount"] += v[0]; o["gifts"] += v[1]
+            k = f'{a["chamber"]}:{a["district"]}:{a["name"]}'
+            o["to"][k] = round(o["to"].get(k, 0) + v[0], 2)
+    (ROOT / "data/raw/campaign_finance/org_donors.json").write_text(json.dumps(
+        {k: {**v, "amount": round(v["amount"], 2)} for k, v in orgs.items()}, ensure_ascii=False, separators=(",", ":")))
+    print(f"{len(orgs):,} organizational donors to legislative candidates")
+
     for chamber, dists in out.items():
         for rows in dists.values():
             rows.sort(key=lambda x: -(x["individuals"] + sum(o[2] for o in x["topOrgs"])))

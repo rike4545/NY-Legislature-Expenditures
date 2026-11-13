@@ -107,6 +107,11 @@ def build(chamber: str) -> None:
             "successorParty": r["successor_party"], "sources": r["source"].split(";"),
         }
 
+    # Official profile page on nysenate.gov / nyassembly.gov (lists fetched Nov 12, 2026).
+    for r in csv.DictReader(open(ROOT / "data/roles/official_profiles.csv", encoding="utf-8")):
+        if r["chamber"] == chamber and by_district.get(int(r["district"])):
+            out.setdefault(by_district[int(r["district"])], {})["profileUrl"] = r["url"]
+
     attach_boe(chamber, out, by_district)
 
     (ROOT / f"data/{chamber}/members.json").write_text(json.dumps(out, ensure_ascii=False, separators=(",", ":")))
