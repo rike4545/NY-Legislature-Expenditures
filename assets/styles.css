@@ -511,7 +511,7 @@ kbd { font: 600 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace; padding: 
 .cf-table th[scope=row] { font-weight: 400; text-transform: none; letter-spacing: 0; font-size: 14px; color: var(--text); white-space: normal; min-width: 220px; position: static; background: none; }
 .cf-table .cf-name { font-weight: 600; }
 .cf-table tr.inc th, .cf-table tr.inc td { background: color-mix(in srgb, var(--accent) 6%, transparent); }
-.cf-table td:nth-child(3) { min-width: 180px; width: 34%; }
+.cf-table td.cf-bar { min-width: 180px; width: 34%; }
 .cf-stack { height: 12px; border-radius: 4px; overflow: hidden; display: flex; min-width: 4px; }
 .cf-stack span { display: block; height: 100%; }
 .campaign .legend i { border-radius: 3px; }
@@ -653,9 +653,9 @@ table.scorecard td { white-space: nowrap; }
 .card-head { flex-wrap: wrap; row-gap: 4px; }
 .card-head > * { min-width: 0; max-width: 100%; }
 .echip { white-space: normal; }
-.cf-table td:nth-child(3) { min-width: 120px; }
+.cf-table td.cf-bar { min-width: 120px; }
 .cf-stack { max-width: 100%; }
-@media (max-width: 640px) { .cf-table th[scope=row] { min-width: 150px; } .cf-table td:nth-child(3) { min-width: 90px; width: auto; } }
+@media (max-width: 640px) { .cf-table th[scope=row] { min-width: 150px; } .cf-table td.cf-bar { min-width: 90px; width: auto; } }
 /* Tap targets: at least 24px tall for links that stand alone (WCAG 2.2 target size). */
 a.back, .chamber-name, a.range-name, a.chip, .card-head > a, .site-footer a, .legend a, p > a.btn, a.btn { min-height: 24px; display: inline-flex; align-items: center; }
 .site-footer a { min-height: 32px; }
@@ -684,3 +684,7 @@ a.back { padding: 4px 0; }
 }
 .pfline { margin: 10px 0 0; font-size: 14px; }
 .pfline .summary { display: block; margin-top: 4px; }
+:root { --cf-p: #b8860b; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --cf-p: #e3b341; } }
+:root[data-theme="dark"] { --cf-p: #e3b341; }
+.cf-p { background: var(--cf-p); }

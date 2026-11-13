@@ -601,26 +601,30 @@
     const surname = (memberName || "").toLowerCase();
     const isMember = (c) => surname && c.name.toLowerCase().split(/[^a-z]+/).filter((w) => w.length > 2).some((w) => surname.includes(w)) ;
     const total = (c) => Object.values(c.raised).reduce((a, b) => a + b, 0);
-    const linked = rows.filter((c) => c.committees.length);
+    const pfAmt = (c) => { const p = pfFor(district, c); return p ? p.received : 0; };
+    const grand = (c) => total(c) + pfAmt(c);
+    const hasPf = !!PUBFIN[CH.id];
+    const linked = rows.filter((c) => c.committees.length).sort((a, b) => grand(b) - grand(a));
     const unlinked = rows.filter((c) => !c.committees.length);
-    const max = Math.max(1, ...linked.map(total));
+    const max = Math.max(1, ...linked.map(grand));
+    const anyPf = linked.some((c) => pfAmt(c) > 0);
     const asOf = cf.asOf ? fmtDay(cf.asOf) : "";
     return `<section class="card campaign"><div class="card-head"><h2>Campaign money in ${CH.abbr} ${esc(String(district))}, 2025–26</h2><span class="summary">raised and spent by each candidate's committees · State Board of Elections${asOf ? `, as of ${esc(asOf)}` : ""}</span></div>
       ${linked.length ? `<div class="table-wrap"><table class="cf-table">
         <caption class="sr-only">Money raised and spent by candidates in ${CH.abbr} ${esc(String(district))}</caption>
-        <thead><tr><th scope="col">Candidate</th><th scope="col" class="num">Raised</th><th scope="col">Where it came from</th><th scope="col" class="num" title="Itemized contributions from individuals of $250 or less">Gifts ≤ $250</th><th scope="col" class="num">Spent</th><th scope="col" class="num" title="Public matching funds received from the Public Campaign Finance Board for 2026">Public funds</th></tr></thead>
-        <tbody>${linked.map((c) => { const t = total(c); const parts = [["A", "Individuals", "cf-a"], ["B", "Corporations", "cf-b"], ["C", "PACs, unions & other", "cf-c"], ["D", "In-kind", "cf-d"], ["G", "Transfers in", "cf-g"]]; return `<tr${isMember(c) ? ' class="inc"' : ""}>
+        <thead><tr><th scope="col">Candidate</th><th scope="col" class="num">Raised</th>${hasPf ? `<th scope="col" class="num" title="Public matching funds received from the Public Campaign Finance Board for 2026">Public funds</th><th scope="col" class="num" title="Raised plus public matching funds. An estimate: the two sources are current to different dates">Total, est.</th>` : ""}<th scope="col">Where it came from</th><th scope="col" class="num" title="Itemized contributions from individuals of $250 or less">Gifts ≤ $250</th><th scope="col" class="num">Spent</th></tr></thead>
+        <tbody>${linked.map((c) => { const t = total(c); const pf = pfFor(district, c); const pa = pfAmt(c); const v = { ...c.raised, P: pa }; const parts = [["A", "Individuals", "cf-a"], ["B", "Corporations", "cf-b"], ["C", "PACs, unions & other", "cf-c"], ["D", "In-kind", "cf-d"], ["G", "Transfers in", "cf-g"], ["P", "Public matching funds", "cf-p"]]; return `<tr${isMember(c) ? ' class="inc"' : ""}>
           <th scope="row"><span class="cf-name">${esc(c.name)}</span>${isMember(c) ? ' <span class="summary">(member)</span>' : ""}${pfBadge(pfFor(district, c))}<br><span class="summary">${c.committees.map((x) => esc(x[1])).join(" · ")}</span></th>
           <td class="num"><strong>${money0(t)}</strong></td>
-          <td><div class="stack cf-stack" style="width:${Math.max(2, t / max * 100).toFixed(1)}%" role="img" aria-label="${esc(parts.filter(([k]) => c.raised[k] > 0).map(([k, l]) => `${l} ${money0(c.raised[k])}`).join(", ") || "nothing reported")}">${parts.map(([k, l, cls]) => c.raised[k] > 0 ? `<span class="${cls}" style="flex:${c.raised[k]}" title="${l}: ${money(c.raised[k])}"></span>` : "").join("")}</div></td>
+          ${hasPf ? `<td class="num">${pf ? money0(pa) : `<span class="summary">not in program</span>`}</td><td class="num"><strong>${money0(t + pa)}</strong></td>` : ""}
+          <td class="cf-bar"><div class="stack cf-stack" style="width:${Math.max(2, (t + pa) / max * 100).toFixed(1)}%" role="img" aria-label="${esc(parts.filter(([k]) => v[k] > 0).map(([k, l]) => `${l} ${money0(v[k])}`).join(", ") || "nothing reported")}">${parts.map(([k, l, cls]) => v[k] > 0 ? `<span class="${cls}" style="flex:${v[k]}" title="${l}: ${money(v[k])}"></span>` : "").join("")}</div></td>
           <td class="num">${c.small[0] ? int.format(c.small[0]) : "—"}</td>
-          <td class="num">${money0(c.spent)}</td>
-          <td class="num">${(() => { const p = pfFor(district, c); return p ? (p.received ? money0(p.received) : "$0") : `<span class="summary">not in program</span>`; })()}</td></tr>`; }).join("")}</tbody></table></div>
-        <div class="legend"><span><i class="cf-a"></i>Individuals</span><span><i class="cf-b"></i>Corporations</span><span><i class="cf-c"></i>PACs, unions &amp; other</span><span><i class="cf-d"></i>In-kind</span><span><i class="cf-g"></i>Transfers in</span></div>` : `<p class="summary">No 2025–26 contributions found for a committee we could link to a candidate in this district.</p>`}
+          <td class="num">${money0(c.spent)}</td></tr>`; }).join("")}</tbody></table></div>
+        <div class="legend"><span><i class="cf-a"></i>Individuals</span><span><i class="cf-b"></i>Corporations</span><span><i class="cf-c"></i>PACs, unions &amp; other</span><span><i class="cf-d"></i>In-kind</span><span><i class="cf-g"></i>Transfers in</span>${anyPf ? `<span><i class="cf-p"></i>Public matching funds</span>` : ""}</div>` : `<p class="summary">No 2025–26 contributions found for a committee we could link to a candidate in this district.</p>`}
       ${DONATIONS[CH.id] && DONATIONS[CH.id].districts[String(district)] ? `<p><a class="btn" href="${buildHash("donations/" + district, {})}">Donations in depth: donors, where they live, biggest organizational donors ${I.r}</a></p>` : ""}
       ${unlinked.length ? `<p class="summary">Also registered here, with no linked committee activity: ${unlinked.map((c) => esc(c.name)).join(", ")}.</p>` : ""}
       ${pfNote(district, rows)}
-      <p class="summary">Itemized contributions and expenditures filed with the <a href="https://publicreporting.elections.ny.gov/" target="_blank" rel="noopener">NYS Board of Elections</a> for 2025 and 2026 (<a href="https://data.ny.gov/d/4j2b-6a2j" target="_blank" rel="noopener">data.ny.gov</a>). Committees are linked to candidates by name, so each committee is listed. Raised counts monetary and in-kind contributions plus transfers from other committees; public matching funds are shown separately, from the State Board's <a href="https://publicreporting.elections.ny.gov/PCFBCandidateRegList/PCFBCandidateRegList" target="_blank" rel="noopener">Public Campaign Finance candidate list</a>.</p>
+      <p class="summary">Itemized contributions and expenditures filed with the <a href="https://publicreporting.elections.ny.gov/" target="_blank" rel="noopener">NYS Board of Elections</a> for 2025 and 2026 (<a href="https://data.ny.gov/d/4j2b-6a2j" target="_blank" rel="noopener">data.ny.gov</a>). Committees are linked to candidates by name, so each committee is listed. Raised counts monetary and in-kind contributions plus transfers from other committees. Public funds are the matching funds the State Board's <a href="https://publicreporting.elections.ny.gov/PCFBCandidateRegList/PCFBCandidateRegList" target="_blank" rel="noopener">Public Campaign Finance candidate list</a> reports as received for 2026 (as of ${PUBFIN[CH.id] ? esc(fmtDay(PUBFIN[CH.id].retrieved)) : "—"}); they aren't contributions, so they're not in Raised. Total, est. adds the two; since each source is current to a different date, treat it as an estimate. Candidates are listed by that total, and the bar's gold segment is public money.</p>
     </section>`;
   }
   /* ---------- Donations in depth ---------- */
