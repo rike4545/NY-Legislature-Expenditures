@@ -762,3 +762,18 @@ a.back { padding: 4px 0; }
 .cols.reps .col { overflow: visible; position: relative; padding-bottom: 16px; }
 .cols.reps .collabel { position: absolute; bottom: 0; left: 0; width: auto; color: var(--muted); }
 .cols.reps .collabel:not(:empty)::before { content: ""; position: absolute; left: 0; bottom: 14px; height: 4px; border-left: 1px solid var(--muted); }
+
+/* ---------- Party lines ---------- */
+.lchip { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .03em; padding: 2px 6px; border-radius: 4px; color: #fff; line-height: 1.3; white-space: nowrap; }
+.lchip.ind { background: transparent; color: var(--text); border: 1px solid var(--border); font-weight: 600; }
+@media (forced-colors: active) { .lchip { border: 1px solid CanvasText; } }
+.endorse-table th[scope=row] { min-width: 0; width: 34%; }
+@media (max-width: 640px) {
+  .endorse-table th[scope=row] { width: 120px; max-width: 120px; font-size: 12px; }
+  .endorse-table td:nth-child(3) { min-width: 200px; }
+}
+/* Text-bearing party chips use fixed dark shades so white text stays readable in both themes */
+.lchip.en-d { background: #1d4f91; }
+.lchip.en-r { background: #a8261b; }
+.lchip.en-c { background: #6b2318; }
+.lchip.en-w { background: #1b5e70; }

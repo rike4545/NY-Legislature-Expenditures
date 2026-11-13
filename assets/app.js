@@ -28,6 +28,7 @@
   const LOBBY = {}; // chamber id -> who reported lobbying each legislator, 2025-26
   const HISTORY = {}; // chamber id -> totals from every expenditure report on file
   const LEG = {}; // chamber id -> bills each legislator sponsored in the 2025-26 session (Open Legislation)
+  const RESULTS = {}; // chamber id -> unofficial 2026 general election results (State Board)
   let VENDOR_DONORS = null; // chamber id -> donations in depth by district (2025-26) // chamber id -> party makeup now and after the Nov 3, 2026 count // chamber id -> campaign finance by district (State Board of Elections, 2025-26)
   let BUDGET = null; // Legislature appropriations from the FY 2027 Executive Budget
   let BUDGET_HIST = null; // appropriations by fiscal year, FY 2020-21 on
@@ -179,6 +180,10 @@
         const pfFile = `data/${ch.id}/public_financing.json`;
         PUBFIN[ch.id] = bundled ? bundled.data[pfFile] || null : await (await fetch(pfFile)).json();
       } catch (e) { PUBFIN[ch.id] = null; }
+      try {
+        const rsFile = `data/elections/boe_2026_${ch.id}.json`;
+        RESULTS[ch.id] = bundled ? bundled.data[rsFile] || null : await (await fetch(rsFile)).json();
+      } catch (e) { RESULTS[ch.id] = null; }
       try {
         const lgFile = `data/${ch.id}/legislation.json`;
         LEG[ch.id] = bundled ? bundled.data[lgFile] || null : await (await fetch(lgFile)).json();
@@ -877,6 +882,51 @@
     }).join("") + `<p class="summary">${donationsNote(dn)}</p>`;
   }
 
+  /* ---------- Party endorsements: the ballot lines each candidate ran on ---------- */
+  const MAJOR_LINES = { DEM: ["Democratic", "en-d"], REP: ["Republican", "en-r"], CON: ["Conservative", "en-c"], WOR: ["Working Families", "en-w"] };
+  function viewEndorsements(params) {
+    const R = RESULTS[CH.id];
+    if (!R) return `<h1>Party endorsements</h1><p class="empty">Election results couldn't be loaded.</p>`;
+    const lines = (s) => String(s || "").split("/").map((x) => x.trim()).filter(Boolean);
+    const cands = [];
+    for (const [d, eds, edt, list, total] of R.districts) {
+      const top = Math.max(...list.map((c) => c[2]));
+      for (const [name, ln, votes] of list) cands.push({ d, name, lines: lines(ln), votes, total, lead: votes === top && list.length > 1, unopposed: list.length === 1, eds, edt });
+    }
+    const party = (code) => {
+      const mine = cands.filter((c) => c.lines.includes(code));
+      return { code, n: mine.length, only: mine.filter((c) => c.lines.length === 1).length,
+        with: Object.entries(mine.reduce((m, c) => { for (const o of c.lines) if (o !== code) m[o] = (m[o] || 0) + 1; return m; }, {})).sort((a, b) => b[1] - a[1]),
+        lead: mine.filter((c) => c.lead || c.unopposed).length, mine };
+    };
+    const majors = Object.keys(MAJOR_LINES).map(party);
+    const indep = [...new Set(cands.flatMap((c) => c.lines).filter((l) => !MAJOR_LINES[l]))].map(party).sort((a, b) => b.n - a.n);
+    const multi = cands.filter((c) => c.lines.length > 1).length;
+    const f = params.line || "";
+    const shown = f ? cands.filter((c) => c.lines.includes(f)) : cands;
+    const chip = (l) => MAJOR_LINES[l] ? `<span class="lchip ${MAJOR_LINES[l][1]}" title="${esc(MAJOR_LINES[l][0])}">${esc(l)}</span>` : `<span class="lchip ind" title="Independent line">${esc(l)}</span>`;
+    const status = (c) => c.unopposed ? "unopposed" : c.lead ? (c.eds < c.edt ? "leading" : "most votes") : "";
+    const name = (l) => MAJOR_LINES[l] ? MAJOR_LINES[l][0] : l;
+    return `<h1>Party endorsements, 2026</h1>
+      <p class="lede">In New York a candidate can run on more than one party's line, and the votes on every line add up for that candidate. A party that puts another party's nominee on its own line is, in effect, endorsing them. These are the lines each ${esc(CH.name)} candidate appeared on in November.</p>
+      <div class="grid kpis">
+        ${kpi("Candidates on the ballot", int.format(cands.length), `${R.districts.length} districts`)}
+        ${kpi("Ran on more than one line", int.format(multi), pctf(multi / Math.max(1, cands.length)) + " of candidates")}
+        ${majors.filter((p) => p.code === "CON" || p.code === "WOR").map((p) => kpi(`${MAJOR_LINES[p.code][0]} Party`, `${int.format(p.n)} nominees`, `${int.format(p.n - p.only)} also on another line · ${int.format(p.only)} only on theirs`)).join("")}
+      </div>
+      <section class="card"><div class="card-head"><h2>Each party's nominees</h2><span class="summary">unofficial State Board count, ${esc(R.as_of)}</span></div>
+        <div class="table-wrap"><table class="endorse-table"><caption class="sr-only">Nominees of each party in the ${esc(CH.name)}</caption>
+          <thead><tr><th scope="col">Party line</th><th scope="col" class="num">Nominees</th><th scope="col">Shared with</th><th scope="col" class="num">Only on this line</th><th scope="col" class="num">Got the most votes or unopposed</th></tr></thead>
+          <tbody>${[...majors, ...indep].map((p) => `<tr><th scope="row"><a href="${buildHash("endorsements", { line: p.code })}">${MAJOR_LINES[p.code] ? `${chip(p.code)} ` : ""}${esc(name(p.code))}</a>${MAJOR_LINES[p.code] ? "" : ` <span class="summary">independent</span>`}</th><td class="num">${int.format(p.n)}</td><td>${(() => { const maj = p.with.filter(([o]) => MAJOR_LINES[o]), ind = p.with.filter(([o]) => !MAJOR_LINES[o]); const parts = maj.map(([o, k]) => `${esc(name(o))} ${k}`); if (ind.length) parts.push(`${ind.reduce((a, [, k]) => a + k, 0)} on independent lines`); return parts.join(" · ") || "—"; })()}</td><td class="num">${int.format(p.only)}</td><td class="num">${int.format(p.lead)}</td></tr>`).join("")}</tbody></table></div>
+        <p class="summary">Democratic, Republican, Conservative and Working Families are the parties with a permanent ballot line. Every other line here is an independent line a candidate got on the ballot by petition, which isn't an endorsement by a party. "Got the most votes" uses the unofficial count, so a close race can still change.</p>
+      </section>
+      <section class="card"><div class="card-head"><h2>${f ? `${esc(name(f))} line: ${int.format(shown.length)} candidates` : "Every candidate and their lines"}</h2>${f ? `<a href="${buildHash("endorsements", {})}">show all</a>` : ""}</div>
+        <div class="table-wrap"><table><caption class="sr-only">Candidates and the ballot lines they ran on</caption>
+          <thead><tr><th scope="col">District</th><th scope="col">Candidate</th><th scope="col">Lines</th><th scope="col" class="num">Votes</th><th scope="col">Result so far</th></tr></thead>
+          <tbody>${shown.map((c) => `<tr><td><a href="${buildHash("district/" + c.d, {})}">${CH.abbr} ${c.d}</a></td><td>${esc(c.name)}</td><td>${c.lines.map(chip).join(" ")}</td><td class="num">${int.format(c.votes)} <span class="summary">${c.total ? pctf(c.votes / c.total) : ""}</span></td><td>${status(c)}</td></tr>`).join("")}</tbody></table></div>
+        <p class="summary">Source: <a href="${escUrl(R.url)}" target="_blank" rel="noopener">${esc(R.source)}</a>, as of ${esc(R.as_of)}. Vote totals combine every line a candidate ran on. Endorsements from unions, groups and officials aren't recorded here; no official list of them exists.</p>
+      </section>`;
+  }
   /* ---------- What changed since the previous report ---------- */
   function viewChanges() {
     if (!PREV) return `<h1>What changed</h1><p class="empty">There's no earlier report on file for this chamber to compare with.</p>`;
@@ -2746,7 +2796,7 @@
     const v = el.value; el.value = ""; el.value = v;
   }
   function setActiveTab(view) {
-    const tab = { overview: "overview", units: "units", unit: "units", records: "records", payees: "payees", about: "about", compare: "compare", map: "map", district: "map", salaries: "salaries", person: "payroll", payroll: "payroll", stats: "stats", donations: "donations", scorecard: "scorecard", find: "find", vendors: "vendors", search: "search", sheet: "map", changes: "changes" }[view] || "overview";
+    const tab = { overview: "overview", units: "units", unit: "units", records: "records", payees: "payees", about: "about", compare: "compare", map: "map", district: "map", salaries: "salaries", person: "payroll", payroll: "payroll", stats: "stats", donations: "donations", scorecard: "scorecard", find: "find", vendors: "vendors", search: "search", sheet: "map", changes: "changes", endorsements: "endorsements" }[view] || "overview";
     let here = "";
     document.querySelectorAll(".tabs a").forEach((a) => { const on = a.dataset.tab === tab; a.classList.toggle("active", on); if (on) { a.setAttribute("aria-current", "page"); here = a.textContent; } else a.removeAttribute("aria-current"); });
     document.querySelectorAll(".navgroup").forEach((g) => g.classList.toggle("active", !!g.querySelector("a.active")));
@@ -2863,6 +2913,7 @@
       case "search": html = viewSearch(params); break;
       case "sheet": html = viewSheet(arg); break;
       case "changes": html = viewChanges(); break;
+      case "endorsements": html = viewEndorsements(params); break;
       case "vendors": html = viewVendors(); break;
       case "about": html = viewAbout(); if (params.s) setTimeout(() => { const t = document.getElementById(params.s); if (t) { t.setAttribute("tabindex", "-1"); t.scrollIntoView(); t.focus({ preventScroll: true }); } }, 0); break;
       case "compare": html = viewCompare(params); break;
