@@ -109,8 +109,9 @@
     for (const [k, v] of Object.entries(params || {})) if (v !== "" && v != null) clean[k] = v;
     if (!explicitP && DB && PERIODS.length && DB.id !== PERIODS[0].id) clean.p = DB.id;
     if (clean.p && PERIODS.length && clean.p === PERIODS[0].id) delete clean.p;
-    if (!explicitC && CH && CHAMBERS.length && CH.id !== CHAMBERS[0].id) clean.c = CH.id;
-    if (clean.c && CHAMBERS.length && clean.c === CHAMBERS[0].id) delete clean.c;
+    if (!explicitC && CH && CHAMBERS.length && (CH.id !== CHAMBERS[0].id || view === "nascar")) clean.c = CH.id;
+    // Operation NASCAR opens on the Senate, so its chamber is always spelled out.
+    if (clean.c && CHAMBERS.length && clean.c === CHAMBERS[0].id && view !== "nascar") delete clean.c;
     const qs = new URLSearchParams(clean).toString();
     return `#/${view}${qs ? "?" + qs : ""}`;
   }
@@ -2960,6 +2961,203 @@
   }
 
 
+  /* ---------- Operation NASCAR: a constituent-services playbook for one district office ---------- */
+  // The plan is the same for every district; the district facts, contacts and ZIP codes come from the data on this site.
+  // Checklist progress is kept only in this browser (localStorage), per chamber and district.
+  const NX_PHASES = [
+    { id: "p30", title: "First 30 days: get casework running", items: [
+      ["inventory", "Inventory every open case inherited from the last term, sorted by agency"],
+      ["callback", "Call back every inherited constituent within two weeks, even just to say who now has the case"],
+      ["tracker", "Set up one case tracker for every call, email, walk-in and event contact, with fixed categories (below)"],
+      ["liaisons", "Get a named legislative liaison at each agency in the casework list below"],
+      ["releases", "Adopt a privacy release form and keep it on file before contacting any agency about a person's case"],
+      ["standards", "Publish the response standards (below) to staff and hold the office to them"],
+    ] },
+    { id: "p90", title: "Days 30–90: show up across the whole district", items: [
+      ["rotation", "Set a fixed mobile-office rotation that reaches every part of the district, including evenings and Saturdays"],
+      ["towns", "Meet each town or city clerk and supervisor's office to set up warm handoffs for local problems"],
+      ["anchors", "Book recurring hours at libraries, senior centers and veterans' posts"],
+      ["trusted", "Meet the groups that reach people who won't call a government office: farm, fishing and business groups, immigrant and worker service organizations, tenant groups"],
+      ["schools", "Connect with school districts and BOCES for family-facing outreach"],
+      ["guide", "Publish a plain-language resource guide in English and Spanish (and any other language widely spoken in the district)"],
+    ] },
+    { id: "pq", title: "Every quarter: turn casework into policy", items: [
+      ["pull", "Pull the quarter's casework data: volume by agency, average days to resolve, still-open cases"],
+      ["patterns", "Flag repeat failures (the same glitch for many people) and hand them to policy staff as bill, budget or agency-letter items"],
+      ["recovered", "Total the money recovered for constituents: back benefits, refunds, reinstated payments"],
+      ["newsletter", "Send the monthly newsletter with an anonymized \"how we helped\" section and the mobile-office calendar"],
+    ] },
+    { id: "pa", title: "Every year: report back", items: [
+      ["annual", "Publish a short annual report: cases handled, money recovered, average resolution time, top issues"],
+      ["review", "Review which towns and groups the office reached least and change the rotation"],
+    ] },
+  ];
+  const NX_AGENCIES = [
+    ["Unemployment insurance, claims and overpayments", "NYS Department of Labor", "https://dol.ny.gov"],
+    ["Licenses, registrations and suspensions", "NYS DMV", "https://dmv.ny.gov"],
+    ["SNAP, HEAP, temporary assistance", "Office of Temporary and Disability Assistance", "https://otda.ny.gov"],
+    ["Health insurance and Essential Plan enrollment", "NY State of Health", "https://nystateofhealth.ny.gov"],
+    ["Medicaid and EPIC", "NYS Department of Health", "https://www.health.ny.gov"],
+    ["STAR, income tax refunds and notices", "NYS Department of Taxation and Finance", "https://www.tax.ny.gov"],
+    ["Permits, wetlands, fishing and shellfish licenses", "NYS Department of Environmental Conservation", "https://dec.ny.gov"],
+    ["Housing, rent and repair programs", "NYS Homes and Community Renewal", "https://hcr.ny.gov"],
+    ["Developmental disability services", "Office for People With Developmental Disabilities", "https://opwdd.ny.gov"],
+    ["Veterans' benefits", "NYS Department of Veterans' Services", "https://veterans.ny.gov"],
+    ["Seniors' services", "NYS Office for the Aging", "https://aging.ny.gov"],
+    ["Insurance complaints", "NYS Department of Financial Services", "https://www.dfs.ny.gov"],
+    ["State roads", "NYS Department of Transportation", "https://dot.ny.gov"],
+  ];
+  const NX_STANDARDS = [
+    ["Acknowledge a new case", "1 business day"],
+    ["Give a real status update", "5 business days"],
+    ["Follow up with the agency on a stalled case", "Every 10 business days"],
+    ["Close a case", "Only after telling the constituent the outcome"],
+  ];
+  const NX_RULES = [
+    "Constituent services are nonpartisan: everyone gets the same help, however they voted.",
+    "Official and campaign work stay apart: separate email, phones and time. Senate and Assembly rules and the Public Officers Law apply.",
+    "Get a signed release before contacting an agency about someone's case, and keep case files private.",
+    "Refer local problems to the right town, village or county office with a warm handoff, not a phone number.",
+  ];
+  // Senate District 1 only: local notes for the East End and North Shore Brookhaven.
+  const NX_LOCAL = { "senate/1": {
+    stops: ["Riverhead", "Greenport / Southold", "Shelter Island", "Hampton Bays", "Southampton", "East Hampton / Montauk", "Port Jefferson", "Rocky Point / Wading River"],
+    issues: [
+      "Housing costs and year-round workforce housing, including town programs funded by the Peconic Bay Region Community Preservation Fund",
+      "Water quality and help applying for septic-upgrade grants",
+      "Coastal erosion, flooding and FEMA flood-insurance problems",
+      "Seasonal and farm workers: wage, unemployment and benefit questions",
+      "Traffic and transit on the East End roads and rail service",
+      "STAR and property-tax notices",
+      "Shellfish and fishing licenses and DEC permits",
+    ],
+  } };
+  function nxKey(d) { return `nascar:${CH.id}:${d}`; }
+  function nxLoad(d) { try { const v = JSON.parse(localStorage.getItem(nxKey(d)) || "[]"); return new Set(Array.isArray(v) ? v : []); } catch (e) { return new Set(); } }
+  function nxSave(d, set) { try { localStorage.setItem(nxKey(d), JSON.stringify([...set])); } catch (e) { /* storage unavailable: progress lasts this visit */ } }
+  function viewNascar(params) {
+    if (!DISTRICTS.length) return `<h1>Operation NASCAR</h1><p class="empty">District data couldn't be loaded.</p>`;
+    const want = Number(params.d) || 1;
+    const d = DISTRICTS.find((x) => x.district === want) || DISTRICTS[0];
+    const s = d.unitName ? DB.byName.get(d.unitName) : null;
+    const m = (MEMBERS[CH.id] || {})[d.unitName] || {};
+    const c = m.contact || {};
+    const g = demog(d.district), e = enroll(d.district);
+    const R = RESULTS[CH.id];
+    const race = R && R.districts ? R.districts.find((x) => x[0] === d.district) : null;
+    const local = NX_LOCAL[`${CH.id}/${d.district}`];
+    if (!ZIPS) loadZips().then(() => { if (parseHash().view === "nascar") render(); });
+    const zips = ZIPS ? Object.keys(ZIPS).filter((z) => ZIPS[z][CH.id === "senate" ? 1 : 0] === d.district).sort() : null;
+    const done = nxLoad(d.district);
+    const total = NX_PHASES.reduce((a, p) => a + p.items.length, 0);
+
+    setTimeout(() => {
+      const pick = app.querySelector("#nxPick");
+      if (pick) pick.addEventListener("change", () => go("nascar", { d: pick.value }, true));
+      const list = app.querySelector("#nxChecklist");
+      if (!list) return;
+      const paint = () => {
+        list.querySelectorAll("[data-phase]").forEach((sec) => {
+          const boxes = [...sec.querySelectorAll("input[type=checkbox]")];
+          const n = boxes.filter((b) => b.checked).length;
+          sec.querySelector(".nx-count").textContent = `${n} of ${boxes.length} done`;
+        });
+        const all = [...list.querySelectorAll("input[type=checkbox]")], n = all.filter((b) => b.checked).length;
+        const bar = app.querySelector("#nxBar"); if (bar) bar.style.width = (n / all.length * 100).toFixed(1) + "%";
+        const lab = app.querySelector("#nxProgress"); if (lab) lab.textContent = `${n} of ${all.length} steps done`;
+      };
+      list.addEventListener("change", (ev) => {
+        const b = ev.target; if (b.type !== "checkbox") return;
+        const cur = nxLoad(d.district);
+        if (b.checked) cur.add(b.value); else cur.delete(b.value);
+        nxSave(d.district, cur); paint();
+        announce(`${b.checked ? "Done" : "Not done"}: ${b.parentNode.textContent.trim()}`);
+      });
+      const clear = app.querySelector("#nxClear");
+      if (clear) clear.addEventListener("click", () => {
+        nxSave(d.district, new Set());
+        list.querySelectorAll("input[type=checkbox]").forEach((b) => { b.checked = false; });
+        paint(); announce("Checklist cleared");
+      });
+      const pr = app.querySelector("#nxPrint");
+      if (pr) pr.addEventListener("click", () => window.print());
+      paint();
+    }, 0);
+
+    const kpis = [
+      g && g.pop ? kpi("Residents", int.format(g.pop), "Census ACS 2020–24") : "",
+      g && g.income ? kpi("Median household income", money0(g.income), "Census ACS 2020–24") : "",
+      g && g.poverty && g.poverty[1] ? kpi("Below the poverty line", pctf(g.poverty[0] / g.poverty[1]), `${int.format(g.poverty[0])} residents`) : "",
+      e ? kpi("Registered voters", int.format(e.total), `as of ${esc(fmtDay(ENROLL[CH.id].asOf))}`) : "",
+      s ? kpi("Office spending", money0(s.actual), `${esc(periodName(DB))} · ${int.format(s.staffCount)} people paid`) : "",
+    ].join("");
+    let raceNote = "";
+    if (race) {
+      const [, rep, tot, cands, votes] = race;
+      const sorted = cands.slice().sort((a, b) => b[2] - a[2]);
+      const top = sorted[0], second = sorted[1];
+      const margin = second && votes ? (top[2] - second[2]) / votes : null;
+      raceNote = `<p class="summary">2026 general election, unofficial: ${sorted.map((x) => `${esc(x[0])} (${esc(x[1])}) ${int.format(x[2])}`).join(" · ")}${margin != null ? ` · margin ${(margin * 100).toFixed(1)} points` : ""} · ${rep} of ${tot} election districts reporting, State Board of Elections as of ${esc(R.as_of)}. The office should be ready to serve whoever is seated in January.</p>`;
+    }
+    const contactRows = [
+      c.districtOffice ? `<li><strong>District office:</strong> ${esc(c.districtOffice)}</li>` : "",
+      c.districtPhone ? `<li><strong>District phone:</strong> ${esc(c.districtPhone)}</li>` : "",
+      c.albanyPhone ? `<li><strong>Albany phone:</strong> ${esc(c.albanyPhone)}</li>` : "",
+      c.email ? `<li><strong>Email:</strong> <a href="mailto:${esc(c.email)}">${esc(c.email)}</a></li>` : "",
+    ].join("");
+    const picker = `<label class="nx-pick"><span>District</span><select id="nxPick" aria-label="Choose a district">${DISTRICTS.map((x) => `<option value="${x.district}"${x === d ? " selected" : ""}>${esc(CH.abbr)} ${x.district} · ${esc(x.member)}</option>`).join("")}</select></label>`;
+
+    return `<div class="title-row"><div><h1>Operation NASCAR</h1>
+        <p class="lede">A constituent-services playbook for the ${esc(CH.name)} District ${d.district} office: who the office serves, what to set up first, and a checklist that saves your progress in this browser.</p></div>
+        <div class="noprint">${picker}</div></div>
+
+      <section class="card"><div class="card-head"><h2>${esc(CH.name)} District ${d.district} at a glance</h2>${s ? `<a href="${unitHref(s.id)}">office spending ${I.r}</a>` : ""}</div>
+        <p>${esc(d.member)}${d.party ? ` · ${esc(d.party)}` : ""} · <a href="${buildHash("district/" + d.district, {})}">district page ${I.r}</a> · <a href="${buildHash("sheet/" + d.district, {})}">fact sheet ${I.r}</a></p>
+        ${kpis ? `<div class="grid kpis small">${kpis}</div>` : ""}
+        ${raceNote}
+        ${contactRows ? `<h3 class="mini">Current office contacts</h3><ul class="plainlist">${contactRows}</ul>` : ""}
+      </section>
+
+      <section class="card nx-check"><div class="card-head"><h2>The playbook</h2><span class="summary" id="nxProgress">${done.size} of ${total} steps done</span></div>
+        <div class="nx-track" aria-hidden="true"><span id="nxBar" style="width:${(done.size / total * 100).toFixed(1)}%"></span></div>
+        <div id="nxChecklist">${NX_PHASES.map((p) => `<fieldset data-phase="${p.id}"><legend>${esc(p.title)} <span class="summary nx-count"></span></legend>
+          <ul class="nx-list">${p.items.map(([id, text]) => { const v = `${p.id}.${id}`; return `<li><label><input type="checkbox" value="${v}"${done.has(v) ? " checked" : ""}> ${esc(text)}</label></li>`; }).join("")}</ul></fieldset>`).join("")}</div>
+        <p class="noprint nx-actions"><button type="button" id="nxPrint">Print or save as PDF</button> <button type="button" class="link" id="nxClear">Clear checklist</button></p>
+        <p class="summary">Progress is saved only on this device, for this district. Nothing is sent anywhere.</p>
+      </section>
+
+      <div class="grid two">
+        <section class="card"><h2>Response standards</h2>
+          <table class="sheet-table"><tbody>${NX_STANDARDS.map(([a, b]) => `<tr><th scope="row">${esc(a)}</th><td>${esc(b)}</td></tr>`).join("")}</tbody></table>
+        </section>
+        <section class="card"><h2>Ground rules</h2><ul>${NX_RULES.map((r) => `<li>${esc(r)}</li>`).join("")}</ul></section>
+      </div>
+
+      <section class="card"><h2>Casework categories and agencies</h2>
+        <p class="summary">Use these as the tracker's categories, and get a named liaison at each agency.</p>
+        <div class="table-wrap"><table class="stack-sm"><thead><tr><th scope="col">Category</th><th scope="col">Agency</th></tr></thead>
+          <tbody>${NX_AGENCIES.map(([cat, ag, url]) => `<tr><th scope="row">${esc(cat)}</th><td><a href="${escUrl(url)}" target="_blank" rel="noopener">${esc(ag)} ${I.ext}</a></td></tr>`).join("")}</tbody></table></div>
+      </section>
+
+      ${local ? `<section class="card"><h2>District ${d.district}: where to show up and what to expect</h2>
+        <div class="grid two">
+          <div><h3 class="mini">Mobile office rotation</h3><ul>${local.stops.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>
+          <div><h3 class="mini">Issues likely to come up repeatedly</h3><ul>${local.issues.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>
+        </div></section>` : ""}
+
+      <section class="card"><h2>ZIP codes in this district</h2>
+        ${zips == null ? `<p class="summary">Loading ZIP codes…</p>` : zips.length ? `<p class="summary">${zips.length} ZIP codes with addresses in District ${d.district}. Some ZIP codes cross district lines, so confirm an address before taking a case. Use them to plan the rotation and check that every area is reached.</p><p class="nx-zips">${zips.map((z) => `<a href="${buildHash("search", { q: z })}">${z}</a>`).join(" ")}</p>` : `<p class="empty">No ZIP codes on file for this district.</p>`}
+      </section>
+
+      <section class="card"><h2>Where the quarterly numbers come from on this site</h2><ul>
+        ${s ? `<li><a href="${unitHref(s.id)}">Office spending and staff</a> for the current report period</li>
+        <li><a href="${buildHash("records", { unit: s.id })}">Every expenditure line</a> for the office</li>` : ""}
+        <li><a href="${buildHash("district/" + d.district, {})}">District page</a>: neighbors, voters and campaign money</li>
+        <li><a href="${buildHash("compare", {})}">Compare offices</a> to see how the district office's costs stack up</li>
+      </ul></section>`;
+  }
+
+
   /* ---------- render loop ---------- */
   function focusEnd(sel) {
     const el = app.querySelector(sel);
@@ -2968,7 +3166,7 @@
     const v = el.value; el.value = ""; el.value = v;
   }
   function setActiveTab(view) {
-    const tab = { overview: "overview", units: "units", unit: "units", records: "records", payees: "payees", about: "about", compare: "compare", map: "map", district: "map", salaries: "salaries", person: "payroll", payroll: "payroll", stats: "stats", donations: "donations", scorecard: "scorecard", find: "find", vendors: "vendors", search: "search", sheet: "map", changes: "changes", endorsements: "endorsements" }[view] || "overview";
+    const tab = { overview: "overview", units: "units", unit: "units", records: "records", payees: "payees", about: "about", compare: "compare", map: "map", district: "map", salaries: "salaries", person: "payroll", payroll: "payroll", stats: "stats", donations: "donations", scorecard: "scorecard", find: "find", vendors: "vendors", search: "search", sheet: "map", changes: "changes", endorsements: "endorsements", nascar: "nascar" }[view] || "overview";
     let here = "";
     document.querySelectorAll(".tabs a").forEach((a) => { const on = a.dataset.tab === tab; a.classList.toggle("active", on); if (on) { a.setAttribute("aria-current", "page"); here = a.textContent; } else a.removeAttribute("aria-current"); });
     document.querySelectorAll(".navgroup").forEach((g) => g.classList.toggle("active", !!g.querySelector("a.active")));
@@ -3114,7 +3312,7 @@
     if (!CHAMBERS.length) return;
     const { view, arg, params } = parseHash();
     const before = DB && CH ? CH.id + DB.id : "";
-    selectChamber(params.c || CHAMBERS[0].id);
+    selectChamber(params.c || (view === "nascar" && CHAMBERS.some((c) => c.id === "senate") ? "senate" : CHAMBERS[0].id));
     selectPeriod(params.p || PERIODS[0].id);
     syncPeriodUI();
     if (before && before !== CH.id + DB.id) lastView = "";
@@ -3137,6 +3335,7 @@
       case "changes": html = viewChanges(); break;
       case "endorsements": html = viewEndorsements(params); break;
       case "vendors": html = viewVendors(); break;
+      case "nascar": html = viewNascar(params); break;
       case "about": html = viewAbout(); if (params.s) setTimeout(() => { const t = document.getElementById(params.s); if (t) { t.setAttribute("tabindex", "-1"); t.scrollIntoView(); t.focus({ preventScroll: true }); } }, 0); break;
       case "compare": html = viewCompare(params); break;
       case "map": html = viewMap(params); break;
@@ -3277,8 +3476,8 @@
     sw.querySelectorAll("button").forEach((b) => { b.classList.toggle("on", b.dataset.c === CH.id); b.setAttribute("aria-pressed", b.dataset.c === CH.id); });
     document.title = `NY ${CH.name} Expenditures · ${periodName(DB)}`;
     // Keep the chamber and period when moving between tabs.
-    const tabView = { overview: "", units: "units", records: "records", map: "map", compare: "compare", salaries: "salaries", payroll: "payroll", stats: "stats", donations: "donations", scorecard: "scorecard", find: "find", vendors: "vendors", payees: "payees", changes: "changes", about: "about" };
-    document.querySelectorAll(".tabs a[data-tab]").forEach((a) => { a.href = buildHash(tabView[a.dataset.tab] ?? a.dataset.tab, {}); });
+    const tabView = { overview: "", units: "units", records: "records", map: "map", compare: "compare", salaries: "salaries", payroll: "payroll", stats: "stats", donations: "donations", scorecard: "scorecard", find: "find", vendors: "vendors", payees: "payees", changes: "changes", nascar: "nascar", about: "about" };
+    document.querySelectorAll(".tabs a[data-tab]").forEach((a) => { a.href = a.dataset.tab === "nascar" ? buildHash("nascar", { c: CHAMBERS.some((c) => c.id === "senate") ? "senate" : CH.id }) : buildHash(tabView[a.dataset.tab] ?? a.dataset.tab, {}); });
     const brand = document.querySelector(".brand-title");
     if (brand) brand.href = buildHash("", {});
   }

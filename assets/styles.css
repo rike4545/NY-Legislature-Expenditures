@@ -915,3 +915,20 @@ th.csort-th .th-sort:focus-visible { outline: 2px solid var(--accent); outline-o
 .tfilter label { font-weight: 600; color: var(--muted); }
 .tfilter input { flex: 0 1 260px; min-width: 0; min-height: 32px; }
 @media (max-width: 640px) { .tfilter input { flex: 1 1 100%; } table.stack-sm thead th.csort-th { padding: 0; } }
+
+/* Operation NASCAR: constituent-services playbook */
+.nx-track { height: 8px; border-radius: 4px; background: var(--border); overflow: hidden; margin: 4px 0 14px; }
+.nx-track span { display: block; height: 100%; background: var(--accent); transition: width .2s ease; }
+.nx-check fieldset { border: 0; border-top: 1px solid var(--border); margin: 0; padding: 12px 0 6px; }
+.nx-check legend { font-weight: 700; padding: 0; float: left; width: 100%; margin-bottom: 6px; }
+.nx-check legend .summary { font-weight: 400; margin-left: 6px; }
+.nx-list { list-style: none; margin: 0; padding: 0; clear: both; }
+.nx-list li { padding: 4px 0; }
+.nx-list label { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; line-height: 1.4; }
+.nx-list input[type=checkbox] { width: 18px; height: 18px; margin: 2px 0 0; flex: none; accent-color: var(--accent); }
+.nx-list label:has(input:checked) { color: var(--muted); }
+.nx-actions { margin-top: 12px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.nx-zips { display: flex; flex-wrap: wrap; gap: 6px 10px; font-variant-numeric: tabular-nums; }
+@media print { .nx-track span { background: #000 !important; } .nx-check fieldset { break-inside: avoid; } }
+.nx-pick { display: inline-flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.nx-pick select { font-size: 14px; text-transform: none; letter-spacing: 0; max-width: 280px; }
