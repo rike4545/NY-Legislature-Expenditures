@@ -344,3 +344,23 @@ button.primary { background: linear-gradient(180deg, #2a6cbb, var(--navy-2)); }
 .footer-head { color: #fff; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; font-size: 11px; margin-bottom: 6px; }
 @media (max-width: 720px) { .footer-grid { grid-template-columns: 1fr; } }
 @media (max-width: 640px) { .header-row { padding-top: 10px; } .brand-title { font-size: 17px; } }
+
+/* Member profile */
+.card.profile { margin-bottom: 16px; }
+.profile-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px 28px; }
+.profile-grid + .profile-grid { border-top: 1px solid var(--border); margin-top: 14px; padding-top: 14px; }
+.profile p { margin: 0 0 8px; font-size: 14px; }
+.plainlist { list-style: none; margin: 0 0 10px; padding: 0; font-size: 14px; }
+.plainlist li { padding: 3px 0; }
+.echip { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; white-space: nowrap; vertical-align: middle; letter-spacing: .01em; }
+.echip.change { background: #fde7d4; color: #8a3b00; }
+.echip.change.soft { background: transparent; border: 1px solid #f0b37e; }
+.echip.maybe { background: #fff1c2; color: #6b4e00; }
+.echip.same { background: #dff3ea; color: #145c40; }
+.echip.lead { background: var(--accent-soft); color: var(--accent); }
+.echip.post { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+@media (prefers-color-scheme: dark) {
+  .echip.change { background: #4a2a12; color: #ffc595; } .echip.change.soft { border-color: #8a5326; }
+  .echip.maybe { background: #43391a; color: #ffe28a; } .echip.same { background: #173a2c; color: #8fe0bd; }
+}
+h1 .echip { font-size: 12px; }

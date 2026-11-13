@@ -73,6 +73,7 @@ The New York State Assembly and Senate each publish their spending twice a year:
 - 🚗 **Travel benchmarks** — senator trips show the miles implied by each mileage reimbursement at the IRS rate, alongside the Legislative Law per diem rules and the Comptroller's travel manual for state agencies.
 - 💵 **Annualized salaries** — every person's regular pay normalized to a yearly rate (26 biweekly pay periods), searchable, with pay ranges by title. A member's $70,999.98 for 182 days annualizes to exactly $142,000, the legislative base salary.
 - 🗳️ **Ballotpedia profiles** — every current member links to their Ballotpedia page; former members link to a Ballotpedia search.
+- 🧾 **Member profiles** — term of office, 2026 election outcome (new member in 2027, not yet called, or returning — with sources, unofficial), district and Albany offices, current leadership/committee/caucus posts, the central offices those posts direct, leadership pay, and staff shared with other offices.
 - 📍 **District profiles** — pick any district (menu, map click, or ← → keys): zoomed map with neighbors, percentile gauges, spending mix, neighbor comparison, period trend and monthly spending.
 - ⚖️ **Side-by-side comparison** — up to four members or offices.
 - 🔗 **Shareable links** — every chamber, period, search, filter and view lives in the URL.
@@ -86,6 +87,8 @@ The New York State Assembly and Senate each publish their spending twice a year:
 | [NYS Assembly Expenditure Reports](https://assembly.ny.gov/expenditure/) | Every Assembly spending line (`data/raw/assembly/`, unmodified) |
 | [NYS Senate Open Data — Expenditure Reports](https://www.nysenate.gov/open-data) | Every Senate spending line, plus the per-trip member travel detail (`data/raw/senate/`, unmodified) |
 | [NYS Comptroller Travel Manual](https://www.osc.ny.gov/files/state-agencies/travel/pdf/agencies-travel-manual-attachment.pdf), [IRS mileage rates](https://www.irs.gov/newsroom/irs-sets-2026-business-standard-mileage-rate-at-725-cents-per-mile-up-25-cents) | Travel rules and benchmarks on the About page; implied miles |
+| [City & State](https://www.cityandstateny.com/politics/2026/11/where-do-all-key-new-york-state-legislative-races-stand/417054/), [Greenberg Traurig](https://www.gtlaw.com/-/media/files/insights/alerts/2026/11/gt-alert_new-york-state-2026-election-update.pdf), Wikipedia | 2026 election outcomes per seat (`data/elections/`, unofficial) |
+| [nyassembly.gov committees](https://nyassembly.gov/comm/), Wikipedia | Current leadership, committee and caucus posts (`data/roles/`) |
 | [Ballotpedia](https://ballotpedia.org/Main_Page) — [Assembly](https://ballotpedia.org/New_York_State_Assembly) and [Senate](https://ballotpedia.org/New_York_State_Senate) current members | Profile links per member (`data/ballotpedia/`, retrieved 2026-11-12) |
 | NYS ITS Geospatial Services — [Assembly](https://gisservices.its.ny.gov/arcgis/rest/services/NYS_Assembly_Districts/MapServer) and [Senate](https://gisservices.its.ny.gov/arcgis/rest/services/NYS_Senate_Districts/MapServer) Districts | District boundaries (2024 lines), member names and party |
 
@@ -107,7 +110,7 @@ The New York State Assembly and Senate each publish their spending twice a year:
 - **Annualized pay** pools each person's regular pay lines in an office, divides by the days their service dates cover, and scales to 364 days. One-time payments (lump sums, deferrals, stipends, allowances, back pay) and stints shorter than one pay period are excluded. Most Senate member salary lines have no start date, so they aren't annualized. It's an estimated yearly rate, not a reported salary.
 - **Per-month cost** = actual spending ÷ months active (the full six-month period, or the months covered by a member's own salary line if they served part of it).
 - **Implied miles** = a trip's mileage reimbursement ÷ the IRS business rate on the trip's start date (70¢ in 2025, 72.5¢ from Jan 1 2026, 76¢ from Jul 1 2026); this gives whole miles for about 95% of Senate trips.
-- **Senate pay types** (RA, SA, TE, VA) are shown as published; the report doesn't define them.
+- **Senate pay types** follow the Senate payroll reports: Regular Annual (RA), Special Annual (SA), Temporary (TE, hourly); VA is shown as published.
 - **Period comparisons** match members and offices by name as printed in each report.
 - **Districts** are matched to report names by last name (`scripts/build_districts.py`; two Assembly matches set by hand and documented there). The GIS layers list current members, so members who left earlier have no district shading; Senate District 12 is listed as vacant.
 
@@ -117,6 +120,7 @@ The New York State Assembly and Senate each publish their spending twice a year:
 python3 scripts/build_data.py        # data/raw/{assembly,senate}/*.csv -> data/<chamber>/periods/*.json
 python3 scripts/build_districts.py   # match districts to member offices
 python3 scripts/build_ballotpedia.py # attach Ballotpedia profile links
+python3 scripts/build_members.py     # offices, posts, terms, 2026 election per member
 python3 -m http.server 8000          # open http://localhost:8000
 ```
 

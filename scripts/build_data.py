@@ -121,8 +121,14 @@ SENATE_TYPES = {
     # "are for informational purposes only"; the vouchers appear under the central offices.
     "ALLOCATED OPERATIONAL EXPENSES": ("Allocated operational expenses (postage & supplies)", "allocated"),
 }
-# The Senate report lists pay types without defining them, so they're shown as published.
-SENATE_STATUS = {c: "Pay type as published (not defined in the report)" for c in ("RA", "SA", "TE", "VA")}
+# Pay types as defined on the Senate's biweekly payroll reports (nysenate.gov/open-data):
+# Regular Annual (RA), Special Annual (SA), Temporary (TE: hourly rate). VA isn't defined there.
+SENATE_STATUS = {
+    "RA": "Regular Annual",
+    "SA": "Special Annual",
+    "TE": "Temporary (hourly rate)",
+    "VA": "Pay type as published (not defined in the Senate's payroll reports)",
+}
 
 
 def read_senate(path: pathlib.Path, start, end):

@@ -17,6 +17,8 @@
   let DISTRICTS = [];  // districts of the current chamber
   let DISTRICT_BY_UNIT = new Map();
   const BALLOTPEDIA = {}; // chamber id -> {office name: profile url}
+  const MEMBERS = {};     // chamber id -> {office name: {district, contact, roles, offices, assumedOffice, election}}
+  let ELECTION_SOURCES = {};
   const dbFor = (periodId, chamberId) => DBS[(chamberId || CH.id) + "/" + periodId];
 
   /* ---------- formatting helpers ---------- */
@@ -93,6 +95,7 @@
   async function load() {
     const bundled = window.__EXPENDITURE_BUNDLE__;
     CHAMBERS = bundled ? bundled.chambers : await (await fetch("data/chambers.json")).json();
+    await loadElectionSources(bundled);
     await Promise.all(CHAMBERS.map(async (ch) => {
       await Promise.all(ch.periods.map(async (pm) => {
         const raw = bundled ? bundled.data[pm.file] : await (await fetch(pm.file)).json();
@@ -115,10 +118,18 @@
       } catch (e) { DIST[ch.id] = []; }
       DIST_BY_UNIT[ch.id] = new Map(DIST[ch.id].filter((d) => d.unitName).map((d) => [d.unitName, d]));
       try {
+        const mFile = `data/${ch.id}/members.json`;
+        MEMBERS[ch.id] = bundled ? bundled.data[mFile] || {} : await (await fetch(mFile)).json();
+      } catch (e) { MEMBERS[ch.id] = {}; }
+      try {
         const bpFile = `data/${ch.id}/ballotpedia.json`;
         BALLOTPEDIA[ch.id] = bundled ? bundled.data[bpFile] || {} : await (await fetch(bpFile)).json();
       } catch (e) { BALLOTPEDIA[ch.id] = {}; }
     }));
+  }
+
+  async function loadElectionSources(bundled) {
+    try { ELECTION_SOURCES = bundled ? bundled.data["data/election_sources.json"] || {} : await (await fetch("data/election_sources.json")).json(); } catch (e) { ELECTION_SOURCES = {}; }
   }
 
   function selectChamber(id) {
@@ -243,6 +254,89 @@
     const url = (BALLOTPEDIA[CH.id] || {})[s.name];
     const href = url || `https://ballotpedia.org/wiki/index.php?search=${encodeURIComponent(displayName(s))}`;
     return `<a class="btn" href="${esc(href)}" target="_blank" rel="noopener" title="${url ? "Ballotpedia profile" : "Not on Ballotpedia's current-members list; opens a Ballotpedia search"}">${url ? "Ballotpedia profile" : "Search Ballotpedia"} ↗</a>`;
+  }
+  const ELECTION_LABEL = {
+    retiring: ["Not seeking re-election", "change"], other_office: ["Ran for another office", "change"],
+    lost_primary: ["Lost June primary", "change"], lost_general: ["Lost Nov 3 (unofficial)", "change"],
+    trailing: ["Trailing — not yet called", "maybe"], leading_close: ["Leading — too close to call", "maybe"],
+    held: ["Re-elected (unofficial)", "same"],
+  };
+  function memberInfo(s) { return s && s.kind === "member" ? (MEMBERS[CH.id] || {})[s.name] || {} : {}; }
+  function electionState(s) {
+    const e = memberInfo(s).election;
+    if (s.kind !== "member") return null;
+    if (!e) return { label: "Ran for re-election · no reported loss", cls: "same", e: null };
+    const [label, cls] = ELECTION_LABEL[e.status] || [e.status, "maybe"];
+    return { label, cls, e };
+  }
+  function electionChip(s, short) {
+    const st = electionState(s);
+    if (!st) return "";
+    const text = short ? { change: "New member in 2027", maybe: "Not yet called", same: "Returning" }[st.cls] : st.label;
+    return `<span class="echip ${st.cls}" title="${esc(st.e ? st.e.note : "Not among the losses or departures reported in our sources (unofficial results)")}">${esc(text)}</span>`;
+  }
+  function successorLabel(e) {
+    if (e.status === "trailing") return "Leading";
+    if (e.sources.includes("gt")) return "Incoming member (per Greenberg Traurig)";
+    if (e.status === "lost_primary") return "Primary winner";
+    return "Reported winner";
+  }
+  function fmtLooseDate(t) {
+    // "January 1, 2023" or "2011"
+    return t || "";
+  }
+  function profileCard(s) {
+    if (s.kind !== "member") return "";
+    const m = memberInfo(s);
+    const st = electionState(s);
+    const c = m.contact || {};
+    const special = m.assumedOffice && /\d{4}$/.test(m.assumedOffice) && Date.parse(m.assumedOffice) > Date.parse("2025-01-02");
+    const srcs = st && st.e ? st.e.sources.map((k) => ELECTION_SOURCES[k]).filter(Boolean) : [];
+    // Stipends / leadership pay lines paid to the member this period
+    const own = DB.records.filter((r) => r.u === s.id && DB.types[r.t].group === "ps");
+    const memberPayee = (own.find((r) => /^MEMBER( OF ASSEMBLY)?$/.test(DB.descs[r.d])) || {}).p;
+    const stipends = own.filter((r) => r.p === memberPayee && !/^MEMBER( OF ASSEMBLY)?$/.test(DB.descs[r.d]));
+    // Staff also paid by other offices this period
+    const staff = new Set(own.map((r) => r.p).filter((p) => p !== memberPayee));
+    const elsewhere = new Map();
+    for (const r of DB.records) {
+      if (r.u === s.id || !staff.has(r.p) || DB.types[r.t].group !== "ps") continue;
+      const x = elsewhere.get(r.u) || { people: new Set(), amt: 0 };
+      x.people.add(r.p); x.amt += r.amt; elsewhere.set(r.u, x);
+    }
+    const linked = (m.offices || []).map((n) => DB.byName.get(n)).filter(Boolean);
+    const roles = m.roles || [];
+    const roleGroups = ["leadership", "committee", "caucus"].map((k) => roles.filter((r) => r.kind === k)).filter((g) => g.length);
+    return `<section class="card profile">
+      <div class="profile-grid">
+        <div>
+          <h3 class="mini">Term of office</h3>
+          <p>Current term: <strong>Jan 1, 2025 – Dec 31, 2026</strong> (two-year term; all ${esc(CH.name)} seats were on the Nov 3, 2026 ballot for the term starting Jan 1, 2027).</p>
+          ${m.assumedOffice ? `<p class="summary">${special ? `Took office ${esc(m.assumedOffice)} (special election), serving the rest of the term.` : `In current district since ${esc(m.assumedOffice)}`} <span title="Ballotpedia's 'assumed office' date for the current district number; members who served before the 2022 redistricting can show a later date">(Ballotpedia)</span></p>` : ""}
+        </div>
+        <div>
+          <h3 class="mini">2026 election</h3>
+          ${st ? `<p>${electionChip(s)} ${st.cls === "change" ? `<span class="echip change soft">New member in Jan 2027</span>` : ""}</p>
+          ${st.e ? `<p>${esc(st.e.note)}${st.e.successor ? `. ${successorLabel(st.e)}: <strong>${esc(st.e.successor)}</strong>${st.e.successorParty ? ` (${esc(st.e.successorParty)})` : ""}` : st.cls === "change" ? ". Successor not yet reported in our sources" : ""}.</p>
+            <p class="summary">Sources: ${srcs.map((x) => `<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.title.split(":")[0])}</a> (${esc(x.as_of)})`).join(" · ")}. Results are unofficial until certified.</p>`
+          : `<p class="summary">Not among the departures or losses reported in our sources (City &amp; State, Greenberg Traurig, Wikipedia). Results are unofficial until certified.</p>`}` : ""}
+        </div>
+        <div>
+          <h3 class="mini">Offices</h3>
+          ${c.districtOffice ? `<p><strong>District office</strong><br>${esc(c.districtOffice)}${c.districtPhone ? `<br>${esc(c.districtPhone)}` : ""}</p>` : ""}
+          ${c.albanyPhone || c.email ? `<p><strong>Albany</strong>${c.albanyPhone ? `<br>${esc(c.albanyPhone)}` : ""}${c.email ? `<br><a href="mailto:${esc(c.email)}">${esc(c.email)}</a>` : ""}</p>` : `<p class="summary">No contact details in the state's district layer.</p>`}
+        </div>
+      </div>
+      ${roleGroups.length || linked.length || stipends.length || elsewhere.size ? `<div class="profile-grid">
+        ${roleGroups.length ? `<div><h3 class="mini">Current posts</h3><ul class="plainlist">${roleGroups.flat().map((r) => `<li><span class="echip ${r.kind === "leadership" ? "lead" : "post"}">${r.kind === "leadership" ? "Leadership" : r.kind === "caucus" ? "Caucus / task force" : "Committee"}</span> ${esc(r.role)}</li>`).join("")}</ul></div>` : ""}
+        ${linked.length || stipends.length ? `<div>
+          ${linked.length ? `<h3 class="mini">Central offices tied to these posts</h3><ul class="plainlist">${linked.map((u) => `<li><a href="${unitHref(u.id)}">${esc(u.name)}</a> · ${money0(u.actual)}${u.staffCount ? ` · ${u.staffCount} people paid` : ""}</li>`).join("")}</ul>` : ""}
+          ${stipends.length ? `<h3 class="mini">Leadership / committee pay this period</h3><ul class="plainlist">${stipends.map((r) => `<li>${esc(titleCase(DB.descs[r.d]))} · <strong>${money(r.amt)}</strong></li>`).join("")}</ul>` : ""}
+        </div>` : ""}
+        ${elsewhere.size ? `<div><h3 class="mini">Staff also paid by other offices</h3><ul class="plainlist">${[...elsewhere.entries()].sort((a, b) => b[1].amt - a[1].amt).slice(0, 8).map(([u, x]) => `<li><a href="${unitHref(u)}">${esc(DB.units[u].name)}</a> · ${x.people.size} ${x.people.size === 1 ? "person" : "people"} · ${money0(x.amt)}</li>`).join("")}</ul></div>` : ""}
+      </div>` : ""}
+      <p class="summary">Posts are current (2025–2026 session) from nyassembly.gov and Wikipedia; offices and contacts from the state's district data. The central offices listed are the ones these posts direct (e.g. a committee's own office).</p>
+    </section>`;
   }
   function districtChip(s) {
     const d = DISTRICT_BY_UNIT.get(s.name);
@@ -429,11 +523,12 @@
   }
 
   function viewUnits(params) {
-    const state = { q: params.q || "", kind: params.kind || "", party: params.party || "", sort: params.sort || "actual", dir: params.dir || "desc" };
+    const state = { q: params.q || "", kind: params.kind || "", party: params.party || "", seat: params.seat || "", sort: params.sort || "actual", dir: params.dir || "desc" };
     const tokens = tokenize(state.q);
     const dist = (s) => DISTRICT_BY_UNIT.get(s.name);
     let list = DB.unitStats.filter((s) => (!state.kind || s.kind === state.kind) && matchesTokens(s.name.toLowerCase(), tokens)
-      && (!state.party || (dist(s) && dist(s).party === state.party)));
+      && (!state.party || (dist(s) && dist(s).party === state.party))
+      && (!state.seat || (electionState(s) && electionState(s).cls === state.seat)));
     const val = {
       name: (s) => s.name, district: (s) => (dist(s) ? dist(s).district : 999), actual: (s) => s.actual, ps: (s) => s.byType.ps || 0, mo: (s) => s.byType.mo || 0,
       travel: (s) => s.byType.travel || 0, allocated: (s) => s.allocated, staff: (s) => s.staffCount,
@@ -457,6 +552,7 @@
           <option value="member"${state.kind === "member" ? " selected" : ""}>Members only</option>
           <option value="office"${state.kind === "office" ? " selected" : ""}>Offices only</option>
         </select></label>
+        <label>2026 election<select id="useat"><option value="">Any</option><option value="change"${state.seat === "change" ? " selected" : ""}>New member in 2027</option><option value="maybe"${state.seat === "maybe" ? " selected" : ""}>Not yet called</option><option value="same"${state.seat === "same" ? " selected" : ""}>Returning</option></select></label>
         ${DISTRICTS.length ? `<label>Party<select id="uparty"><option value="">Any</option>${[...new Set(DISTRICTS.map((d) => d.party).filter(Boolean))].sort().map((p) => `<option${p === state.party ? " selected" : ""}>${esc(p)}</option>`).join("")}</select></label>` : ""}
       </div>
       <div class="toolbar"><span class="summary"><strong>${int.format(list.length)}</strong> shown · actual spending <strong>${money0(total)}</strong> · <strong>${money0(total / DB.periodMonths)}</strong> a month · * active part of the period, per month uses months active</span>
@@ -480,7 +576,7 @@
           <td class="num">${i + 1}</td>
           <td><a href="${unitHref(s.id)}">${highlight(s.name, tokens)}</a></td>
           <td class="nowrap">${dist(s) ? `${CH.abbr} ${dist(s).district}` : ""}</td>
-          <td>${kindChip(s.kind)}</td>
+          <td>${kindChip(s.kind)} ${electionChip(s, true)}</td>
           <td class="num">${money0(s.byType.ps || 0)}</td>
           <td class="num">${money0(s.byType.mo || 0)}</td>
           <td class="num">${money0(s.byType.travel || 0)}</td>
@@ -498,12 +594,13 @@
     let timer;
     uq.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(() => { update({ q: uq.value }); focusEnd("#uq"); }, 200); });
     app.querySelector("#ukind").addEventListener("change", (e) => update({ kind: e.target.value }));
+    app.querySelector("#useat").addEventListener("change", (e) => update({ seat: e.target.value, kind: e.target.value ? "member" : state.kind }));
     const up = app.querySelector("#uparty");
     if (up) up.addEventListener("change", (e) => update({ party: e.target.value }));
     wireSortHeaders(app, state, update, { name: "asc", district: "asc" });
     app.querySelector("#uexport").addEventListener("click", () => downloadCSV("assembly-units.csv",
-      ["Period", "Name", "District", "Party", "Type", "Months active", "Per month", "Payroll", "M&O", "Travel", "Actual total", "Allocated", "People paid"],
-      list.map((s) => [periodName(DB), s.name, dist(s) ? dist(s).district : "", dist(s) ? dist(s).party : "", s.kind, s.months, s.perMonth.toFixed(2), (s.byType.ps || 0).toFixed(2), (s.byType.mo || 0).toFixed(2), (s.byType.travel || 0).toFixed(2), s.actual.toFixed(2), s.allocated.toFixed(2), s.staffCount])));
+      ["Period", "Name", "District", "Party", "Type", "2026 election", "Months active", "Per month", "Payroll", "M&O", "Travel", "Actual total", "Allocated", "People paid"],
+      list.map((s) => [periodName(DB), s.name, dist(s) ? dist(s).district : "", dist(s) ? dist(s).party : "", s.kind, electionState(s) ? electionState(s).label : "", s.months, s.perMonth.toFixed(2), (s.byType.ps || 0).toFixed(2), (s.byType.mo || 0).toFixed(2), (s.byType.travel || 0).toFixed(2), s.actual.toFixed(2), s.allocated.toFixed(2), s.staffCount])));
     return null;
   }
 
@@ -535,6 +632,7 @@
       <div class="title-row"><h1>${esc(s.name)} ${kindChip(s.kind)}${districtChip(s)}</h1>
         <div class="title-actions">${ballotpediaLink(s)}<a class="btn" href="${buildHash("compare", { u: s.kind === "member" ? [s.name, DB.members[Math.floor(DB.members.length / 2)].name].filter((v, i, a) => a.indexOf(v) === i).join("|") : s.name })}">Compare…</a></div></div>
       <p class="lede">${rankNote || "Central office, committee, or task force."}</p>
+      ${profileCard(s)}
       <div class="grid kpis">
         ${kpi("Actual spending", money0(s.actual), ps ? changeText(change(s.actual, ps.actual)) : (PREV ? "Not in prior period" : ""))}
         ${kpi("Per month", money0(s.perMonth), s.partial ? `active ≈${s.months} of ${DB.periodMonths} months` : `${DB.periodMonths}-month period${s.kind === "member" ? ` · member median ${money0(DB.memberMonthlyMedian)}` : ""}`)}
@@ -1196,7 +1294,7 @@
     const head = `
       <div class="crumbs"><a href="${buildHash("map", {})}">← District map</a></div>
       <div class="title-row district-head">
-        <div><h1>${esc(CH.name)} District ${d.district}</h1>
+        <div><h1>${esc(CH.name)} District ${d.district} ${s ? electionChip(s, true) : ""}</h1>
           <p class="lede">${esc(d.member)}${d.party ? ` · ${esc(d.party)}` : ""}${s ? ` · <a href="${unitHref(s.id)}">member office page →</a>` : ""}${s && (BALLOTPEDIA[CH.id] || {})[s.name] ? ` · <a href="${esc(BALLOTPEDIA[CH.id][s.name])}" target="_blank" rel="noopener">Ballotpedia ↗</a>` : ""}</p></div>
         <div class="dnav"><a class="btn" href="${dHref(prevD)}" aria-label="Previous district">← ${CH.abbr} ${prevD.district}</a>${picker}<a class="btn" href="${dHref(nextD)}" aria-label="Next district">${CH.abbr} ${nextD.district} →</a></div>
       </div>`;
@@ -1305,12 +1403,18 @@
         <li><strong>Names are truncated</strong> to 40 characters in the Assembly source (e.g. "LEGISLATIVE TASK FORCE ON REAPPORTIONMEN"); they're shown as published.</li>
         <li><strong>"CHARGEBACK"</strong> payees are charges between the Assembly and other state entities.</li>`
         : `<li><strong>Dates and vouchers.</strong> The Senate file gives a check date for each non-payroll line; the voucher number is taken from the end of its description ("… - VOUCHER# 79534").</li>
-        <li><strong>Pay types</strong> (RA, SA, TE, VA) are shown as published; the Senate report doesn't define them.</li>
+        <li><strong>Pay types</strong> follow the Senate's biweekly payroll reports: Regular Annual (RA), Special Annual (SA) and Temporary (TE, hourly rate). VA isn't defined there and is shown as published.</li>
         <li><strong>Vacant district offices</strong> (e.g. "47TH SENATORIAL DISTRICT") appear as their own offices, as in the report.</li>`}
         <li><strong>Period comparisons</strong> match members and offices by their name as printed in each report. A member who joined or left between periods has no comparison.</li>
         <li><strong>Payroll lines</strong> have no voucher date; they carry service dates instead, so they don't appear in the by-month charts or month filter.</li>
         <li><strong>Negative amounts</strong> (${int.format(DB.records.filter((r) => r.amt < 0).length)} lines here) are refunds or adjustments and are included in totals as reported.</li>
         <li><strong>District map.</strong> Boundaries are the 2024 ${esc(CH.name)} district lines from the New York State GIS "${gisLayer}" layer, which also supplies each district's member name and party. Those names are matched to the reports by last name${isA ? ` (two by hand: AD 20 "Ari Brown" = BROWN, ERIC G.; AD 59 "Jaime R. Williams" = RIVAS-WILLIAMS, JAIME)` : ""}. Because the layer lists current members, a member who left before it was published (or joined after a report period) has no district shading for that period.${isA ? "" : " The layer lists Senate District 12 as vacant."}</li>
+      </ul></section>
+      <section class="card"><h2>Members: terms, the 2026 election, offices and posts</h2><ul>
+        <li><strong>Terms.</strong> Assembly members and senators serve two-year terms; every seat was on the November 3, 2026 ballot for the term starting January 1, 2027. "In current district since" is Ballotpedia's assumed-office date for the current district number, so members who served before the 2022 redistricting can show 2023.</li>
+        <li><strong>2026 election.</strong> Seats are marked "New member in 2027" when the member retired, ran for another office, lost the June primary, or lost on November 3; "Not yet called" when the race was unresolved in our sources. Everyone else ran for re-election and isn't among the reported losses. Sources: City &amp; State (Nov 4, 2026), Greenberg Traurig's November 2026 election update, and Wikipedia's lists of retirements and primary results. All general-election results are unofficial until certified.</li>
+        <li><strong>Offices and contacts</strong> (district office, district and Albany phones, email) come from the state's GIS district layers.</li>
+        <li><strong>Posts</strong> are current 2025–2026 leadership, committee and caucus posts (Assembly: nyassembly.gov committee list and Wikipedia; Senate: Wikipedia). Where a post directs a central office in the reports (e.g. Ways and Means chair → Ways and Means Committee), that office is linked from the member's page. "Staff also paid by other offices" lists people on a member's payroll who were also paid by another office in the same report.</li>
       </ul></section>
       <section class="card" id="travel-rules"><h2>Travel rules and benchmarks</h2>
         <p>The Legislature sets its own travel rules; the Comptroller's travel manual for state agencies is shown here as a point of comparison, not as the rule legislators are held to.</p>
