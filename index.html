@@ -38,20 +38,36 @@
         <input type="search" id="globalSearchInput" placeholder="Search members, staff, vendors, descriptions…" aria-label="Search all records" autocomplete="off">
       </form>
     </div>
-    <nav class="wrap tabs" aria-label="Sections">
-      <a href="#/" data-tab="overview">Overview</a>
-      <a href="#/find" data-tab="find">Find yours</a>
-      <a href="#/units" data-tab="units">Members &amp; Offices</a>
-      <a href="#/records" data-tab="records">All Records</a>
-      <a href="#/map" data-tab="map">District Map</a>
-      <a href="#/compare" data-tab="compare">Compare</a>
-      <a href="#/salaries" data-tab="salaries">Salaries</a>
-      <a href="#/payroll" data-tab="payroll">Payroll</a>
-      <a href="#/stats" data-tab="stats">Statistics</a>
-      <a href="#/donations" data-tab="donations">Donations</a>
-      <a href="#/scorecard" data-tab="scorecard">Scorecard</a>
-      <a href="#/payees" data-tab="payees">Payees</a>
-      <a href="#/about" data-tab="about">About the Data</a>
+    <nav class="wrap mainnav" id="mainNav" aria-label="Main">
+      <button type="button" class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="navMenu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Menu</span><span class="nav-here" id="navHere"></span></button>
+      <ul class="navlist tabs" id="navMenu">
+        <li><a href="#/" data-tab="overview">Overview</a></li>
+        <li><a href="#/find" data-tab="find">Find yours</a></li>
+        <li class="navgroup" data-group="spend"><button type="button" class="ng-btn" aria-expanded="false" aria-controls="ng-spend">Spending<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5 6 7.5 9 4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button><span class="ng-label" aria-hidden="true">Spending</span>
+          <ul id="ng-spend">
+            <li><a href="#/units" data-tab="units">Members &amp; offices</a></li>
+            <li><a href="#/records" data-tab="records">All records</a></li>
+            <li><a href="#/payees" data-tab="payees">Payees</a></li>
+            <li><a href="#/vendors" data-tab="vendors">Vendors that also donate</a></li>
+            <li><a href="#/compare" data-tab="compare">Compare offices</a></li>
+          </ul></li>
+        <li class="navgroup" data-group="pay"><button type="button" class="ng-btn" aria-expanded="false" aria-controls="ng-pay">Pay<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5 6 7.5 9 4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button><span class="ng-label" aria-hidden="true">Pay</span>
+          <ul id="ng-pay">
+            <li><a href="#/salaries" data-tab="salaries">Salaries</a></li>
+            <li><a href="#/payroll" data-tab="payroll">Senate payroll</a></li>
+          </ul></li>
+        <li class="navgroup" data-group="maps"><button type="button" class="ng-btn" aria-expanded="false" aria-controls="ng-maps">Maps &amp; stats<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5 6 7.5 9 4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button><span class="ng-label" aria-hidden="true">Maps &amp; stats</span>
+          <ul id="ng-maps">
+            <li><a href="#/map" data-tab="map">District map</a></li>
+            <li><a href="#/stats" data-tab="stats">Statistics</a></li>
+          </ul></li>
+        <li class="navgroup" data-group="money"><button type="button" class="ng-btn" aria-expanded="false" aria-controls="ng-money">Elections &amp; money<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5 6 7.5 9 4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button><span class="ng-label" aria-hidden="true">Elections &amp; money</span>
+          <ul id="ng-money">
+            <li><a href="#/donations" data-tab="donations">Donations</a></li>
+            <li><a href="#/scorecard" data-tab="scorecard">Scorecard</a></li>
+          </ul></li>
+        <li><a href="#/about" data-tab="about">About the data</a></li>
+      </ul>
     </nav>
   </header>
 

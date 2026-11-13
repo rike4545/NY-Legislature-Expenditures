@@ -2154,8 +2154,13 @@
     const v = el.value; el.value = ""; el.value = v;
   }
   function setActiveTab(view) {
-    const tab = { overview: "overview", units: "units", unit: "units", records: "records", payees: "payees", about: "about", compare: "compare", map: "map", district: "map", salaries: "salaries", person: "payroll", payroll: "payroll", stats: "stats", donations: "donations", scorecard: "scorecard", find: "find", vendors: "payees" }[view] || "overview";
-    document.querySelectorAll(".tabs a").forEach((a) => { const on = a.dataset.tab === tab; a.classList.toggle("active", on); if (on) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
+    const tab = { overview: "overview", units: "units", unit: "units", records: "records", payees: "payees", about: "about", compare: "compare", map: "map", district: "map", salaries: "salaries", person: "payroll", payroll: "payroll", stats: "stats", donations: "donations", scorecard: "scorecard", find: "find", vendors: "vendors" }[view] || "overview";
+    let here = "";
+    document.querySelectorAll(".tabs a").forEach((a) => { const on = a.dataset.tab === tab; a.classList.toggle("active", on); if (on) { a.setAttribute("aria-current", "page"); here = a.textContent; } else a.removeAttribute("aria-current"); });
+    document.querySelectorAll(".navgroup").forEach((g) => g.classList.toggle("active", !!g.querySelector("a.active")));
+    const nh = document.getElementById("navHere");
+    if (nh) nh.textContent = here ? "· " + here : "";
+    closeMenus();
   }
   let lastView = "";
   let booted = false;
@@ -2186,6 +2191,43 @@
     b.setAttribute("aria-label", `Color theme: ${THEME_NAME[t]}. Switch to ${next}.`);
     b.title = `Theme: ${THEME_NAME[t]} — click for ${next}`;
   }
+  /* Main menu: grouped dropdowns on wide screens, one Menu panel on phones. */
+  function closeMenus(except) {
+    document.querySelectorAll(".navgroup").forEach((g) => { if (g !== except) { g.classList.remove("open"); const b = g.querySelector(".ng-btn"); if (b) b.setAttribute("aria-expanded", "false"); } });
+    const nav = document.getElementById("mainNav"), t = document.getElementById("navToggle");
+    if (!except && nav && nav.classList.contains("menu-open")) { nav.classList.remove("menu-open"); t.setAttribute("aria-expanded", "false"); }
+  }
+  function wireNav() {
+    const nav = document.getElementById("mainNav");
+    if (!nav || nav.dataset.wired) return;
+    nav.dataset.wired = "1";
+    nav.querySelectorAll(".ng-btn").forEach((b) => b.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const g = b.closest(".navgroup"), open = !g.classList.contains("open");
+      closeMenus(g);
+      g.classList.toggle("open", open);
+      b.setAttribute("aria-expanded", String(open));
+      if (open) { const first = g.querySelector("ul a"); if (first && e.detail === 0) first.focus(); }
+    }));
+    const t = document.getElementById("navToggle");
+    t.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const open = !nav.classList.contains("menu-open");
+      nav.classList.toggle("menu-open", open);
+      t.setAttribute("aria-expanded", String(open));
+      if (open) { const cur = nav.querySelector("a.active") || nav.querySelector(".navlist a"); if (cur) cur.focus(); }
+    });
+    document.addEventListener("click", (e) => { if (!nav.contains(e.target)) closeMenus(); });
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape") return;
+      const g = document.activeElement && document.activeElement.closest && document.activeElement.closest(".navgroup.open");
+      const inMenu = nav.classList.contains("menu-open");
+      if (g) { closeMenus(); g.querySelector(".ng-btn").focus(); }
+      else if (inMenu) { closeMenus(); t.focus(); }
+    });
+    nav.addEventListener("focusout", (e) => { if (!nav.contains(e.relatedTarget) && window.matchMedia("(min-width: 861px)").matches) closeMenus(); });
+  }
+
   function wireTheme() {
     const b = document.getElementById("themeToggle");
     if (!b || b.dataset.wired) return;
@@ -2204,6 +2246,7 @@
   }
   function render() {
     wireTheme();
+    wireNav();
     if (!CHAMBERS.length) return;
     const { view, arg, params } = parseHash();
     const before = DB && CH ? CH.id + DB.id : "";
@@ -2233,6 +2276,14 @@
       default: html = viewOverview();
     }
     if (html != null) app.innerHTML = html;
+    // Wide tables and charts that scroll sideways: reachable and scrollable by keyboard, and named for screen readers.
+    app.querySelectorAll(".table-wrap, .cols").forEach((el) => {
+      if (el.scrollWidth > el.clientWidth + 2) {
+        const h = el.closest("section, .card") && el.closest("section, .card").querySelector("h2, h3");
+        el.setAttribute("tabindex", "0"); el.setAttribute("role", "region");
+        el.setAttribute("aria-label", `${h ? h.textContent.trim() : "Table"} (scrolls sideways)`);
+      } else if (el.getAttribute("role") === "region") { el.removeAttribute("tabindex"); el.removeAttribute("role"); el.removeAttribute("aria-label"); }
+    });
     const psf = app.querySelector("#paySearch");
     if (psf) {
       const inp = psf.querySelector("#payq");
@@ -2322,7 +2373,7 @@
     sw.querySelectorAll("button").forEach((b) => { b.classList.toggle("on", b.dataset.c === CH.id); b.setAttribute("aria-pressed", b.dataset.c === CH.id); });
     document.title = `NY ${CH.name} Expenditures · ${periodName(DB)}`;
     // Keep the chamber and period when moving between tabs.
-    const tabView = { overview: "", units: "units", records: "records", map: "map", compare: "compare", salaries: "salaries", payroll: "payroll", stats: "stats", donations: "donations", scorecard: "scorecard", find: "find", payees: "payees", about: "about" };
+    const tabView = { overview: "", units: "units", records: "records", map: "map", compare: "compare", salaries: "salaries", payroll: "payroll", stats: "stats", donations: "donations", scorecard: "scorecard", find: "find", vendors: "vendors", payees: "payees", about: "about" };
     document.querySelectorAll(".tabs a[data-tab]").forEach((a) => { a.href = buildHash(tabView[a.dataset.tab] ?? a.dataset.tab, {}); });
     const brand = document.querySelector(".brand-title");
     if (brand) brand.href = buildHash("", {});

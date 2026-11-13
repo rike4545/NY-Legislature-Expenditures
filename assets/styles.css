@@ -607,3 +607,62 @@ table.scorecard td { white-space: nowrap; }
 .card.vd.own { border-left-width: 1px; box-shadow: var(--shadow), inset 0 0 0 1px color-mix(in srgb, var(--pR) 25%, transparent); }
 .card.vd h3.mini { font-size: 13.5px; margin: 0 0 6px; }
 .card.vd .plainlist li { margin: 4px 0; }
+
+/* ---------- Main menu ---------- */
+.mainnav { position: relative; }
+.navlist, .navlist ul { list-style: none; margin: 0; padding: 0; }
+.navlist { display: flex; align-items: stretch; gap: 2px; overflow: visible; -webkit-mask-image: none; mask-image: none; }
+.navlist > li { position: relative; display: flex; }
+.navlist > li > a, .ng-btn { display: inline-flex; align-items: center; gap: 4px; padding: 10px 12px; min-height: 44px; box-sizing: border-box; font: inherit; font-size: 14px; font-weight: 500; color: #c7d7ee; background: none; border: 0; border-bottom: 3px solid transparent; white-space: nowrap; cursor: pointer; text-decoration: none; }
+.navlist > li > a:hover, .ng-btn:hover { color: #fff; text-decoration: none; }
+.navlist > li > a.active, .navgroup.active > .ng-btn { color: #fff; border-bottom-color: #8fc2ff; }
+.ng-btn svg { width: 12px; height: 12px; transition: transform .15s; }
+.navgroup.open > .ng-btn svg { transform: rotate(180deg); }
+.ng-btn:focus-visible, .navlist a:focus-visible, .nav-toggle:focus-visible { outline: 2px solid #fff; outline-offset: -2px; border-radius: 6px; }
+.ng-label { display: none; }
+.navgroup > ul { display: none; position: absolute; top: 100%; left: 0; z-index: 50; min-width: 230px; padding: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow-lg); }
+.navgroup.open > ul { display: block; }
+.navgroup > ul a { display: block; padding: 10px 12px; min-height: 44px; box-sizing: border-box; border-radius: 8px; color: var(--text); font-size: 14.5px; text-decoration: none; }
+.navgroup > ul a:hover { background: var(--accent-soft); text-decoration: none; }
+.navgroup > ul a.active { background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+.navgroup > ul a:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.nav-toggle { display: none; }
+
+@media (max-width: 860px) {
+  .nav-toggle { display: inline-flex; align-items: center; gap: 8px; width: 100%; min-height: 48px; padding: 0 4px; background: none; border: 0; color: #fff; font: inherit; font-size: 15px; font-weight: 700; cursor: pointer; }
+  .nav-toggle svg { width: 22px; height: 22px; }
+  .nav-here { font-weight: 500; color: #c7d7ee; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .navlist { display: none; }
+  .mainnav.menu-open .navlist { display: block; padding: 4px 0 14px; max-height: calc(100vh - 140px); overflow-y: auto; }
+  .navlist > li { display: block; }
+  .navlist > li > a { display: flex; width: 100%; min-height: 48px; border-bottom: 1px solid rgba(255,255,255,.12); font-size: 16px; }
+  .navlist > li > a.active { border-bottom-color: rgba(255,255,255,.12); background: rgba(255,255,255,.12); border-radius: 8px; }
+  .ng-btn { display: none; }
+  .ng-label { display: block; padding: 14px 12px 4px; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #9fb8d8; }
+  .navgroup > ul { display: block; position: static; min-width: 0; padding: 0; background: none; border: 0; box-shadow: none; }
+  .navgroup > ul a { color: #fff; font-size: 16px; min-height: 48px; display: flex; align-items: center; }
+  .navgroup > ul a:hover { background: rgba(255,255,255,.08); }
+  .navgroup > ul a.active { background: rgba(255,255,255,.14); color: #fff; }
+  .navgroup > ul a:focus-visible { outline-color: #fff; }
+}
+@media (forced-colors: active) { .navgroup > ul { border: 1px solid CanvasText; } .navlist a.active, .navgroup.active > .ng-btn { text-decoration: underline; } }
+.navgroup > ul a, .navgroup > ul a.active { border-bottom: 0; }
+
+/* ---------- Mobile accessibility fixes ---------- */
+/* Long labels wrap instead of pushing the page sideways. */
+.card-head { flex-wrap: wrap; row-gap: 4px; }
+.card-head > * { min-width: 0; max-width: 100%; }
+.echip { white-space: normal; }
+.cf-table td:nth-child(3) { min-width: 120px; }
+.cf-stack { max-width: 100%; }
+@media (max-width: 640px) { .cf-table th[scope=row] { min-width: 150px; } .cf-table td:nth-child(3) { min-width: 90px; width: auto; } }
+/* Tap targets: at least 24px tall for links that stand alone (WCAG 2.2 target size). */
+a.back, .chamber-name, a.range-name, a.chip, .card-head > a, .site-footer a, .legend a, p > a.btn, a.btn { min-height: 24px; display: inline-flex; align-items: center; }
+.site-footer a { min-height: 32px; }
+a.back { padding: 4px 0; }
+/* Small charts: no text below 11px. */
+.cols.small .colval, .cols.small .collabel { font-size: 11px; }
+/* Scrollable regions are focusable (set in app.js) and show focus. */
+.table-wrap:focus-visible, .cols:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.legend { flex-wrap: wrap; row-gap: 6px; }
+.crumbs a, .card-head h2 > a { min-height: 24px; display: inline-flex; align-items: center; gap: 4px; }
