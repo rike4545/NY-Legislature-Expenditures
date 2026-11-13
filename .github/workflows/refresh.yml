@@ -1,0 +1,73 @@
+name: Refresh campaign, legislation and lobbying data
+
+# Weekly: pull fresh State Board of Elections campaign finance, public financing and independent
+# expenditure data, and ethics-commission lobbying reports; rebuild the site's data files; commit any
+# changes; then redeploy the site. Run it by hand from the Actions tab at any time.
+on:
+  schedule:
+    - cron: "17 10 * * 1"   # Mondays, 10:17 UTC (5:17 a.m. Eastern)
+  workflow_dispatch:
+    inputs:
+      lobbying_max_age:
+        description: "Refetch a legislator's lobbying data when it is older than this many days"
+        default: "6"
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: State Board lists (public financing, independent expenditures)
+        continue-on-error: true
+        run: python3 scripts/fetch_boe_public.py
+      - name: Campaign finance and donations (data.ny.gov)
+        run: |
+          python3 scripts/build_campaign_finance.py --fetch
+          python3 scripts/build_public_financing.py
+          python3 scripts/build_outside_money.py
+          python3 scripts/build_donations.py
+          python3 scripts/build_vendor_donors.py
+      - name: Legislation (NY Open Legislation)
+        continue-on-error: true
+        env:
+          NYSENATE_API_KEY: ${{ secrets.NYSENATE_API_KEY }}
+        run: |
+          python3 scripts/fetch_legislation.py 2025
+          python3 scripts/build_legislation.py
+      - name: Lobbying reports (data.ny.gov, one legislator at a time)
+        continue-on-error: true
+        timeout-minutes: 240
+        run: python3 scripts/fetch_lobbying.py --workers 4 --max-age "${{ github.event.inputs.lobbying_max_age || '6' }}"
+      - name: Build lobbying summary
+        run: python3 scripts/build_lobbying.py
+      - name: Commit changes
+        id: commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A data
+          if git diff --cached --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No data changes."
+          else
+            git commit -m "Weekly data refresh ($(date -u +%Y-%m-%d))"
+            git push
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Redeploy the site
+        if: steps.commit.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run pages.yml --ref main

@@ -30,6 +30,12 @@ from datetime import date
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 API = "https://data.ny.gov/resource/e9ss-239a.json"
 BASE = "election_year in ('2025','2026') AND filing_sched_abbrev in ('A','B','C') AND org_amt > 0"
+# Non-family limit per election for 2026 (State Board of Elections, data/limits_2026.json).
+LIMIT = {"assembly": 3000.0, "senate": 5000.0}
+_lim = ROOT / "data/limits_2026.json"
+if _lim.exists():
+    _l = json.loads(_lim.read_text())
+    LIMIT = {ch: _l[ch]["nonFamily"]["general"] for ch in LIMIT}
 BUCKETS = [(0, 100, "$100 or less"), (100, 250, "$101–$250"), (250, 1000, "$251–$1,000"), (1000, 5000, "$1,001–$5,000"), (5000, 1e12, "Over $5,000")]
 
 
@@ -117,7 +123,12 @@ def main():
         geo = {"in": [0, 0.0], "ny": [0, 0.0], "out": [0, 0.0], "unknown": [0, 0.0]}
         sizes = [[0, 0.0] for _ in BUCKETS]
         repeat = gifts = 0
+        lim = LIMIT[a["chamber"]]
+        maxed = [[0, 0.0], [0, 0.0]]  # donors giving >= one election's non-family limit; >= two elections' (primary + general)
         for (last, first, z), v in a["donors"].items():
+            if v["amt"] >= lim - 0.005:
+                k = 1 if v["amt"] >= 2 * lim - 0.005 else 0
+                maxed[k][0] += 1; maxed[k][1] += v["amt"]
             gifts += v["n"]
             if v["n"] > 1:
                 repeat += 1
@@ -145,6 +156,7 @@ def main():
             "types": {k: round(v, 2) for k, v in sorted(a["types"].items(), key=lambda x: -x[1])},
             "months": {k: round(v, 2) for k, v in sorted(a["months"].items())},
             "topOrgs": top,
+            "maxed": [[m[0], round(m[1], 2)] for m in maxed],
         })
     # Every organizational donor, for cross-checking against vendors the Legislature pays.
     orgs = {}

@@ -92,6 +92,11 @@ The New York State Assembly and Senate each publish their spending twice a year:
 | [Ballotpedia](https://ballotpedia.org/Main_Page) — [Assembly](https://ballotpedia.org/New_York_State_Assembly) and [Senate](https://ballotpedia.org/New_York_State_Senate) current members | Profile links per member (`data/ballotpedia/`, retrieved 2026-11-12) |
 | [NYS Board of Elections — enrollment by Assembly / Senate district](https://elections.ny.gov/enrollment-assembly-district), Nov 1, 2026 | Registered voters (active, inactive, party enrollment) and votes cast ÷ registered per district (`data/raw/elections/`, `scripts/build_enrollment.py`) |
 | [NYS Board of Elections — Public Campaign Finance candidate list](https://publicreporting.elections.ny.gov/PCFBCandidateRegList/PCFBCandidateRegList), election year 2026 | Which candidates took part in public financing, their status, and matching funds received; also links their committees to them (`scripts/build_public_financing.py`) |
+| [NY Open Legislation](https://legislation.nysenate.gov) | Bills each member sponsored in the 2025–26 session and how far they got (`scripts/fetch_legislation.py` needs a free API key in `NYSENATE_API_KEY`; `scripts/build_legislation.py`) |
+| [Lobbyist Bi-Monthly Reports](https://data.ny.gov/d/t9kf-dqbc) (Commission on Ethics and Lobbying in Government) | Organizations that reported lobbying each legislator in 2025–26 (`scripts/fetch_lobbying.py`, `scripts/build_lobbying.py`) |
+| [State Board of Elections — independent expenditures](https://publicreporting.elections.ny.gov/IESchedRSupportOppose/IESchedRSupportOppose) | Outside money for and against candidates (`scripts/build_outside_money.py`) |
+| [State Board of Elections — 2026 contribution limits](https://elections.ny.gov/contribution-limits) | Per-donor and family limits by district (`scripts/build_limits.py`) |
+| [Assembly expenditure reports, 2019–2025](https://nyassembly.gov/expenditure/) | Spending over the years (`data/raw/assembly/history/`, `scripts/build_history.py`) |
 | NYS ITS Geospatial Services — [Assembly](https://gisservices.its.ny.gov/arcgis/rest/services/NYS_Assembly_Districts/MapServer) and [Senate](https://gisservices.its.ny.gov/arcgis/rest/services/NYS_Senate_Districts/MapServer) Districts | District boundaries (2024 lines), member names and party |
 
 | Chamber | Period | Source file | Lines | Actual spending | Allocated |
@@ -115,6 +120,10 @@ The New York State Assembly and Senate each publish their spending twice a year:
 - **Senate pay types** follow the Senate payroll reports: Regular Annual (RA), Special Annual (SA), Temporary (TE, hourly); VA is shown as published.
 - **Period comparisons** match members and offices by name as printed in each report.
 - **Districts** are matched to report names by last name (`scripts/build_districts.py`; two Assembly matches set by hand and documented there). The GIS layers list current members, so members who left earlier have no district shading; Senate District 12 is listed as vacant.
+
+## Keeping the data current
+
+`.github/workflows/refresh.yml` runs every Monday (and on demand from the Actions tab). It pulls fresh campaign finance, public financing, independent expenditure, legislation and lobbying data, commits whatever changed, and redeploys the site. The legislation step needs a repository secret named `NYSENATE_API_KEY` (Settings → Secrets and variables → Actions).
 
 ## Run it locally
 
