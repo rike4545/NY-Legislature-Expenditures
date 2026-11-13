@@ -673,6 +673,97 @@
     }).join("") + `<p class="summary">${donationsNote(dn)}</p>`;
   }
 
+  /* ---------- Scorecard: how each member office did, on measures the site can verify ---------- */
+  const SC_MEASURES = [
+    { key: "cost", label: "Cost per month", better: "low", fmt: (v) => money0(v), help: "Actual spending per month the office was active (lower ranks higher)" },
+    { key: "retention", label: "Staff retention", better: "high", fmt: (v) => pctf(v), help: "Share of the previous report's staff still paid by the office in this report" },
+    { key: "margin", label: "2026 margin", better: "high", fmt: (v) => `${v >= 0 ? "+" : ""}${v.toFixed(1)} pts`, help: "Member's lead (or deficit) over the nearest opponent in the State Board's unofficial count; unopposed and non-running members aren't ranked" },
+    { key: "reach", label: "Donors in district", better: "high", fmt: (v) => pctf(v), help: "Share of the member's 2025–26 individual donors whose ZIP code falls in the district (estimate)" },
+    { key: "small", label: "Small donors", better: "high", fmt: (v) => pctf(v), help: "Share of the member's individual donors who gave $250 or less in total" },
+  ];
+  function scorecardRows() {
+    const dn = DONATIONS[CH.id];
+    const rows = DB.members.map((s) => {
+      const m = memberInfo(s), dist = DISTRICT_BY_UNIT.get(s.name);
+      const r = { s, district: dist ? dist.district : null, party: dist ? (dist.party || "").charAt(0) : "", values: {} };
+      r.values.cost = s.perMonth;
+      const ps = prevUnit(s);
+      if (ps && ps.staff.size) {
+        const now = new Set([...s.staff].map((p) => DB.payees[p]));
+        const before = [...ps.staff].map((p) => PREV.payees[p]);
+        r.values.retention = before.filter((n) => now.has(n)).length / before.length;
+      }
+      if (m.boe && m.boe.incumbent != null && m.boe.cands.length > 1 && m.boe.total) {
+        const c = m.boe.cands, i = m.boe.incumbent;
+        const best = Math.max(...c.filter((_, j) => j !== i).map((x) => x[2]));
+        r.values.margin = (c[i][2] - best) / m.boe.total * 100;
+      }
+      const cands = dn && r.district != null ? dn.districts[String(r.district)] || [] : [];
+      const sur = displayName(s).toLowerCase();
+      const mine = cands.find((c) => c.name.toLowerCase().split(/[^a-z]+/).filter((w) => w.length > 2).some((w) => sur.includes(w)));
+      if (mine && mine.donors >= 10) {
+        r.values.reach = mine.inDistrict[0] / mine.donors;
+        r.values.small = (mine.sizes[0][0] + mine.sizes[1][0]) / mine.donors;
+        r.donors = mine.donors;
+      }
+      return r;
+    });
+    return rows;
+  }
+  function percentileRanks(rows, groupOf) {
+    for (const m of SC_MEASURES) {
+      const groups = new Map();
+      for (const r of rows) if (r.values[m.key] != null) { const g = groupOf(r); if (!groups.has(g)) groups.set(g, []); groups.get(g).push(r); }
+      for (const list of groups.values()) {
+        // Ties share a rank and a percentile (average position), so equal values score equally.
+        const val = (r) => r.values[m.key] * (m.better === "low" ? -1 : 1);
+        for (const r of list) {
+          const better = list.filter((o) => val(o) > val(r) + 1e-9).length, same = list.filter((o) => Math.abs(val(o) - val(r)) <= 1e-9).length;
+          r.pct = r.pct || {}; r.rank = r.rank || {}; r.of = r.of || {};
+          r.rank[m.key] = better + 1; r.of[m.key] = list.length;
+          r.pct[m.key] = list.length > 1 ? 1 - (better + (same - 1) / 2) / (list.length - 1) : 1;
+        }
+      }
+    }
+    for (const r of rows) { const v = SC_MEASURES.map((m) => r.pct && r.pct[m.key]).filter((x) => x != null); r.index = v.length >= 3 ? v.reduce((a, b) => a + b, 0) / v.length * 100 : null; r.nMeasures = v.length; }
+  }
+  function viewScorecard(params) {
+    const state = { sort: params.sort || "index", dir: params.dir || "desc", within: params.within || "party", party: params.party || "" };
+    let rows = scorecardRows();
+    percentileRanks(rows, (r) => state.within === "party" ? r.party : "all");
+    if (state.party) rows = rows.filter((r) => r.party === state.party);
+    const key = state.sort === "index" ? (r) => r.index : state.sort === "name" ? (r) => displayName(r.s) : state.sort === "district" ? (r) => r.district : (r) => (r.values[state.sort]);
+    rows.sort((a, b) => { const x = key(a), y = key(b); if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1; const c = typeof x === "string" ? x.localeCompare(y) : x - y; return state.dir === "asc" ? c : -c; });
+    setTimeout(() => {
+      wireSortHeaders(app, state, (st) => go("scorecard", { ...state, sort: st.sort, dir: st.dir }, true), { name: "asc", district: "asc", cost: "asc" });
+      const w = app.querySelector("#scWithin"), pf = app.querySelector("#scParty");
+      if (w) w.addEventListener("change", () => go("scorecard", { ...state, within: w.value }, true));
+      if (pf) pf.addEventListener("change", () => go("scorecard", { ...state, party: pf.value }, true));
+    }, 0);
+    const cell = (r, m) => {
+      const v = r.values[m.key];
+      if (v == null) return `<td class="num summary">—</td>`;
+      const pc = r.pct[m.key];
+      return `<td class="num"><span class="scval">${m.fmt(v)}</span><span class="scrank" title="Rank ${r.rank[m.key]} of ${r.of[m.key]}${state.within === "party" ? " in party" : ""}"><span class="scbar"><span style="width:${(pc * 100).toFixed(0)}%"></span></span>#${r.rank[m.key]}</span></td>`;
+    };
+    return `<h1>Scorecard</h1>
+      <p class="lede">How each ${esc(CH.name)} member office did in ${esc(periodName(DB))} on measures this site can check against public records. Each column ranks offices${state.within === "party" ? " within their party" : " across the chamber"}; the index averages the percentile ranks.</p>
+      <div class="filters">
+        <label>Rank against<select id="scWithin"><option value="party"${state.within === "party" ? " selected" : ""}>Own party (default)</option><option value="chamber"${state.within === "chamber" ? " selected" : ""}>Whole chamber</option></select></label>
+        <label>Party<select id="scParty"><option value="">Both</option><option value="D"${state.party === "D" ? " selected" : ""}>Democrats</option><option value="R"${state.party === "R" ? " selected" : ""}>Republicans</option></select></label>
+      </div>
+      <div class="table-wrap"><table class="scorecard">
+        <caption class="sr-only">${esc(CH.name)} member office scorecard, sortable</caption>
+        <thead><tr>${sortHeader("Member", "name", state)}${sortHeader(CH.abbr, "district", state, "num")}${SC_MEASURES.map((m) => sortHeader(`<abbr title="${esc(m.help)}">${esc(m.label)}</abbr>`, m.key, state, "num")).join("")}${sortHeader(`<abbr title="Average of the percentile ranks the office has (at least three of five). 100 = best on every measure.">Index</abbr>`, "index", state, "num")}</tr></thead>
+        <tbody>${rows.map((r) => `<tr><td><a href="${unitHref(r.s.id)}">${esc(displayName(r.s))}</a> <span class="ptag p${r.party}">${esc(r.party)}</span></td><td class="num">${r.district ?? ""}</td>${SC_MEASURES.map((m) => cell(r, m)).join("")}<td class="num">${r.index != null ? `<strong>${r.index.toFixed(0)}</strong><span class="summary"> /${r.nMeasures}</span>` : `<span class="summary">—</span>`}</td></tr>`).join("")}</tbody></table></div>
+      <section class="card"><div class="card-head"><h2>How to read this</h2></div>
+        <ul class="plainlist">${SC_MEASURES.map((m) => `<li><strong>${esc(m.label)}.</strong> ${esc(m.help)}.</li>`).join("")}
+          <li><strong>Index.</strong> The average of an office's percentile ranks (0 = last, 100 = first) on the measures it has, shown only when it has at least three; "/n" is how many. Every measure counts equally; that weighting is a choice, so the columns matter more than the index.</li>
+          <li><strong>Why rank within party.</strong> The majority conference sets office budgets, and minority-party offices get smaller ones, so cost per month (and, once added, bills passed) mostly reflects party. Ranking within party compares like with like; switch to "whole chamber" to see the raw order.</li>
+          <li><strong>Not yet here: lawmaking.</strong> Bills introduced, moved out of committee, passed and signed into law come from the Senate's Open Legislation service, which needs an API key; they'll be added as columns when it's connected. Majority-party members pass far more bills, which is why ranking within party is offered.</li></ul>
+        <p class="summary">None of these measures says whether an office served its district well; they're checkable facts about cost, staffing, elections and fundraising. Members who left mid-period or have little data are ranked on what exists. Sources: the ${esc(CH.name)} expenditure reports, the State Board of Elections unofficial count, and campaign finance filings (see About the Data).</p></section>`;
+  }
+
   function focusHref(district) {
     return `https://nysfocus.com/interactives/2026-election-results/${CH.id === "senate" ? "state-senate" : "assembly"}/district-${district}/`;
   }
@@ -1934,7 +2025,7 @@
     const v = el.value; el.value = ""; el.value = v;
   }
   function setActiveTab(view) {
-    const tab = { overview: "overview", units: "units", unit: "units", records: "records", payees: "payees", about: "about", compare: "compare", map: "map", district: "map", salaries: "salaries", person: "payroll", payroll: "payroll", stats: "stats", donations: "donations" }[view] || "overview";
+    const tab = { overview: "overview", units: "units", unit: "units", records: "records", payees: "payees", about: "about", compare: "compare", map: "map", district: "map", salaries: "salaries", person: "payroll", payroll: "payroll", stats: "stats", donations: "donations", scorecard: "scorecard" }[view] || "overview";
     document.querySelectorAll(".tabs a").forEach((a) => { const on = a.dataset.tab === tab; a.classList.toggle("active", on); if (on) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
   }
   let lastView = "";
@@ -2003,6 +2094,7 @@
       case "payroll": html = viewPayroll(params); break;
       case "stats": html = viewStats(); break;
       case "donations": html = arg ? viewDonationDistrict(arg) : viewDonations(params); break;
+      case "scorecard": html = viewScorecard(params); break;
       case "about": html = viewAbout(); if (params.s) setTimeout(() => { const t = document.getElementById(params.s); if (t) { t.setAttribute("tabindex", "-1"); t.scrollIntoView(); t.focus({ preventScroll: true }); } }, 0); break;
       case "compare": html = viewCompare(params); break;
       case "map": html = viewMap(params); break;
@@ -2099,7 +2191,7 @@
     sw.querySelectorAll("button").forEach((b) => { b.classList.toggle("on", b.dataset.c === CH.id); b.setAttribute("aria-pressed", b.dataset.c === CH.id); });
     document.title = `NY ${CH.name} Expenditures · ${periodName(DB)}`;
     // Keep the chamber and period when moving between tabs.
-    const tabView = { overview: "", units: "units", records: "records", map: "map", compare: "compare", salaries: "salaries", payroll: "payroll", stats: "stats", donations: "donations", payees: "payees", about: "about" };
+    const tabView = { overview: "", units: "units", records: "records", map: "map", compare: "compare", salaries: "salaries", payroll: "payroll", stats: "stats", donations: "donations", scorecard: "scorecard", payees: "payees", about: "about" };
     document.querySelectorAll(".tabs a[data-tab]").forEach((a) => { a.href = buildHash(tabView[a.dataset.tab] ?? a.dataset.tab, {}); });
     const brand = document.querySelector(".brand-title");
     if (brand) brand.href = buildHash("", {});

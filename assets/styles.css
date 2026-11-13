@@ -583,3 +583,13 @@ svg.lg[viewBox="0 0 24 12"] { width: 26px; }
 .card.dn h3.mini { font-size: 13px; margin: 0 0 6px; }
 @media (max-width: 640px) { .inlinebar { display: none; } }
 @media (forced-colors: active) { .stack.big span, .inlinebar span { forced-color-adjust: none; } }
+
+/* Scorecard */
+table.scorecard td { white-space: nowrap; }
+.scval { display: block; font-variant-numeric: tabular-nums; }
+.scrank { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.scbar { display: inline-block; width: 44px; height: 5px; border-radius: 3px; background: var(--accent-soft); overflow: hidden; }
+.scbar span { display: block; height: 100%; background: var(--accent); }
+.ptag { display: inline-block; font-size: 11px; font-weight: 700; padding: 0 5px; border-radius: 4px; color: #fff; vertical-align: 1px; }
+.ptag.pD { background: var(--pD); } .ptag.pR { background: var(--pR); } .ptag.p { display: none; }
+@media (forced-colors: active) { .scbar span, .ptag { forced-color-adjust: none; } }
