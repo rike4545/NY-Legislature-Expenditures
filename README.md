@@ -3,13 +3,13 @@
 </p>
 
 <p align="center">
-  <a href="https://rike4545.github.io/NYS-Assembly-Expenditures/"><strong>Open the live site →</strong></a>
+  <a href="https://rike4545.github.io/NY-Legislature-Expenditures/"><strong>Open the live site →</strong></a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/rike4545/NYS-Assembly-Expenditures/actions/workflows/pages.yml"><img alt="Deploy" src="https://github.com/rike4545/NYS-Assembly-Expenditures/actions/workflows/pages.yml/badge.svg"></a>
+  <a href="https://github.com/rike4545/NY-Legislature-Expenditures/actions/workflows/pages.yml"><img alt="Deploy" src="https://github.com/rike4545/NY-Legislature-Expenditures/actions/workflows/pages.yml/badge.svg"></a>
   <img alt="Chambers" src="https://img.shields.io/badge/chambers-Assembly%20%2B%20Senate-1f5fa8">
-  <img alt="Reports" src="https://img.shields.io/badge/reports-Apr%202025%20%E2%80%93%20Mar%202026-1f5fa8">
+  <img alt="Reports" src="https://img.shields.io/badge/reports-Assembly%202025%E2%80%932026%20%C2%B7%20Senate%202023%E2%80%932026-1f5fa8"> <img alt="Senate payroll" src="https://img.shields.io/badge/Senate%20payroll-2010%E2%80%932026-1f5fa8">
   <img alt="Line items" src="https://img.shields.io/badge/line%20items-38%2C342-1f5fa8">
   <img alt="Districts" src="https://img.shields.io/badge/districts%20mapped-213-33907d">
   <img alt="Dependencies" src="https://img.shields.io/badge/dependencies-none-5b6573">

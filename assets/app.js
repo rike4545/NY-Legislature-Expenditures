@@ -1623,7 +1623,7 @@
           <li><strong>Color and contrast.</strong> Text meets WCAG AA contrast in light and dark themes. The theme follows your device unless you pick Light or Dark with the switch in the header. Charts never rely on color alone: amounts are always written out.</li>
           <li><strong>Motion and zoom.</strong> Animations are turned off when your device asks for reduced motion, and the layout reflows at 200% zoom and on phones. Windows high-contrast mode keeps chart bars and map districts visible.</li>
         </ul>
-        <p class="summary">Something hard to use? <a href="https://github.com/rike4545/NYS-Assembly-Expenditures/issues" target="_blank" rel="noopener">Open an issue on GitHub</a>.</p>
+        <p class="summary">Something hard to use? <a href="https://github.com/rike4545/NY-Legislature-Expenditures/issues" target="_blank" rel="noopener">Open an issue on GitHub</a>.</p>
       </section>
       <p class="lede">This site presents the semi-annual Expenditure Reports of the New York State Assembly and the New York State Senate. Every line in each original file is included; nothing is added or removed. Use the chamber buttons and period menu at the top to switch. You're viewing the <strong>${esc(CH.name)}</strong>.</p>
       <section class="card"><h2>Reports included</h2><div class="table-wrap"><table>
