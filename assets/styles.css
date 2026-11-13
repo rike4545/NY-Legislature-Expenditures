@@ -168,8 +168,8 @@ dl.glossary dd { margin: 0; }
 
 /* Compare */
 :root { --seg-ps: #2f74c0; --seg-mo: #e08a2c; --seg-tr: #3a9a6b; --hi: #fff4cc; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --seg-ps: #5b9be0; --seg-mo: #f0a24f; --seg-tr: #5cc092; --hi: #3d3415; } }
-:root[data-theme="dark"] { --seg-ps: #5b9be0; --seg-mo: #f0a24f; --seg-tr: #5cc092; --hi: #3d3415; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --seg-ps: #4f8fdb; --seg-mo: #cc7b2b; --seg-tr: #3ea676; --hi: #3d3415; } }
+:root[data-theme="dark"] { --seg-ps: #4f8fdb; --seg-mo: #cc7b2b; --seg-tr: #3ea676; --hi: #3d3415; }
 .title-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
 table.compare th[scope=row] { text-transform: none; letter-spacing: 0; font-size: 14px; color: var(--text); font-weight: 500; position: static; }
 table.compare thead th { text-transform: none; letter-spacing: 0; font-size: 14px; color: var(--text); white-space: normal; min-width: 160px; }
@@ -941,3 +941,45 @@ th.csort-th .th-sort:focus-visible { outline: 2px solid var(--accent); outline-o
 .nx-edited { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--accent); border: 1px solid currentColor; border-radius: 999px; padding: 1px 7px; margin-left: 4px; }
 @media print { .nx-letter-body { border: 0; padding: 0; overflow: visible; } }
 @media print { .nx-letters details { break-inside: avoid; } .nx-letters details:not([open]) { display: none; } }
+
+/* Chamber spending over the years: stacked columns on a zero baseline, grouped by fiscal year */
+.sh { --axis: 52px; margin: 6px 0 4px; }
+.sh-plot { position: relative; height: 240px; margin-left: var(--axis); padding-top: 22px; }
+.sh-grid { position: absolute; inset: 22px 0 0 0; pointer-events: none; }
+.sh-grid span { position: absolute; left: 0; right: 0; border-top: 1px solid var(--border); }
+.sh-grid span:first-child { border-top-color: color-mix(in srgb, var(--muted) 55%, transparent); }
+.sh-grid em { position: absolute; right: calc(100% + 8px); transform: translateY(-50%); font-style: normal; font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sh-cols, .sh-x { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); }
+.sh-cols { position: relative; height: 100%; align-items: end; }
+.sh-col { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; color: inherit; text-decoration: none; border-radius: 6px; }
+.sh-col:hover { background: color-mix(in srgb, var(--accent) 7%, transparent); text-decoration: none; }
+.sh-bar { display: flex; flex-direction: column; gap: 2px; width: min(60%, 44px); border-radius: 4px 4px 0 0; overflow: hidden; }
+.sh-bar span { display: block; min-height: 1px; }
+.sh-col:not(.cur) .sh-bar { opacity: .82; }
+.sh-col:hover .sh-bar { opacity: 1; }
+.sh-val { font-size: 12px; font-variant-numeric: tabular-nums; color: var(--muted); margin-bottom: 4px; white-space: nowrap; }
+.sh-col.cur .sh-val { color: var(--text); font-weight: 700; }
+.sh-x { margin-left: var(--axis); }
+.sh-half { text-align: center; font-size: 11.5px; color: var(--muted); padding-top: 6px; white-space: nowrap; }
+.sh-half.cur { color: var(--text); font-weight: 700; }
+.sh-fyrow { margin-top: 4px; gap: 0 6px; }
+.sh-fy { text-align: center; font-size: 12px; font-weight: 600; color: var(--text); border-top: 2px solid var(--border); padding-top: 4px; margin: 0 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sh-fy .fy-short { display: none; }
+.sh-table { margin-top: 10px; }
+.sh-table > summary { cursor: pointer; font-size: 14px; color: var(--accent); }
+.sh-table tr.hl th, .sh-table tr.hl td { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.sh-kpis { margin-bottom: 8px; }
+@media (max-width: 900px) { .sh.many .sh-val { display: none; } .sh.many .sh-col.keep .sh-val { display: block; } }
+@media (max-width: 640px) {
+  .sh { --axis: 40px; }
+  .sh-plot { height: 200px; }
+  .sh-val { display: none; }
+  .sh-col.keep .sh-val { display: block; font-size: 11px; }
+  .sh-half { font-size: 10px; }
+  .sh.many .sh-half { display: none; }
+  .sh-fy { font-size: 10.5px; margin: 0 1px; }
+  .sh.many .sh-fy .fy-long { display: none; }
+  .sh.many .sh-fy .fy-short { display: inline; }
+  .sh.many .sh-col.keep:not(.cur):first-child .sh-val { display: none; }
+}
+@media (forced-colors: active) { .sh-bar span { forced-color-adjust: none; } }

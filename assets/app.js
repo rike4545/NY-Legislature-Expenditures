@@ -1806,10 +1806,59 @@
       <p class="summary">${sameHalfPrev ? `${chgShort(b[1], sameHalfPrev[1])} compared with the same half a year earlier. ` : ""}Staff paid ranged from ${Math.min(...u.s.map((x) => x[5]))} to ${Math.max(...u.s.map((x) => x[5]))} people per report. Offices are matched across reports by the name printed in each report, so an office that was renamed starts a new series.</p>
     </section>`;
   }
+  /* Chamber spending per half-year report: columns stacked by payroll, operations and travel on a zero baseline,
+     grouped by state fiscal year (April–March), with a table of the same numbers. */
+  const SH_SEGS = [["ps", "Payroll", "seg-ps"], ["mo", "Operations (M&O)", "seg-mo"], ["travel", "Travel", "seg-tr"]];
+  function niceTicks(max) {
+    const steps = [1e6, 2e6, 2.5e6, 5e6, 1e7, 2e7, 2.5e7, 5e7, 1e8];
+    const step = steps.find((x) => max / x <= 4) || steps[steps.length - 1];
+    const top = Math.ceil(max / step) * step;
+    const out = [];
+    for (let v = 0; v <= top + 1; v += step) out.push(v);
+    return out;
+  }
+  const fyOf = (p) => { const y = Number(p.start.slice(0, 4)), m = Number(p.start.slice(5, 7)); return m >= 4 ? y : y - 1; };
+  const tickLabel = (v) => v === 0 ? "$0" : `$${+(v / 1e6).toFixed(1)}M`;
+  function spendHistChart(h) {
+    const ps = h.periods;
+    const ticks = niceTicks(Math.max(...ps.map((p) => p.actual)));
+    const top = ticks[ticks.length - 1];
+    const last = ps.length - 1;
+    const keep = new Set([0, last, ps.findIndex((p) => p.id === DB.id)]);
+    const yoy = (i) => (i >= 2 && ps[i - 2].actual ? (ps[i].actual / ps[i - 2].actual - 1) * 100 : null);
+    // Fiscal years in order, each with the columns it covers.
+    const fys = [];
+    ps.forEach((p, i) => { const fy = fyOf(p); const g = fys[fys.length - 1]; if (g && g.fy === fy) g.n++; else fys.push({ fy, n: 1 }); });
+    const cols = ps.map((p, i) => {
+      const cur = p.id === DB.id;
+      const y = yoy(i);
+      const tip = `${halfLabel(p)} (${fmtDay(p.start)} – ${fmtDay(p.end)}): ${money0(p.actual)} actual · ${SH_SEGS.map(([k, l]) => `${l} ${compact(p[k])}`).join(" · ")}${y != null ? ` · ${y >= 0 ? "+" : "−"}${Math.abs(y).toFixed(1)}% vs. a year earlier` : ""}`;
+      const hasReport = (CH.periods || []).some((x) => x.id === p.id);
+      const tag = hasReport ? "a" : "div";
+      return `<${tag} class="sh-col${cur ? " cur" : ""}${keep.has(i) ? " keep" : ""}"${hasReport ? ` href="${buildHash("", { p: p.id })}"` : ""} title="${esc(tip)}" aria-label="${esc(tip)}${cur ? " (showing)" : ""}"${cur ? ' aria-current="page"' : ""}>
+        <span class="sh-val">${compact(p.actual)}</span>
+        <span class="sh-bar" style="height:${(p.actual / top * 100).toFixed(2)}%">${SH_SEGS.slice().reverse().map(([k, , cls]) => p[k] > 0 ? `<span class="${cls}" style="flex:${p[k]}"></span>` : "").join("")}</span></${tag}>`;
+    }).join("");
+    const halves = ps.map((p) => `<span class="sh-half${p.id === DB.id ? " cur" : ""}">${new Date(p.end + "T12:00:00").getMonth() === 2 ? "Oct–Mar" : "Apr–Sep"}</span>`).join("");
+    const fyRow = fys.map((g) => `<span class="sh-fy" style="grid-column: span ${g.n}"><span class="fy-long">FY ${g.fy}–${String(g.fy + 1).slice(2)}</span><span class="fy-short">${String(g.fy).slice(2)}–${String(g.fy + 1).slice(2)}</span></span>`).join("");
+    const table = `<details class="sh-table"><summary>Show the numbers</summary><div class="table-wrap"><table class="stack-sm">
+        <caption class="sr-only">${esc(CH.name)} actual spending by half-year report</caption>
+        <thead><tr><th scope="col">Report</th>${SH_SEGS.map(([, l]) => `<th scope="col" class="num">${esc(l)}</th>`).join("")}<th scope="col" class="num">Actual total</th><th scope="col" class="num">vs. a year earlier</th><th scope="col" class="num">Allocated (not in total)</th></tr></thead>
+        <tbody>${ps.map((p, i) => { const y = yoy(i); return `<tr${p.id === DB.id ? ' class="hl"' : ""}><th scope="row">${esc(fmtDay(p.start))} – ${esc(fmtDay(p.end))}</th>${SH_SEGS.map(([k]) => `<td class="num">${money0(p[k])}</td>`).join("")}<td class="num"><strong>${money0(p.actual)}</strong></td><td class="num">${y == null ? "—" : `${y >= 0 ? "+" : "−"}${Math.abs(y).toFixed(1)}%`}</td><td class="num">${money0(p.allocated || 0)}</td></tr>`; }).join("")}</tbody></table></div></details>`;
+    return `<div class="sh${ps.length > 8 ? " many" : ""}" style="--n:${ps.length}">
+        <div class="sh-plot">
+          <div class="sh-grid" aria-hidden="true">${ticks.map((t) => `<span style="bottom:${(t / top * 100).toFixed(2)}%"><em>${tickLabel(t)}</em></span>`).join("")}</div>
+          <div class="sh-cols">${cols}</div>
+        </div>
+        <div class="sh-x" aria-hidden="true">${halves}</div>
+        <div class="sh-x sh-fyrow" aria-hidden="true">${fyRow}</div>
+      </div>
+      <div class="legend">${SH_SEGS.map(([, l, cls]) => `<span><i class="${cls}"></i>${esc(l)}</span>`).join("")}<span>Allocated costs (shared services charged to offices) are not included.</span></div>
+      ${table}`;
+  }
   function chamberHistoryCard() {
     const h = HISTORY[CH.id];
     if (!h || h.periods.length < 3) return "";
-    const series = h.periods.map((p, i) => ({ i, v: p.actual, cur: p.id === DB.id, note: `${int.format(p.rows)} lines` }));
     const last = h.periods.length - 1;
     const yoy = [];
     for (const [name, u] of Object.entries(h.units)) {
@@ -1820,9 +1869,16 @@
     yoy.sort((a, b) => b[3] - a[3]);
     const link = (name) => { const x = DB.byName.get(name); return x ? `<a href="${unitHref(x.id)}">${esc(displayName(x))}</a>` : esc(titleCase(name)); };
     const pFirst = h.periods[0], pLast = h.periods[last];
-    return `<section class="card"><div class="card-head"><h2>${esc(CH.name)} spending over the years</h2><span class="summary">${h.periods.length} half-year reports, ${esc(fmtDay(pFirst.start))} to ${esc(fmtDay(pLast.end))}</span></div>
-      ${histCols(series, h.periods)}
-      <p class="summary">${chgShort(pLast.actual, (h.periods[last - 2] || pFirst).actual)} versus the same half a year earlier; ${chgShort(pLast.actual, pFirst.actual)} since ${esc(halfLabel(pFirst))}. Not adjusted for inflation.</p>
+    const prevYear = h.periods[last - 2];
+    const kpis = `<div class="grid kpis small sh-kpis">
+        ${kpi(`Latest report · ${esc(halfLabel(pLast))}`, compact(pLast.actual), `actual spending, ${esc(fmtDay(pLast.start))} – ${esc(fmtDay(pLast.end))}`)}
+        ${prevYear ? kpi("Vs. a year earlier", chgShort(pLast.actual, prevYear.actual), `same half, ${esc(halfLabel(prevYear))}`) : ""}
+        ${kpi(`Since ${esc(halfLabel(pFirst))}`, chgShort(pLast.actual, pFirst.actual), `${h.periods.length} reports · not adjusted for inflation`)}
+        ${kpi("Payroll share, latest", pctf(pLast.ps / pLast.actual), `${pctf(pFirst.ps / pFirst.actual)} in ${esc(halfLabel(pFirst))}`)}
+      </div>`;
+    return `<section class="card"><div class="card-head"><h2>${esc(CH.name)} spending over the years</h2><span class="summary">${h.periods.length} half-year reports, ${esc(fmtDay(pFirst.start))} to ${esc(fmtDay(pLast.end))} · click a column to open that report</span></div>
+      ${kpis}
+      ${spendHistChart(h)}
       ${yoy.length ? `<div class="grid two"><div><h3 class="mini">Member offices up the most from a year earlier</h3><ul class="plainlist chg-list">${yoy.slice(0, 5).map((x) => `<li>${link(x[0])}<span class="chg-nums">${money0(x[2])} → ${money0(x[1])} <span class="up">+${money0(x[3])}</span></span></li>`).join("")}</ul></div>
         <div><h3 class="mini">Down the most</h3><ul class="plainlist chg-list">${yoy.slice(-5).reverse().map((x) => `<li>${link(x[0])}<span class="chg-nums">${money0(x[2])} → ${money0(x[1])} <span class="down">−${money0(-x[3])}</span></span></li>`).join("")}</ul></div></div>` : ""}
     </section>`;
@@ -3345,7 +3401,7 @@
   }
   /* ---------- Tooltips: hover with a mouse, tap on a phone, or focus with the keyboard ---------- */
   // Chart parts carry their numbers in title / <title>; turn those into a styled tooltip that also works on touch.
-  const TIP_SCOPE = ".cols, .bars, .stack, .hemi, svg.map, .bh-bars, .inlinebar, .lg-dots";
+  const TIP_SCOPE = ".cols, .sh-cols, .bars, .stack, .hemi, svg.map, .bh-bars, .inlinebar, .lg-dots";
   function prepareTips(root) {
     root.querySelectorAll(`${TIP_SCOPE.split(", ").map((s) => s + " [title]").join(", ")}, ${TIP_SCOPE.split(", ").map((s) => s + "[title]").join(", ")}`).forEach((el) => {
       el.dataset.tip = el.getAttribute("title"); el.removeAttribute("title");
