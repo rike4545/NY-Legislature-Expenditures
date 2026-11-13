@@ -16,6 +16,7 @@
   const DIST_BY_UNIT = {}; // chamber id -> Map(report unit name -> district)
   let DISTRICTS = [];  // districts of the current chamber
   let DISTRICT_BY_UNIT = new Map();
+  const BALLOTPEDIA = {}; // chamber id -> {office name: profile url}
   const dbFor = (periodId, chamberId) => DBS[(chamberId || CH.id) + "/" + periodId];
 
   /* ---------- formatting helpers ---------- */
@@ -113,6 +114,10 @@
         DIST[ch.id] = bundled ? bundled.data[ch.districts] || [] : await (await fetch(ch.districts)).json();
       } catch (e) { DIST[ch.id] = []; }
       DIST_BY_UNIT[ch.id] = new Map(DIST[ch.id].filter((d) => d.unitName).map((d) => [d.unitName, d]));
+      try {
+        const bpFile = `data/${ch.id}/ballotpedia.json`;
+        BALLOTPEDIA[ch.id] = bundled ? bundled.data[bpFile] || {} : await (await fetch(bpFile)).json();
+      } catch (e) { BALLOTPEDIA[ch.id] = {}; }
     }));
   }
 
@@ -132,6 +137,8 @@
   function indexPeriod(id, raw) {
     const { meta, units, types, payees, descs, rows } = raw;
 
+    const salaries = (raw.salaries || []).map(([u, p, titles, from, to, days, paid, annual, status]) => ({ u, p, titles, from, to, days, paid, annual, status }));
+    const salaryByKey = new Map(salaries.map((x) => [x.u + "|" + x.p, x]));
     const records = rows.map((r, i) => {
       const [u, t, date, voucher, p, svc, d, st, amt] = r;
       const unit = units[u], type = types[t];
@@ -170,7 +177,7 @@
     const typeIndex = Object.fromEntries(types.map((t, i) => [t.code, i]));
 
     const byName = new Map(unitStats.map((s) => [s.name, s]));
-    return { id, meta, units, types, payees, descs, records, unitStats, members, memberMedian, months, statuses, typeIndex, byName };
+    return { id, meta, units, types, payees, descs, records, unitStats, members, memberMedian, months, statuses, typeIndex, byName, salaries, salaryByKey };
   }
 
   /* ---------- period comparison helpers ---------- */
@@ -206,6 +213,22 @@
   function unitLink(id) {
     const u = DB.units[id];
     return `<a href="${unitHref(id)}">${esc(u.name)}</a>`;
+  }
+  function displayName(s) {
+    // "STIRPE, ALBERT A. JR." / "SENATOR JOSEPH P. ADDABBO, JR." -> "Albert A. Stirpe Jr." / "Joseph P. Addabbo Jr."
+    let n = s.name.replace(/^(SENATOR|SEN)\s+/, "");
+    if (CH.id === "assembly" && n.includes(",")) {
+      const [last, rest] = n.split(/,(.*)/s);
+      const sfx = (rest.match(/\b(JR|SR|II|III|IV)\.?\s*$/) || [""])[0];
+      n = `${rest.replace(sfx, "").trim()} ${last.trim()}${sfx ? " " + sfx.trim() : ""}`;
+    }
+    return titleCase(n.replace(/,\s*(JR|SR)/, " $1"));
+  }
+  function ballotpediaLink(s) {
+    if (s.kind !== "member") return "";
+    const url = (BALLOTPEDIA[CH.id] || {})[s.name];
+    const href = url || `https://ballotpedia.org/wiki/index.php?search=${encodeURIComponent(displayName(s))}`;
+    return `<a class="btn" href="${esc(href)}" target="_blank" rel="noopener" title="${url ? "Ballotpedia profile" : "Not on Ballotpedia's current-members list; opens a Ballotpedia search"}">${url ? "Ballotpedia profile" : "Search Ballotpedia"} ↗</a>`;
   }
   function districtChip(s) {
     const d = DISTRICT_BY_UNIT.get(s.name);
@@ -451,6 +474,7 @@
     const { types, payees, descs, meta } = DB;
     const recs = DB.records.filter((r) => r.u === s.id);
     const code = (r) => types[r.t].group;
+    const seenSal = new Set();
     const staffRows = recs.filter((r) => code(r) === "ps").sort((a, b) => b.amt - a.amt);
     const mo = recs.filter((r) => code(r) === "mo");
     const travel = recs.filter((r) => code(r) === "travel").sort((a, b) => (a.date || "").localeCompare(b.date || ""));
@@ -470,7 +494,7 @@
     return `
       <div class="crumbs"><a href="${buildHash("units", { kind: s.kind })}">← ${s.kind === "member" ? "Members" : "Offices"}</a></div>
       <div class="title-row"><h1>${esc(s.name)} ${kindChip(s.kind)}${districtChip(s)}</h1>
-        <a class="btn" href="${buildHash("compare", { u: s.kind === "member" ? [s.name, DB.members[Math.floor(DB.members.length / 2)].name].filter((v, i, a) => a.indexOf(v) === i).join("|") : s.name })}">Compare…</a></div>
+        <div class="title-actions">${ballotpediaLink(s)}<a class="btn" href="${buildHash("compare", { u: s.kind === "member" ? [s.name, DB.members[Math.floor(DB.members.length / 2)].name].filter((v, i, a) => a.indexOf(v) === i).join("|") : s.name })}">Compare…</a></div></div>
       <p class="lede">${rankNote || "Central office, committee, or task force."}</p>
       <div class="grid kpis">
         ${kpi("Actual spending", money0(s.actual), ps ? changeText(change(s.actual, ps.actual)) : (PREV ? "Not in prior period" : ""))}
@@ -486,14 +510,16 @@
       <section class="card">
         <div class="card-head"><h2>Payroll</h2><span class="summary">${staffRows.length} lines</span></div>
         ${staffRows.length ? `<div class="table-wrap"><table>
-          <thead><tr><th>Name</th><th>Title / description</th><th>Service dates</th><th>Pay status</th><th class="num">Amount</th></tr></thead>
-          <tbody>${staffRows.map((r) => `<tr>
+          <thead><tr><th>Name</th><th>Title / description</th><th>Service dates</th><th>Pay status</th><th class="num">Amount</th><th class="num" title="This person's regular pay in this office, scaled to a full year">Annualized</th></tr></thead>
+          <tbody>${staffRows.map((r) => { const sal = DB.salaryByKey.get(s.id + "|" + r.p); const showSal = sal && !seenSal.has(r.p) && (seenSal.add(r.p), true); return `<tr>
             <td><a href="${buildHash("records", { payee: payees[r.p] })}">${esc(payees[r.p])}</a></td>
             <td>${esc(titleCase(descs[r.d]))}</td>
             <td class="nowrap mono">${esc(r.svc)}</td>
             <td>${r.st ? `<span class="chip muted" title="${esc(statusName(r.st))}">${esc(r.st)}${/as published/.test(statusName(r.st)) ? "" : ` · ${esc(statusName(r.st).split(" (")[0])}`}</span>` : ""}</td>
-            <td class="num${r.amt < 0 ? " neg" : ""}">${money(r.amt)}</td></tr>`).join("")}</tbody>
-        </table></div>` : `<p class="empty">No payroll lines.</p>`}
+            <td class="num${r.amt < 0 ? " neg" : ""}">${money(r.amt)}</td>
+            <td class="num">${showSal ? `<a href="${buildHash("salaries", { q: `"${payees[r.p].toLowerCase()}"` })}" title="${esc(`${int.format(sal.days)} days of regular pay (${money(sal.paid)}) scaled to 364 days`)}">${money0(sal.annual)}</a>` : ""}</td></tr>`; }).join("")}</tbody>
+        </table></div>
+        <p class="summary">Annualized = a person's regular pay in this office divided by the days it covers, scaled to a year of 26 biweekly pay periods. One-time payments (lump sums, deferrals, stipends) aren't annualized. <a href="${buildHash("salaries", {})}">All salaries →</a></p>` : `<p class="empty">No payroll lines.</p>`}
       </section>
 
       <div class="grid two">
@@ -653,6 +679,86 @@
     app.querySelector("#rexport").addEventListener("click", () => downloadCSV("assembly-expenditures-filtered.csv",
       ["Period", "Voucher date", "Member/office", "Unit kind", "Expense type", "Payee", "Service dates", "Description", "Pay status", "Voucher", "Amount", "Allocated (informational)"],
       list.map((r) => [periodName(DB), r.date, units[r.u].name, units[r.u].kind, types[r.t].code, payees[r.p], r.svc, descs[r.d], r.st, r.voucher, r.amt.toFixed(2), r.allocated ? "yes" : "no"])));
+    return null;
+  }
+
+  function median(arr) {
+    const a = arr.slice().sort((x, y) => x - y), m = Math.floor(a.length / 2);
+    return a.length ? (a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2) : 0;
+  }
+  function viewSalaries(params) {
+    const state = { q: params.q || "", kind: params.kind || "", min: params.min || "", sort: params.sort || "annual", dir: params.dir || "desc", page: Math.max(1, Number(params.page) || 1) };
+    const tokens = tokenize(state.q);
+    const { units, payees } = DB;
+    const all = DB.salaries;
+    let list = all.filter((x) => (!state.kind || units[x.u].kind === state.kind)
+      && (!state.min || x.annual >= Number(state.min))
+      && matchesTokens(`${payees[x.p]} | ${x.titles} | ${units[x.u].name}`.toLowerCase(), tokens));
+    const key = { name: (x) => payees[x.p], title: (x) => x.titles, office: (x) => units[x.u].name, annual: (x) => x.annual, paid: (x) => x.paid, days: (x) => x.days }[state.sort] || ((x) => x.annual);
+    list.sort((a, b) => { const x = key(a), y = key(b); const c = typeof x === "string" ? x.localeCompare(y) : x - y; return state.dir === "asc" ? c : -c; });
+    const pages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+    const page = Math.min(state.page, pages);
+    const slice = list.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+    // Most common titles, with the spread of annualized pay (members' own salaries excluded).
+    const byTitle = new Map();
+    for (const x of list) {
+      if (/^MEMBER( OF ASSEMBLY)?$/.test(x.titles)) continue;
+      const t = x.titles.split(" → ").pop();
+      if (!byTitle.has(t)) byTitle.set(t, []);
+      byTitle.get(t).push(x.annual);
+    }
+    const titles = [...byTitle.entries()].filter(([, v]) => v.length >= 3).sort((a, b) => b[1].length - a[1].length).slice(0, 12);
+    const tmax = Math.max(1, ...titles.map(([, v]) => Math.max(...v)));
+
+    const staff = list.filter((x) => !/^MEMBER( OF ASSEMBLY)?$/.test(x.titles));
+    app.innerHTML = `
+      <h1>Salaries</h1>
+      <p class="lede">Every person on the ${esc(CH.name)} payroll in ${esc(periodName(DB))}, with their regular pay normalized to a yearly rate so part-period and full-period employees can be compared.</p>
+      <div class="callout"><strong>How it's calculated.</strong> For each person in each office, regular pay lines are added up and divided by the days their service dates cover, then scaled to 364 days (26 biweekly pay periods). A member paid $70,999.98 for 182 days annualizes to $142,000, the legislative base salary. One-time payments (lump-sum vacation, deferral payments, stipends, allowances, back pay) and stints under one pay period are left out. ${CH.id === "senate" ? "Most Senate member salary lines have no start date in the source, so senators' own salaries mostly can't be annualized." : ""} It's an estimate of a yearly rate, not a reported salary.</div>
+      <div class="grid kpis">
+        ${kpi("People annualized", int.format(list.length), `of ${int.format(all.length)} in this report`)}
+        ${kpi("Median staff rate", money0(median(staff.map((x) => x.annual))), "excluding members")}
+        ${kpi("Staff at $100K+", int.format(staff.filter((x) => x.annual >= 100000).length), "annualized")}
+        ${kpi("Highest rate", staff.length ? money0(Math.max(...staff.map((x) => x.annual))) : "—", "excluding members")}
+      </div>
+      ${titles.length ? `<section class="card"><div class="card-head"><h2>Annualized pay by title</h2><span class="summary">most common titles · bar = lowest to highest, dot = median</span></div>
+        <div class="ranges">${titles.map(([t, v]) => { const lo = Math.min(...v), hi = Math.max(...v), md = median(v); return `<div class="range-row">
+          <a class="range-name" href="${buildHash("salaries", { q: `"${t.toLowerCase()}"` })}">${esc(titleCase(t))} <span class="summary">· ${v.length}</span></a>
+          <div class="range-track"><span class="range-bar" style="left:${(lo / tmax * 100).toFixed(1)}%;width:${Math.max(0.5, (hi - lo) / tmax * 100).toFixed(1)}%"></span><span class="range-med" style="left:${(md / tmax * 100).toFixed(1)}%" title="median ${money0(md)}"></span></div>
+          <span class="range-val">${money0(md)}</span></div>`; }).join("")}</div></section>` : ""}
+      <div class="filters">
+        <label class="wide">Search name, title or office<input type="search" id="sq" value="${esc(state.q)}" placeholder="e.g. chief of staff, counsel, Heastie"></label>
+        <label>Office type<select id="skind"><option value="">All offices</option><option value="member"${state.kind === "member" ? " selected" : ""}>Member offices</option><option value="office"${state.kind === "office" ? " selected" : ""}>Central offices</option></select></label>
+        <label>Annualized at least $<input type="number" id="smin" value="${esc(state.min)}" step="1000" inputmode="numeric"></label>
+      </div>
+      <div class="toolbar"><span class="summary"><strong>${int.format(list.length)}</strong> people · median <strong>${money0(median(list.map((x) => x.annual)))}</strong></span>
+        <button id="sexport" class="primary"${list.length ? "" : " disabled"}>Export ${int.format(list.length)} as CSV</button></div>
+      <div class="table-wrap"><table>
+        <thead><tr>${sortHeader("Name", "name", state)}${sortHeader("Title", "title", state)}${sortHeader("Office", "office", state)}<th>Covered</th>${sortHeader("Days", "days", state, "num")}${sortHeader("Regular pay", "paid", state, "num")}${sortHeader("Annualized", "annual", state, "num")}</tr></thead>
+        <tbody>${slice.length ? slice.map((x) => `<tr>
+          <td><a href="${buildHash("records", { payee: payees[x.p] })}">${highlight(payees[x.p], tokens)}</a></td>
+          <td>${highlight(titleCase(x.titles), tokens)}</td>
+          <td><a href="${unitHref(x.u)}">${highlight(units[x.u].name, tokens)}</a></td>
+          <td class="nowrap mono">${esc(x.from)} – ${esc(x.to)}</td>
+          <td class="num">${int.format(x.days)}</td>
+          <td class="num">${money(x.paid)}</td>
+          <td class="num"><strong>${money0(x.annual)}</strong></td></tr>`).join("") : `<tr><td colspan="7" class="empty">No one matches.</td></tr>`}</tbody>
+      </table></div>
+      <div class="pager"><button id="sprev"${page <= 1 ? " disabled" : ""}>← Prev</button><span>Page ${page} of ${int.format(pages)}</span><button id="snext"${page >= pages ? " disabled" : ""}>Next →</button></div>`;
+
+    const update = (patch) => go("salaries", { ...state, page: "", ...patch }, true);
+    const sq = app.querySelector("#sq");
+    let timer;
+    sq.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(() => { update({ q: sq.value }); focusEnd("#sq"); }, 220); });
+    app.querySelector("#skind").addEventListener("change", (e) => update({ kind: e.target.value }));
+    app.querySelector("#smin").addEventListener("change", (e) => update({ min: e.target.value }));
+    wireSortHeaders(app, state, update, { name: "asc", title: "asc", office: "asc" });
+    app.querySelector("#sprev").addEventListener("click", () => { update({ page: page - 1 }); window.scrollTo(0, 0); });
+    app.querySelector("#snext").addEventListener("click", () => { update({ page: page + 1 }); window.scrollTo(0, 0); });
+    app.querySelector("#sexport").addEventListener("click", () => downloadCSV(`${CH.id}-salaries-annualized.csv`,
+      ["Chamber", "Period", "Name", "Title(s)", "Office", "From", "To", "Days covered", "Regular pay", "Annualized"],
+      list.map((x) => [CH.name, periodName(DB), payees[x.p], x.titles, units[x.u].name, x.from, x.to, x.days, x.paid.toFixed(2), x.annual.toFixed(2)])));
     return null;
   }
 
@@ -1048,7 +1154,7 @@
       <div class="crumbs"><a href="${buildHash("map", {})}">← District map</a></div>
       <div class="title-row district-head">
         <div><h1>${esc(CH.name)} District ${d.district}</h1>
-          <p class="lede">${esc(d.member)}${d.party ? ` · ${esc(d.party)}` : ""}${s ? ` · <a href="${unitHref(s.id)}">member office page →</a>` : ""}</p></div>
+          <p class="lede">${esc(d.member)}${d.party ? ` · ${esc(d.party)}` : ""}${s ? ` · <a href="${unitHref(s.id)}">member office page →</a>` : ""}${s && (BALLOTPEDIA[CH.id] || {})[s.name] ? ` · <a href="${esc(BALLOTPEDIA[CH.id][s.name])}" target="_blank" rel="noopener">Ballotpedia ↗</a>` : ""}</p></div>
         <div class="dnav"><a class="btn" href="${dHref(prevD)}" aria-label="Previous district">← ${CH.abbr} ${prevD.district}</a>${picker}<a class="btn" href="${dHref(nextD)}" aria-label="Next district">${CH.abbr} ${nextD.district} →</a></div>
       </div>`;
 
@@ -1179,7 +1285,7 @@
     const v = el.value; el.value = ""; el.value = v;
   }
   function setActiveTab(view) {
-    const tab = { overview: "overview", units: "units", unit: "units", records: "records", payees: "payees", about: "about", compare: "compare", map: "map", district: "map" }[view] || "overview";
+    const tab = { overview: "overview", units: "units", unit: "units", records: "records", payees: "payees", about: "about", compare: "compare", map: "map", district: "map", salaries: "salaries" }[view] || "overview";
     document.querySelectorAll(".tabs a").forEach((a) => a.classList.toggle("active", a.dataset.tab === tab));
   }
   let lastView = "";
@@ -1198,6 +1304,7 @@
       case "unit": html = viewUnit(arg); break;
       case "records": html = viewRecords(params); break;
       case "payees": html = viewPayees(params); break;
+      case "salaries": html = viewSalaries(params); break;
       case "about": html = viewAbout(); break;
       case "compare": html = viewCompare(params); break;
       case "map": html = viewMap(params); break;
@@ -1251,7 +1358,7 @@
     sw.querySelectorAll("button").forEach((b) => { b.classList.toggle("on", b.dataset.c === CH.id); b.setAttribute("aria-pressed", b.dataset.c === CH.id); });
     document.title = `NY ${CH.name} Expenditures · ${periodName(DB)}`;
     // Keep the chamber and period when moving between tabs.
-    const tabView = { overview: "", units: "units", records: "records", map: "map", compare: "compare", payees: "payees", about: "about" };
+    const tabView = { overview: "", units: "units", records: "records", map: "map", compare: "compare", salaries: "salaries", payees: "payees", about: "about" };
     document.querySelectorAll(".tabs a[data-tab]").forEach((a) => { a.href = buildHash(tabView[a.dataset.tab] ?? a.dataset.tab, {}); });
     const brand = document.querySelector(".brand-title");
     if (brand) brand.href = buildHash("", {});

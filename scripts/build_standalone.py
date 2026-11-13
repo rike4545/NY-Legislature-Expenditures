@@ -18,7 +18,7 @@ js = (root / "assets" / "app.js").read_text(encoding="utf-8")
 import json
 chambers = json.loads((root / "data" / "chambers.json").read_text(encoding="utf-8"))
 files = ([p["file"] for c in chambers for p in c["periods"]] + [p["travel"] for c in chambers for p in c["periods"] if p.get("travel")]
-         + [c["districts"] for c in chambers])
+         + [c["districts"] for c in chambers] + [f"data/{c['id']}/ballotpedia.json" for c in chambers])
 bundle = {"chambers": chambers,
           "data": {f: json.loads((root / f).read_text(encoding="utf-8")) for f in files if (root / f).exists()}}
 data = json.dumps(bundle, separators=(",", ":"), ensure_ascii=False).replace("</", "<\\/")

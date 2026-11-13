@@ -21,6 +21,8 @@ Outputs:
 
 Both chambers are normalised to the same row layout:
     [unit, type, date, voucher, payee, serviceDates, desc, status, amount]
+Each period file also carries "salaries": one row per person per office with their
+regular pay annualized (see annualize_people()).
 Each expense type carries a "group" (ps, mo, travel, allocated) so the site can
 total payroll, operations and travel the same way for either chamber.
 """
@@ -175,6 +177,64 @@ CHAMBERS = {
 }
 
 
+# New York State pays biweekly: 26 pay periods = 364 days. A member's $70,999.98 for
+# 09/25/25-03/25/26 (182 days) annualizes to exactly $142,000, the legislative base salary.
+PAY_PERIOD_DAYS = 14
+YEAR_DAYS = 26 * PAY_PERIOD_DAYS
+ONE_TIME = re.compile(r"LUMP SUM|DEFERRAL|STIPEND|ALLOWANCE|PAYMENT FOR SERVICES RENDERED|RETRO", re.I)
+
+
+def service_range(svc: str):
+    s = svc.strip()
+    m = re.fullmatch(r"(\d{1,2})/(\d{1,2})/(\d{2})-(\d{1,2})/(\d{1,2})/(\d{2})", s)  # Assembly 09/11/25-03/11/26
+    if m:
+        a = list(map(int, m.groups()))
+        return date(2000 + a[2], a[0], a[1]), date(2000 + a[5], a[3], a[4])
+    m = re.fullmatch(r"(\d{4}-\d{2}-\d{2}) – (\d{4}-\d{2}-\d{2})", s)  # Senate 2025-09-11 – 2026-03-11
+    if m:
+        return date.fromisoformat(m.group(1)), date.fromisoformat(m.group(2))
+    return None  # a single date: a one-time payment, or a line without a start date
+
+
+def annualize_people(rows, types_cfg):
+    """One row per person per office: regular pay scaled to a full year of biweekly pay.
+
+    A person's regular payroll lines in an office (those with a service-date range) are added
+    up and divided by the number of days those ranges cover, then scaled to 364 days. Pooling
+    matters: some offices split one person's pay into date segments whose amounts don't follow
+    the segment lengths, so a line-by-line rate would be wrong. Lump sums, deferral payments,
+    stipends, allowances and back pay are one-time amounts and are left out; so are people
+    covered for less than one pay period. Output rows:
+      [unit, payee, titles, first day, last day, days covered, regular pay, annualized, status]
+    """
+    people = {}
+    for r in rows:
+        if types_cfg[r["type"]][1] != "ps" or ONE_TIME.search(r["desc"]):
+            continue
+        rng = service_range(r["svc"])
+        if not rng:
+            continue
+        p = people.setdefault((r["unit"], r["payee"]), {"days": set(), "paid": 0.0, "titles": [], "status": "", "last": rng[1]})
+        d = rng[0]
+        while d <= rng[1]:
+            p["days"].add(d.toordinal())
+            d = date.fromordinal(d.toordinal() + 1)
+        p["paid"] += r["amount"]
+        if r["desc"] not in p["titles"]:
+            p["titles"].append(r["desc"])
+        if rng[1] >= p["last"]:
+            p["last"], p["status"] = rng[1], r["status"]
+    out = []
+    for (unit, payee), p in people.items():
+        days = len(p["days"])
+        if days < PAY_PERIOD_DAYS or p["paid"] <= 0:
+            continue
+        out.append([unit, payee, " → ".join(p["titles"]), date.fromordinal(min(p["days"])).isoformat(),
+                    date.fromordinal(max(p["days"])).isoformat(), days, round(p["paid"], 2),
+                    round(p["paid"] * YEAR_DAYS / days, 2), p["status"]])
+    return out
+
+
 def build_one(chamber: str, cfg: dict, src: pathlib.Path, dst: pathlib.Path) -> dict:
     start, end = period_from_filename(src.name)
     rows, members = cfg["read"](src, start, end)
@@ -189,6 +249,7 @@ def build_one(chamber: str, cfg: dict, src: pathlib.Path, dst: pathlib.Path) -> 
 
     out_rows = [[idx("units", r["unit"]), idx("types", r["type"]), r["date"], r["voucher"], idx("payees", r["payee"]),
                  r["svc"], idx("descs", r["desc"]), r["status"], round(r["amount"], 2)] for r in rows]
+    salaries = [[idx("units", u), idx("payees", pay), *rest] for u, pay, *rest in annualize_people(rows, cfg["types"])]
 
     units = [{"name": u, "kind": "member" if u in members else "office"} for u in tables["units"]]
     types = [{"code": t, "label": cfg["types"][t][0], "group": cfg["types"][t][1],
@@ -217,11 +278,13 @@ def build_one(chamber: str, cfg: dict, src: pathlib.Path, dst: pathlib.Path) -> 
         "meta": meta, "units": units, "types": types,
         "payees": list(tables["payees"]), "descs": list(tables["descs"]),
         "fields": ["unit", "type", "date", "voucher", "payee", "serviceDates", "desc", "status", "amount"],
+        "salaryFields": ["unit", "payee", "titles", "from", "to", "daysCovered", "regularPay", "annualized", "status"],
+        "salaries": salaries,
         "rows": out_rows,
     }
     dst.parent.mkdir(parents=True, exist_ok=True)
     dst.write_text(json.dumps(payload, separators=(",", ":"), ensure_ascii=False), encoding="utf-8")
-    print(f"{chamber:8s} {start}..{end}: {len(out_rows):,} rows, {len(members)} members, "
+    print(f"{chamber:8s} {start}..{end}: {len(out_rows):,} rows, {len(salaries)} people annualized, {len(members)} members, "
           f"actual ${actual:,.2f}, allocated ${by_group['allocated']:,.2f}")
     return meta
 
