@@ -17,6 +17,8 @@
   let DISTRICTS = [];  // districts of the current chamber
   let DISTRICT_BY_UNIT = new Map();
   const BALLOTPEDIA = {}; // chamber id -> {office name: profile url}
+  const CAMPAIGN = {}; // chamber id -> campaign finance by district (State Board of Elections, 2025-26)
+  let BUDGET = null; // Legislature appropriations from the FY 2027 Executive Budget
   const MEMBERS = {};     // chamber id -> {office name: {district, contact, roles, offices, assumedOffice, election}}
   let ELECTION_SOURCES = {};
   const dbFor = (periodId, chamberId) => DBS[(chamberId || CH.id) + "/" + periodId];
@@ -107,6 +109,7 @@
     const bundled = window.__EXPENDITURE_BUNDLE__;
     CHAMBERS = bundled ? bundled.chambers : await (await fetch("data/chambers.json")).json();
     await loadElectionSources(bundled);
+    await loadBudget(bundled);
     await Promise.all(CHAMBERS.map(async (ch) => {
       await Promise.all(ch.periods.map(async (pm) => {
         const raw = bundled ? bundled.data[pm.file] : await (await fetch(pm.file)).json();
@@ -136,9 +139,16 @@
         const bpFile = `data/${ch.id}/ballotpedia.json`;
         BALLOTPEDIA[ch.id] = bundled ? bundled.data[bpFile] || {} : await (await fetch(bpFile)).json();
       } catch (e) { BALLOTPEDIA[ch.id] = {}; }
+      try {
+        const cfFile = `data/${ch.id}/campaign_finance.json`;
+        CAMPAIGN[ch.id] = bundled ? bundled.data[cfFile] || null : await (await fetch(cfFile)).json();
+      } catch (e) { CAMPAIGN[ch.id] = null; }
     }));
   }
 
+  async function loadBudget(bundled) {
+    try { BUDGET = bundled ? bundled.data["data/budget/legislature.json"] || null : await (await fetch("data/budget/legislature.json")).json(); } catch (e) { BUDGET = null; }
+  }
   async function loadElectionSources(bundled) {
     try { ELECTION_SOURCES = bundled ? bundled.data["data/election_sources.json"] || {} : await (await fetch("data/election_sources.json")).json(); } catch (e) { ELECTION_SOURCES = {}; }
   }
@@ -359,6 +369,65 @@
     // "January 1, 2023" or "2011"
     return t || "";
   }
+  /* Campaign finance for every registered candidate in a district, 2025-26. */
+  function campaignCard(district, memberName) {
+    const cf = CAMPAIGN[CH.id];
+    if (!cf || district == null) return "";
+    const rows = (cf.districts[String(district)] || []).slice();
+    const surname = (memberName || "").toLowerCase();
+    const isMember = (c) => surname && c.name.toLowerCase().split(/[^a-z]+/).filter((w) => w.length > 2).some((w) => surname.includes(w)) ;
+    const total = (c) => Object.values(c.raised).reduce((a, b) => a + b, 0);
+    const linked = rows.filter((c) => c.committees.length);
+    const unlinked = rows.filter((c) => !c.committees.length);
+    const max = Math.max(1, ...linked.map(total));
+    const asOf = cf.asOf ? fmtDay(cf.asOf) : "";
+    return `<section class="card campaign"><div class="card-head"><h2>Campaign money in ${CH.abbr} ${esc(String(district))}, 2025–26</h2><span class="summary">raised and spent by each candidate's committees · State Board of Elections${asOf ? `, as of ${esc(asOf)}` : ""}</span></div>
+      ${linked.length ? `<div class="table-wrap"><table class="cf-table">
+        <caption class="sr-only">Money raised and spent by candidates in ${CH.abbr} ${esc(String(district))}</caption>
+        <thead><tr><th scope="col">Candidate</th><th scope="col" class="num">Raised</th><th scope="col">Where it came from</th><th scope="col" class="num" title="Itemized contributions from individuals of $250 or less">Gifts ≤ $250</th><th scope="col" class="num">Spent</th></tr></thead>
+        <tbody>${linked.map((c) => { const t = total(c); const parts = [["A", "Individuals", "cf-a"], ["B", "Corporations", "cf-b"], ["C", "PACs, unions & other", "cf-c"], ["D", "In-kind", "cf-d"], ["G", "Transfers in", "cf-g"]]; return `<tr${isMember(c) ? ' class="inc"' : ""}>
+          <th scope="row"><span class="cf-name">${esc(c.name)}</span>${isMember(c) ? ' <span class="summary">(member)</span>' : ""}<br><span class="summary">${c.committees.map((x) => esc(x[1])).join(" · ")}</span></th>
+          <td class="num"><strong>${money0(t)}</strong></td>
+          <td><div class="stack cf-stack" style="width:${Math.max(2, t / max * 100).toFixed(1)}%" role="img" aria-label="${esc(parts.filter(([k]) => c.raised[k] > 0).map(([k, l]) => `${l} ${money0(c.raised[k])}`).join(", ") || "nothing reported")}">${parts.map(([k, l, cls]) => c.raised[k] > 0 ? `<span class="${cls}" style="flex:${c.raised[k]}" title="${l}: ${money(c.raised[k])}"></span>` : "").join("")}</div></td>
+          <td class="num">${c.small[0] ? int.format(c.small[0]) : "—"}</td>
+          <td class="num">${money0(c.spent)}</td></tr>`; }).join("")}</tbody></table></div>
+        <div class="legend"><span><i class="cf-a"></i>Individuals</span><span><i class="cf-b"></i>Corporations</span><span><i class="cf-c"></i>PACs, unions &amp; other</span><span><i class="cf-d"></i>In-kind</span><span><i class="cf-g"></i>Transfers in</span></div>` : `<p class="summary">No 2025–26 contributions found for a committee we could link to a candidate in this district.</p>`}
+      ${unlinked.length ? `<p class="summary">Also registered here, with no linked committee activity: ${unlinked.map((c) => esc(c.name)).join(", ")}.</p>` : ""}
+      <p class="summary">Itemized contributions and expenditures filed with the <a href="https://publicreporting.elections.ny.gov/" target="_blank" rel="noopener">NYS Board of Elections</a> for 2025 and 2026 (<a href="https://data.ny.gov/d/4j2b-6a2j" target="_blank" rel="noopener">data.ny.gov</a>). Committees are linked to candidates by name, so each committee is listed; public matching funds from the Public Campaign Finance Board aren't included. Raised counts monetary and in-kind contributions plus transfers from other committees.</p>
+    </section>`;
+  }
+  function focusHref(district) {
+    return `https://nysfocus.com/interactives/2026-election-results/${CH.id === "senate" ? "state-senate" : "assembly"}/district-${district}/`;
+  }
+
+  /* State budget appropriations vs. what the expenditure reports show for the same fiscal year. */
+  function budgetCard() {
+    const b = BUDGET && BUDGET.chambers[CH.id];
+    if (!b) return "";
+    const [fyStart, fyEnd] = BUDGET.fiscalYears.appropriated;
+    const pms = CH.periods.filter((pm) => pm.start >= fyStart && pm.end <= fyEnd);
+    if (pms.length < 2) return "";
+    const skip = new Set(b.separateOffices || []);
+    const spent = { ps: 0, mo: 0, travel: 0 };
+    for (const pm of pms) for (const u of dbFor(pm.id).unitStats) if (!skip.has(u.name)) for (const g of ["ps", "mo", "travel"]) spent[g] += u.byType[g] || 0;
+    const appr = { ps: 0, mo: 0, travel: 0 }, req = { ps: 0, mo: 0, travel: 0 };
+    for (const [, g, a, r] of b.lines) { appr[g] += a; req[g] += r; }
+    const rows = [["ps", "Payroll (personal service)"], ["mo", "Operations (supplies, contracts, equipment)"], ["travel", "Travel"]];
+    const tot = (o) => o.ps + o.mo + o.travel;
+    const pct = (a, x) => (a ? (x / a * 100).toFixed(0) + "%" : "—");
+    const bar = (a, x) => `<span class="track"><span class="fill" style="width:${Math.min(100, a ? x / a * 100 : 0).toFixed(1)}%"></span></span>`;
+    const mem = b.lines[0];
+    return `<section class="card budget"><div class="card-head"><h2>Budget vs. spending, fiscal year 2025–26</h2><span class="summary">State appropriation for the ${esc(CH.name)} compared with what its two expenditure reports show for Apr 2025 – Mar 2026</span></div>
+      <div class="table-wrap"><table>
+        <caption class="sr-only">${esc(CH.name)} appropriations and reported spending, fiscal year 2025–26</caption>
+        <thead><tr><th scope="col">Category</th><th scope="col" class="num">Appropriated 2025–26</th><th scope="col" class="num">Reported spent</th><th scope="col">Share used</th><th scope="col" class="num">Requested 2026–27</th></tr></thead>
+        <tbody>${rows.map(([g, l]) => `<tr><th scope="row">${l}</th><td class="num">${money0(appr[g])}</td><td class="num">${money0(spent[g])}</td><td class="share">${bar(appr[g], spent[g])}<span>${pct(appr[g], spent[g])}</span></td><td class="num">${money0(req[g])}</td></tr>`).join("")}
+          <tr class="total"><th scope="row">Total</th><td class="num"><strong>${money0(tot(appr))}</strong></td><td class="num"><strong>${money0(tot(spent))}</strong></td><td class="share">${bar(tot(appr), tot(spent))}<span>${pct(tot(appr), tot(spent))}</span></td><td class="num"><strong>${money0(tot(req))}</strong></td></tr></tbody>
+      </table></div>
+      <p class="summary">Appropriations from the <a href="${esc(BUDGET.url)}" target="_blank" rel="noopener">FY 2027 Executive Budget presentation for the Legislature</a> (NYS Division of the Budget). They include ${esc(mem[0].toLowerCase())}: ${money0(mem[2])}, exactly ${CH.id === "senate" ? 63 : 150} × $142,000. An appropriation is a spending ceiling, not a bill, and the reports don't line up with it exactly: payroll is paid in arrears (April checks pay for March work), bills from one year are often paid in the next, and unspent appropriations from earlier years can be reappropriated, so a line can show more than 100%. ${esc(BUDGET.separateNote)}${b.related ? " " + b.related.map((r) => typeof r[1] === "number" ? `${esc(r[0])} has its own appropriation (${money0(r[1])} in 2025–26).` : `The ${esc(r[0])} is ${esc(r[1])}.`).join(" ") : ""}</p>
+    </section>`;
+  }
+
   function profileCard(s) {
     if (s.kind !== "member") return "";
     const m = memberInfo(s);
@@ -393,6 +462,7 @@
           ${st ? `<p>${electionChip(s)} ${st.cls === "change" ? `<span class="echip change soft">New member in Jan 2027</span>` : ""}</p>
           ${st.e ? `${(() => { const parts = [st.e.note ? esc(st.e.note) : "", st.e.successor ? `${successorLabel(st.e)}: <strong>${esc(st.e.successor)}</strong>${st.e.successorParty ? ` (${esc(st.e.successorParty)})` : ""}` : st.cls === "change" ? "Successor not yet reported in our sources" : ""].filter(Boolean); return parts.length ? `<p>${parts.join(". ")}.</p>` : ""; })()}
             ${boeResult(m)}
+            ${m.district ? `<p class="summary"><a href="${focusHref(m.district)}" target="_blank" rel="noopener">Precinct-by-precinct results map ${I.ext}</a> (New York Focus)</p>` : ""}
             <p class="summary">Sources: ${srcs.map((x) => `<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.title.split(":")[0])}</a> (${esc(x.as_of)})`).join(" · ")}. Results are unofficial until certified.</p>`
           : `${boeResult(m)}<p class="summary">Not among the departures or losses reported in our sources (City &amp; State, Greenberg Traurig, Wikipedia). Results are unofficial until certified.</p>`}` : ""}
         </div>
@@ -507,6 +577,7 @@
       </div>
       ${chambersCard()}
       ${periodsCard()}
+      ${budgetCard()}
       <div class="grid two">
         <section class="card"><div class="card-head"><h2>By expense type</h2><span class="summary">grey = allocated</span></div>${bars(typeBars)}</section>
         <section class="card"><div class="card-head"><h2>Vouchered spending by month</h2><span class="summary">M&amp;O + travel</span></div>
@@ -729,6 +800,7 @@
         <div class="title-actions">${ballotpediaLink(s)}<a class="btn" href="${buildHash("compare", { u: s.kind === "member" ? [s.name, DB.members[Math.floor(DB.members.length / 2)].name].filter((v, i, a) => a.indexOf(v) === i).join("|") : s.name })}">Compare…</a></div></div>
       <p class="lede">${rankNote || "Central office, committee, or task force."}</p>
       ${profileCard(s)}
+      ${s.kind === "member" && memberInfo(s).district ? campaignCard(memberInfo(s).district, displayName(s)) : ""}
       <div class="grid kpis">
         ${kpi("Actual spending", money0(s.actual), ps ? changeText(change(s.actual, ps.actual)) : (PREV ? "Not in prior period" : ""))}
         ${kpi("Per month", money0(s.perMonth), s.partial ? `active ≈${s.months} of ${DB.periodMonths} months` : `${DB.periodMonths}-month period${s.kind === "member" ? ` · member median ${money0(DB.memberMonthlyMedian)}` : ""}`)}
@@ -1473,6 +1545,7 @@
         <section class="card"><div class="card-head"><h2>M&amp;O + travel by month</h2><span class="summary">click a month for its records</span></div>
           ${columns(monthlyFor(DB, s.id).map((m) => ({ ...m, href: buildHash("records", { unit: s.id, month: m.key }) })))}</section>
       </div>
+      ${campaignCard(d.district, d.member)}
       <p class="summary">Neighbors are districts that share a boundary. Use ← → on your keyboard to step through districts.</p>`;
 
     app.querySelector("#dpick").addEventListener("change", (e) => { location.hash = buildHash("district/" + e.target.value, {}); });

@@ -1,0 +1,171 @@
+{
+ "source": "NYS Division of the Budget, FY 2027 Executive Budget, Agency Presentations: The Legislature (published Jan 15, 2026)",
+ "url": "https://www.budget.ny.gov/pubs/archive/fy27/ex/agencies/pdf/legislature.pdf",
+ "note": "General Fund appropriations. 'appropriated' = enacted FY 2025-26 (Apr 1, 2025 - Mar 31, 2026); 'requested' = the Legislature's FY 2026-27 request as presented in the Executive Budget.",
+ "fiscalYears": {
+  "appropriated": [
+   "2025-04-01",
+   "2026-03-31"
+  ],
+  "requested": [
+   "2026-04-01",
+   "2027-03-31"
+  ]
+ },
+ "chambers": {
+  "senate": {
+   "lines": [
+    [
+     "Member salaries (63, Legislative Law \u00a75)",
+     "ps",
+     8946000,
+     8946000
+    ],
+    [
+     "Member allowances for leadership posts (\u00a75-a)",
+     "ps",
+     1289500,
+     1289500
+    ],
+    [
+     "Staff of members' offices and standing committees",
+     "ps",
+     44476284,
+     46168354
+    ],
+    [
+     "Staff for Senate operations",
+     "ps",
+     42612932,
+     44328609
+    ],
+    [
+     "Senate student program office",
+     "ps",
+     1545272,
+     1856653
+    ],
+    [
+     "Supplies and materials",
+     "mo",
+     6365595,
+     6365595
+    ],
+    [
+     "Travel",
+     "travel",
+     1554141,
+     1554141
+    ],
+    [
+     "Contractual services (incl. members' childcare costs)",
+     "mo",
+     14557989,
+     14557989
+    ],
+    [
+     "Equipment",
+     "mo",
+     2623233,
+     2623233
+    ]
+   ],
+   "total": [
+    123970946,
+    127690074
+   ],
+   "related": [
+    [
+     "Senate Finance Committee",
+     "funded within the Senate's budget"
+    ]
+   ],
+   "separateOffices": [
+    "TF/DEMOGRAPHIC RESEARCH AND REAPP",
+    "LC/LEGISLATIVE ETHICS COMMISSION",
+    "LEGISLATIVE HEALTH SERVICE",
+    "LEGISLATIVE LIBRARY",
+    "LEGISLATIVE MESSENGER SERVICE"
+   ]
+  },
+  "assembly": {
+   "lines": [
+    [
+     "Member salaries (150, Legislative Law \u00a75)",
+     "ps",
+     21300000,
+     21300000
+    ],
+    [
+     "Member allowances for leadership posts (\u00a75-a)",
+     "ps",
+     1592500,
+     1592500
+    ],
+    [
+     "Staff of members' offices, committees and subcommittees",
+     "ps",
+     38000000,
+     39000000
+    ],
+    [
+     "Staff for administrative and program support",
+     "ps",
+     43800732,
+     44646279
+    ],
+    [
+     "Intern and Youth Participation Program",
+     "ps",
+     1825000,
+     1800000
+    ],
+    [
+     "Supplies and materials",
+     "mo",
+     4000000,
+     4500000
+    ],
+    [
+     "Travel",
+     "travel",
+     3500000,
+     3500000
+    ],
+    [
+     "Contractual services",
+     "mo",
+     25000000,
+     25500000
+    ],
+    [
+     "Equipment",
+     "mo",
+     5000000,
+     6500000
+    ]
+   ],
+   "total": [
+    144018232,
+    148338779
+   ],
+   "related": [
+    [
+     "Assembly Ways and Means Committee",
+     7494878,
+     7719724
+    ]
+   ],
+   "separateOffices": [
+    "ASSEMBLY WAYS AND MEANS COMMITTEE",
+    "INDEPENDENT REDISTRICTING COMMISSION",
+    "LEGISLATIVE TASK FORCE ON REAPPORTIONMEN"
+   ]
+  }
+ },
+ "legislatureTotal": [
+  302596069,
+  311673951
+ ],
+ "separateNote": "Offices with their own appropriation (Assembly Ways and Means, the Independent Redistricting Commission, and joint entities such as the Legislative Library) appear in the house reports but are left out of this comparison."
+}

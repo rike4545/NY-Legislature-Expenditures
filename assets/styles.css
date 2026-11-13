@@ -502,3 +502,24 @@ kbd { font: 600 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace; padding: 
   .period-pick select { width: 100%; min-width: 0; max-width: none; text-overflow: ellipsis; }
   .theme-toggle { flex: none; }
 }
+
+/* Campaign finance and budget cards */
+:root { --cf-a: #2f74c0; --cf-b: #c2410c; --cf-c: #7c3aed; --cf-d: #0f8a6b; --cf-g: #8a96a6; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --cf-a: #5b9be0; --cf-b: #f0884f; --cf-c: #a98bf0; --cf-d: #4cc39e; --cf-g: #7d8899; } }
+:root[data-theme="dark"] { --cf-a: #5b9be0; --cf-b: #f0884f; --cf-c: #a98bf0; --cf-d: #4cc39e; --cf-g: #7d8899; }
+.cf-a { background: var(--cf-a); } .cf-b { background: var(--cf-b); } .cf-c { background: var(--cf-c); } .cf-d { background: var(--cf-d); } .cf-g { background: var(--cf-g); }
+.cf-table th[scope=row] { font-weight: 400; text-transform: none; letter-spacing: 0; font-size: 14px; color: var(--text); white-space: normal; min-width: 220px; position: static; background: none; }
+.cf-table .cf-name { font-weight: 600; }
+.cf-table tr.inc th, .cf-table tr.inc td { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+.cf-table td:nth-child(3) { min-width: 180px; width: 34%; }
+.cf-stack { height: 12px; border-radius: 4px; overflow: hidden; display: flex; min-width: 4px; }
+.cf-stack span { display: block; height: 100%; }
+.campaign .legend i { border-radius: 3px; }
+.budget table th[scope=row] { text-transform: none; letter-spacing: 0; font-size: 14px; font-weight: 500; color: var(--text); position: static; background: none; white-space: normal; }
+.budget tr.total th, .budget tr.total td { border-top: 2px solid var(--border); }
+.budget td.share { min-width: 160px; }
+.budget td.share { display: flex; align-items: center; gap: 8px; }
+.budget td.share .track { flex: 1; height: 8px; border-radius: 4px; background: var(--accent-soft); overflow: hidden; display: block; }
+.budget td.share .fill { display: block; height: 100%; background: var(--accent); border-radius: 4px; }
+.budget td.share span:last-child { min-width: 38px; text-align: right; font-variant-numeric: tabular-nums; }
+@media (forced-colors: active) { .cf-stack span, .budget .fill { forced-color-adjust: none; } }
