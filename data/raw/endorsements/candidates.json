@@ -1,0 +1,3772 @@
+[
+{
+"chamber": "senate",
+"district": 1,
+"name": "E. Christopher Murray",
+"lines": "DEM/WOR",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Chris_Murray_(New_York)",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 1,
+"name": "Anthony H. Palumbo",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Anthony_Palumbo",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 2,
+"name": "Harjot Singh",
+"lines": "DEM",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Harjot_Singh",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 2,
+"name": "Mario R. Mattera",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Mario_Mattera",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 3,
+"name": "Antonio Vargas-Ayala",
+"lines": "DEM",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Antonio_Vargas-Ayala",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 3,
+"name": "Dean Murray",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Dean_Murray",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 4,
+"name": "Monica R. Martinez",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Monica_Martinez_(New_York)",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 4,
+"name": "Brianne R. Wakefield",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Brianne_Wakefield",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 5,
+"name": "Andrew Piddoubny",
+"lines": "DEM",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Andrew_Piddoubny",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 5,
+"name": "Steven D. Rhoads",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Steven_Rhoads",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 6,
+"name": "Siela A. Bynoe",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Siela_Bynoe",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 6,
+"name": "Matthew J. Capp",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Matthew_Capp",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 7,
+"name": "Rory Lancman",
+"lines": "DEM",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Rory_Lancman",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 7,
+"name": "Jake Blumencranz",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Jake_Blumencranz",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 8,
+"name": "Joshua James Taveras",
+"lines": "DEM",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Josh_Taveras",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 8,
+"name": "Jarett C. Gandolfo",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Jarett_Gandolfo",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 9,
+"name": "Lisa Malkie Vider",
+"lines": "DEM",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Lisa_Vider",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 9,
+"name": "Patricia M. Canzoneri-Fitzpatrick",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Patricia_Canzoneri-Fitzpatrick",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 10,
+"name": "James Sanders Jr.",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/James_Sanders_Jr.",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 11,
+"name": "Toby Ann Stavisky",
+"lines": "DEM",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Toby_Ann_Stavisky",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 11,
+"name": "Pamela H. Michos",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Pamela_Michos",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 12,
+"name": "Aber Kawas",
+"lines": "DEM",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Aber_Kawas",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 12,
+"name": "Han-Khon To",
+"lines": "REP",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Han_Khon_To",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 13,
+"name": "Jessica Gonzalez-Rojas",
+"lines": "DEM/WOR",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Jessica_Gonz\u00e1lez-Rojas",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 13,
+"name": "John Patrick Healy",
+"lines": "REP",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/John_Healy",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 14,
+"name": "Leroy G. Comrie Jr.",
+"lines": "DEM",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Leroy_Comrie",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 15,
+"name": "Joseph P. Addabbo Jr",
+"lines": "DEM",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Joseph_Addabbo",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 15,
+"name": "Danniel S. Maio",
+"lines": "CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Danniel_Maio",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 16,
+"name": "John C. Liu",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/John_Liu",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 17,
+"name": "Larry He",
+"lines": "DEM",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Larry_He",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 17,
+"name": "Steve Chan",
+"lines": "REP/CON/Stop Mamdani",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Steve_Chan",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 18,
+"name": "Julia Salazar",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Julia_Salazar",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 19,
+"name": "Roxanne J. Persaud",
+"lines": "DEM",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Roxanne_Persaud",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 20,
+"name": "Zellnor Y. Myrie",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Zellnor_Myrie",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 21,
+"name": "Kevin S. Parker",
+"lines": "DEM",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Kevin_Parker_(New_York)",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 21,
+"name": "Ronald Seifert",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Ronald_Seifert",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 22,
+"name": "Sam Sutton",
+"lines": "DEM",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Sam_Sutton",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 22,
+"name": "Nachman Carl Caller",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Nachman_Caller",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 23,
+"name": "Jessica Scarcella-Spanton",
+"lines": "DEM/Affordable & Safe",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Jessica_Scarcella-Spanton",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 23,
+"name": "Ruslan Shamal",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Ruslan_Shamal",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 24,
+"name": "Alexis Rodriguez",
+"lines": "DEM",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Alexis_Rodriguez",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 24,
+"name": "Andrew J. Lanza",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Andrew_Lanza",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 25,
+"name": "Jabari Brisport",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Jabari_Brisport",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 26,
+"name": "Andrew S. Gounardes",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Andrew_S._Gounardes",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 26,
+"name": "Tom Stanten",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Tom_Stanten",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 27,
+"name": "Grace Lee",
+"lines": "DEM/WOR",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Grace_Lee_(New_York)",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 27,
+"name": "Jason C. Murillo",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Jason_Murillo",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 28,
+"name": "Liz Krueger",
+"lines": "DEM",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Liz_Krueger",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 28,
+"name": "Alina Bonsell",
+"lines": "REP/Block Mamdani",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Alina_Bonsell",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 29,
+"name": "Jose M. Serrano",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Jose_M._Serrano",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 30,
+"name": "Cordell Cleare",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Cordell_Cleare",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 31,
+"name": "Robert Jackson",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Robert_Jackson_(New_York)",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 32,
+"name": "Luis R. Sepulveda",
+"lines": "DEM",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Luis_Sep\u00falveda_(New_York)",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 33,
+"name": "J. Gustavo Rivera",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/J._Gustavo_Rivera",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 34,
+"name": "Nathalia Fernandez",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Nathalia_Fernandez",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 34,
+"name": "Adrian Romero",
+"lines": "CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Adrian_Romero",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 35,
+"name": "Andrea Stewart-Cousins",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Andrea_Stewart-Cousins",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 35,
+"name": "Anthony J. Merante",
+"lines": "REP",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Anthony_Merante",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 36,
+"name": "Jamaal T. Bailey",
+"lines": "DEM",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Jamaal_Bailey",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 36,
+"name": "Grace Marrero",
+"lines": "CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Grace_Marrero",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 37,
+"name": "Shelley B. Mayer",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Shelley_Mayer",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 37,
+"name": "Thomas H. Fix Jr",
+"lines": "REP",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Thomas_Fix",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 38,
+"name": "Joseph W. Rand",
+"lines": "DEM/WOR",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Joseph_Rand",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 38,
+"name": "Bill Weber",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/William_Weber_Jr.",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 39,
+"name": "Lisa Kaul",
+"lines": "DEM/WOR",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Lisa_Kaul",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 39,
+"name": "Robert G. Rolison",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Robert_Rolison",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 40,
+"name": "Peter B. Harckham",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Peter_Harckham",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 40,
+"name": "Sergio J. Esposito",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Sergio_Esposito",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 41,
+"name": "Michelle Hinchey",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Michelle_Hinchey",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 41,
+"name": "Patrick Sheehan",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Patrick_Sheehan_(New_York)",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 42,
+"name": "James G. Skoufis",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/James_G._Skoufis",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 42,
+"name": "Jennifer R. Figueroa",
+"lines": "REP",
+"member": false,
+"ballotpedia": null,
+"guessed": true,
+"bpMatched": false
+},
+{
+"chamber": "senate",
+"district": 42,
+"name": "Joshua Blumenthal",
+"lines": "CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Joshua_Blumenthal",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 43,
+"name": "Devin R. Lander",
+"lines": "DEM/WOR",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Devin_Lander",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 43,
+"name": "Jake Ashby",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Jacob_Ashby",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 44,
+"name": "Sarah F. Rogerson",
+"lines": "DEM/WOR",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Sarah_Rogerson",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 44,
+"name": "James N. Tedisco",
+"lines": "REP/CON/Vote Affordable",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/James_Tedisco",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 45,
+"name": "Melissa T. Seale",
+"lines": "DEM/WOR",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Melissa_Seale",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 45,
+"name": "Daniel G. Stec",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Dan_Stec",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 46,
+"name": "Patricia A. Fahy",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Patricia_Fahy",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 46,
+"name": "Martha G. McHugh",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Martha_McHugh",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 47,
+"name": "Erik D. Bottcher",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Erik_Bottcher",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 47,
+"name": "Charlotte Friedman",
+"lines": "REP",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Charlotte_Friedman",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 48,
+"name": "Rachel May",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Rachel_May",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 48,
+"name": "Richard McCarron Jr",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Richard_McCarron",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 49,
+"name": "Cassie L. Robbins-Forbus",
+"lines": "DEM/WOR",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Cassie_Robbins-Forbus",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 49,
+"name": "Mark C. Walczyk",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Mark_Walczyk",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 50,
+"name": "Christopher J. Ryan",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Christopher_Ryan_(New_York)",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 50,
+"name": "James Corl",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/James_Corl",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 51,
+"name": "Michele Frazier",
+"lines": "DEM/WOR",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Michele_Frazier",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 51,
+"name": "Christopher W. Tague",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Christopher_Tague",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 52,
+"name": "Lea Webb",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Lea_Webb",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 52,
+"name": "Michael S. Bolles",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Mike_Bolles",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 53,
+"name": "Mandi Drake",
+"lines": "DEM/WOR",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Mandi_Drake",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 53,
+"name": "Joseph A. Griffo",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Joseph_Griffo",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 54,
+"name": "Michael Mills",
+"lines": "DEM",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Michael_Mills_(New_York)",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 54,
+"name": "Pamela A. Helming",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Pamela_Helming",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 55,
+"name": "Samra G. Brouk",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Samra_Brouk",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 55,
+"name": "Chris Brown",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Chris_Brown_(New_York)",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 56,
+"name": "Jeremy A. Cooney",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Jeremy_Cooney",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 56,
+"name": "Orlando Rivera",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Orlando_Rivera",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 57,
+"name": "Victoria A. Guite-Williams",
+"lines": "DEM/WOR",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Victoria_Guite-Williams",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 57,
+"name": "George M. Borrello",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/George_Borrello",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 58,
+"name": "James J. Bobreski",
+"lines": "DEM",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/James_Bobreski",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 58,
+"name": "Thomas Fellers O'Mara",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Thomas_O'Mara",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 59,
+"name": "Kristen Gonzalez",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Kristen_Gonzalez",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 60,
+"name": "Patrick M. Gallivan",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Patrick_Gallivan",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 61,
+"name": "Jonathan D. Rivera",
+"lines": "DEM/WOR",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Jonathan_Rivera_(New_York)",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 62,
+"name": "Thomas E. Arida",
+"lines": "DEM/WOR",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Thomas_Arida",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 62,
+"name": "Robert G. Ortt",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Robert_Ortt",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 63,
+"name": "April N. McCants-Baskin",
+"lines": "DEM/WOR",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/April_Baskin",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "senate",
+"district": 63,
+"name": "Geoffrey M. Szymanski",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Geoffrey_Szymanski",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 1,
+"name": "Thomas J. Schiavoni",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Thomas_Schiavoni",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 1,
+"name": "Stephen F. Kiely",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Stephen_Kiely",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 2,
+"name": "Michael J. Szika",
+"lines": "DEM",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Michael_Szika",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 2,
+"name": "Jodi A. Giglio",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Jodi_Giglio",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 2,
+"name": "Kimberly Wilder",
+"lines": "Voter Options",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Kimberly_Wilder",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 3,
+"name": "Joshua P. Slaughter",
+"lines": "DEM/WOR",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Joshua_Slaughter",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 3,
+"name": "Joseph P. De Stefano",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Joseph_DeStefano",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 4,
+"name": "Rebecca A. Kassay",
+"lines": "DEM",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Rebecca_Kassay",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 4,
+"name": "Will Sussman",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/William_Sussman",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 5,
+"name": "Victoria A. Russell",
+"lines": "DEM",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Victoria_Russell",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 5,
+"name": "Douglas M. Smith",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Doug_Smith_(New_York)",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 6,
+"name": "Philip R. Ramos",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Philip_Ramos",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 6,
+"name": "Dennis J. Barravecchio",
+"lines": "REP",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Dennis_Barravecchio",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 7,
+"name": "Patricia A. Kopp",
+"lines": "DEM/WOR",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Patricia_Kopp",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 7,
+"name": "Dawn Marie D. Kuhn",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/DawnMarie_Kuhn",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 8,
+"name": "Lynn M. Trupiano-O'Keefe",
+"lines": "DEM",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Lynn_Trupiano-O'Keefe",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 8,
+"name": "Michael J. Fitzpatrick",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Michael_Fitzpatrick_(New_York)",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 9,
+"name": "Christopher J. Walis",
+"lines": "DEM",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Christopher_Walis",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 9,
+"name": "Michael A. Durso",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Michael_Durso",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 10,
+"name": "Steve Stern",
+"lines": "DEM",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Steve_Stern",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 10,
+"name": "Tiffany L. LeGrow",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Tiffany_LeGrow",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 11,
+"name": "Kwani B. O'Pharrow",
+"lines": "DEM",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Kwani_O'Pharrow",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 11,
+"name": "Joseph R. Cardinale",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Joseph_Cardinale",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 12,
+"name": "Craig G. Herskowitz",
+"lines": "DEM/WOR",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Craig_Herskowitz_(New_York)",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 12,
+"name": "David D. Weber Jr",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/David_Weber_Jr._(New_York)",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 13,
+"name": "Charles D. Lavine",
+"lines": "DEM",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Charles_Lavine",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 13,
+"name": "Conner Phillip Dunleavy",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Conner_Dunleavy",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 14,
+"name": "John E. Brooks",
+"lines": "DEM",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/John_E._Brooks",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 14,
+"name": "Shannon R. Fredericks",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Shannon_Fredericks",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 15,
+"name": "Dean Tarulli",
+"lines": "DEM",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Dean_Tarulli",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 15,
+"name": "Paolo A. Pironi",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Paolo_Pironi",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 16,
+"name": "Kim Keiserman",
+"lines": "DEM",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Kim_Keiserman",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 16,
+"name": "David Hassid",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/David_Hassid",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 17,
+"name": "Sunita J. Lofters",
+"lines": "DEM",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Sunita_Lofters",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 17,
+"name": "John K. Mikulin",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/John_Mikulin_(New_York)",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 18,
+"name": "Noah Burroughs",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Noah_Burroughs",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 18,
+"name": "Charlene Jackson",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Charlene_Jackson_(New_York)",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 19,
+"name": "Colleen Connaughton",
+"lines": "DEM",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Colleen_Connaughton",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 19,
+"name": "Edward P. Ra",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Edward_Ra",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 20,
+"name": "Meir Fischer",
+"lines": "DEM",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Meir_Fischer",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 20,
+"name": "Eric Ari Brown",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Eric_Ari_Brown_(New_York_State_Assembly_member)",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 21,
+"name": "Judy A. Griffin",
+"lines": "DEM",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Judy_Griffin_(New_York)",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 21,
+"name": "Irene V. Villacci",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Irene_Villacci",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 22,
+"name": "Michaelle C. Solages",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Michaelle_C._Solages",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 22,
+"name": "Robert G. Inzerillo",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Robert_Inzerillo",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 23,
+"name": "Pesach Osina",
+"lines": "DEM/Community First",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Pesach_Osina",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 23,
+"name": "Thomas P. Sullivan",
+"lines": "REP/CON/We The People",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Thomas_Sullivan_(New_York_State_Assembly_District_23)",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 24,
+"name": "David I. Weprin",
+"lines": "DEM",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/David_Weprin",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 24,
+"name": "Welson Chang",
+"lines": "REP/Queens United",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Welson_Chang",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 25,
+"name": "Nily D. Rozic",
+"lines": "DEM",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Nily_Rozic",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 26,
+"name": "Edward C. Braunstein",
+"lines": "DEM",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Edward_Braunstein",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 26,
+"name": "Robert J. Speranza",
+"lines": "REP",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Robert_Speranza",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 27,
+"name": "Sam Berger",
+"lines": "DEM/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Sam_Berger",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 28,
+"name": "Andrew D. Hevesi",
+"lines": "DEM",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Andrew_Hevesi",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 28,
+"name": "Jonathan Rinaldi",
+"lines": "No Kings",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Jonathan_Rinaldi_(New_York_State_Assembly_candidate)",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 28,
+"name": "David J. Kemp",
+"lines": "4 Our Immigrants",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/David_Kemp",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 29,
+"name": "Alicia L. Hyndman",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Alicia_Hyndman",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 30,
+"name": "Patrick Martinez",
+"lines": "DEM",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Patrick_Martinez",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 30,
+"name": "Brandon P. Castro",
+"lines": "REP/CON/Arts & Culture/Reform",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Brandon_Castro",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 31,
+"name": "Khaleel M. Anderson",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Khaleel_Anderson",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 32,
+"name": "Nathaniel Hezekiah III",
+"lines": "DEM",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Nathaniel_Hezekiah_III",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 32,
+"name": "Paul Nichols",
+"lines": "The Answer",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Paul_Nichols_(New_York)",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 33,
+"name": "Clyde Vanel",
+"lines": "DEM",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Clyde_Vanel",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 33,
+"name": "Oster Bryan",
+"lines": "WOR",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Oster_Bryan",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 34,
+"name": "Brian Romero",
+"lines": "DEM/WOR",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Brian_Romero",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 35,
+"name": "Larinda C. Hooks",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Larinda_Hooks",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 36,
+"name": "Diana C. Moreno",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Diana_Moreno",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 36,
+"name": "Edward Lee",
+"lines": "REP",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Edward_Lee",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 37,
+"name": "Samantha Kattan",
+"lines": "DEM/WOR",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Samantha_Kattan",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 38,
+"name": "David Orkin",
+"lines": "DEM/WOR",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/David_Orkin",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 38,
+"name": "Ruben D. Cruz II",
+"lines": "REP/Queens United",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Ruben_Cruz_II",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 39,
+"name": "Catalina Cruz",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Catalina_Cruz",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 39,
+"name": "Ramses S. Frias",
+"lines": "REP/4 Our Immigrants",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Ramses_Frias",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 40,
+"name": "Ron Kim",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Ron_Kim_(New_York_assemblyman)",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 41,
+"name": "Kalman Yeger",
+"lines": "DEM/REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Kalman_Yeger",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 42,
+"name": "Rodneyse Bichotte",
+"lines": "DEM",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Rodneyse_Bichotte_Hermelyn",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 42,
+"name": "Herman G. Hall",
+"lines": "REP",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Herman_G._Hall",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 43,
+"name": "Brian-Christopher A. Cunningham",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Brian_A._Cunningham",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 43,
+"name": "Anna Shpilkovskaya",
+"lines": "REP",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Anna_Shpilkovskaya",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 44,
+"name": "Robert C. Carroll",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Robert_C._Carroll",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 44,
+"name": "Glenn Nocera",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Glenn_Nocera",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 45,
+"name": "Joey Cohen-Saban",
+"lines": "DEM/FGT AntiSemitism",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Joey_Cohen-Saban",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 45,
+"name": "Michael Novakhov",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Michael_Novakhov",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 46,
+"name": "Chris McCreight",
+"lines": "DEM/WOR/Affordable & Safe",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Chris_McCreight",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 46,
+"name": "Alec Brook-Krasny",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Alec_Brook-Krasny",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 47,
+"name": "William Colton",
+"lines": "DEM",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/William_Colton",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 47,
+"name": "John J. Ricottone",
+"lines": "REP/CON/Stop Mamdani",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/John_Ricottone",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 48,
+"name": "Simcha Eichenstein",
+"lines": "DEM/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Simcha_Eichenstein",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 49,
+"name": "Joyce Xiaoqiong Xie",
+"lines": "DEM",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Joyce_Xiaoqiong_Xie",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 49,
+"name": "Lester Chang",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Lester_Chang",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 50,
+"name": "Emily Gallagher",
+"lines": "DEM",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Emily_Gallagher",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 51,
+"name": "Marcela Mitaynes",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Marcela_Mitaynes",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 51,
+"name": "Carla Danielson",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Carla_Danielson",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 52,
+"name": "Jo Anne Simon",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Jo_Anne_Simon",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 52,
+"name": "Brett Wynkoop",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Brett_Wynkoop",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 53,
+"name": "Maritza Davila",
+"lines": "DEM",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Maritza_Davila_(New_York)",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 54,
+"name": "Christian Celeste Tate",
+"lines": "DEM/WOR",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Christian_Celeste_Tate",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 55,
+"name": "Latrice M. Walker",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Latrice_Walker",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 56,
+"name": "Eon Huntley",
+"lines": "DEM/WOR",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Eon_Tyrell_Huntley",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 57,
+"name": "Phara Souffrant Forrest",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Phara_Souffrant_Forrest",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 57,
+"name": "Yolanda Allison",
+"lines": "REP",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Yolanda_Allison",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 58,
+"name": "Monique Chandler-Waterman",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Monique_Chandler-Waterman",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 59,
+"name": "Jaime R. Williams",
+"lines": "DEM/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Jaime_Williams",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 59,
+"name": "Jibreel Jalloh",
+"lines": "WOR",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Jibreel_Jalloh",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 60,
+"name": "Nikki Lucas",
+"lines": "DEM",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Nikki_Lucas",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 60,
+"name": "Norman H. Ramsay",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Norman_Ramsay",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 61,
+"name": "Charles D. Fall",
+"lines": "DEM",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Charles_Fall",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 61,
+"name": "Casey Marie O'Connor-Manasia",
+"lines": "REP",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Casey_O'Connor-Manasia",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 62,
+"name": "Michael W. Reilly Jr.",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Michael_Reilly_(New_York)",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 63,
+"name": "Matthew Mobilia",
+"lines": "DEM",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Matthew_Mobilia",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 63,
+"name": "Sam T. Pirozzolo",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Samuel_T._Pirozzolo",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 64,
+"name": "Tim Qorraj",
+"lines": "DEM",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Shpetim_Qorraj",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 64,
+"name": "Michael Tannousis",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Michael_Tannousis",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 65,
+"name": "Illapa Sairitupac",
+"lines": "DEM",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Illapa_Sairitupac",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 65,
+"name": "Helen Qiu",
+"lines": "REP",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Helen_Qiu",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 66,
+"name": "David Siffert",
+"lines": "DEM",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/David_Siffert",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 67,
+"name": "Linda B. Rosenthal",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Linda_Rosenthal",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 68,
+"name": "Diana I. Ayala",
+"lines": "DEM/WOR",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Diana_Ayala",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 69,
+"name": "Eli Northrup",
+"lines": "DEM/WOR",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Eli_Northrup",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 70,
+"name": "Jordan J.G. Wright",
+"lines": "DEM",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Jordan_Wright",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 71,
+"name": "Al Taylor",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Alfred_Taylor_(New_York)",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 72,
+"name": "Manny De Los Santos",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Manny_De_Los_Santos",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 73,
+"name": "Vanessa Aronson",
+"lines": "DEM/WOR",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Vanessa_Aronson",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 74,
+"name": "Keith Powers",
+"lines": "DEM",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Keith_Powers_(New_York)",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 74,
+"name": "Veronica I. Gonzalez",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Veronica_Gonzalez_(New_York)",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 75,
+"name": "Tony Simone",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Tony_Simone",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 75,
+"name": "Cristina Fontanelli",
+"lines": "REP/Save NYC",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Christine_Fontanelli",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 76,
+"name": "Rebecca A. Seawright",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Rebecca_Seawright",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 76,
+"name": "Louis Puliafito",
+"lines": "REP",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Louis_Puliafito",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 77,
+"name": "Landon C. Dais",
+"lines": "DEM",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Landon_Dais",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 78,
+"name": "George A. Alvarez",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/George_Alvarez",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 79,
+"name": "Chantel Jackson",
+"lines": "DEM",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Chantel_Jackson",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 79,
+"name": "Emmanuel A. Findlay Jr.",
+"lines": "CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Emmanuel_Findlay_Jr.",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 80,
+"name": "John Zaccaro Jr.",
+"lines": "DEM",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/John_Zaccaro_Jr.",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 80,
+"name": "Denise Smith",
+"lines": "CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Denise_Smith_(New_York)",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 81,
+"name": "Jeffrey Dinowitz",
+"lines": "DEM",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Jeffrey_Dinowitz",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 82,
+"name": "Michael R. Benedetto",
+"lines": "DEM",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Michael_Benedetto",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 82,
+"name": "Irene Guanill",
+"lines": "REP/CON/Vote Affordable",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Irene_Guanill",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 83,
+"name": "Carl E. Heastie",
+"lines": "DEM",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Carl_Heastie",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 83,
+"name": "James Washington-Ward",
+"lines": "CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/James_Washington-Ward",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 84,
+"name": "Amanda N. Septimo",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Amanda_Septimo",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 84,
+"name": "Tyreek Goodman",
+"lines": "CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Tyreek_Goodman",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 85,
+"name": "Emerita Torres",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Emerita_Torres",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 86,
+"name": "Yudelka Tapia",
+"lines": "DEM",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Yudelka_Tapia",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 86,
+"name": "Maria Diaz",
+"lines": "REP",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Maria_Diaz_(New_York)",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 86,
+"name": "Shery A. Olivo",
+"lines": "CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Shery_Olivo",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 87,
+"name": "Karines Reyes",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Karines_Reyes",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 87,
+"name": "Zenobia Merced-Bonilla",
+"lines": "CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Zenobia_Merced-Bonilla",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 87,
+"name": "Zakir Choudhury",
+"lines": "People First",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Zakir_Choudhury",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 88,
+"name": "Amy Paulin",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Amy_Paulin",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 89,
+"name": "J Gary Pretlow",
+"lines": "DEM",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/J._Gary_Pretlow",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 90,
+"name": "Frank Jereis",
+"lines": "DEM",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Frank_Jereis",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 90,
+"name": "John Isaac",
+"lines": "REP",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/John_Isaac",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 91,
+"name": "Steven Otis",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Steven_Otis",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 92,
+"name": "MaryJane C. Shimsky",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Maryjane_Shimsky",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 92,
+"name": "Bob Welch",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Bob_Welch",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 93,
+"name": "Chris Burdick",
+"lines": "DEM",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Chris_Burdick",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 93,
+"name": "Braille Diaz",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Braille_Diaz",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 94,
+"name": "Daniel Guzman",
+"lines": "DEM",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Daniel_Guzman",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 94,
+"name": "Matthew J. Slater",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Matthew_Slater",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 95,
+"name": "Dana Levenberg",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Dana_Levenberg",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 95,
+"name": "Laurie Ryan",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Laurie_Ryan",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 96,
+"name": "Patrick Carroll",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Patrick_Carroll_(New_York)",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 96,
+"name": "Brett L. Yagel",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Brett_Yagel",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 97,
+"name": "Aron B. Wieder",
+"lines": "DEM",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Aron_B._Wieder",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 97,
+"name": "Rob Bonomolo",
+"lines": "REP",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Rob_Bonomolo",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 97,
+"name": "Abraham Klein",
+"lines": "CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Abraham_Klein",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 98,
+"name": "Karl A. Brabenec",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Karl_Brabenec",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 99,
+"name": "Christopher W. Eachus",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Christopher_W._Eachus",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 99,
+"name": "Richard A. Vargus",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Richard_Vargus",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 100,
+"name": "Paula Elaine Kay",
+"lines": "DEM/People Over Politics",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Paula_Kay",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 101,
+"name": "Brian M. Maher",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Brian_Maher_(New_York)",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 102,
+"name": "Janet S. Tweed",
+"lines": "DEM/WOR",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Janet_Tweed",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 102,
+"name": "Marcus Molinaro",
+"lines": "REP",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Marcus_Molinaro",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 103,
+"name": "Sarahana Shrestha",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Sarahana_Shrestha",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 103,
+"name": "Santos Lopez",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Santos_Lopez",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 104,
+"name": "Jonathan G. Jacobson",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Jonathan_Jacobson_(New_York)",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 105,
+"name": "Brooklyn Talarico",
+"lines": "DEM",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Brooklyn_Talarico",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 105,
+"name": "Anil R. Beephan Jr",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Anil_Beephan_Jr.",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 106,
+"name": "Didi Barrett",
+"lines": "DEM",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Didi_Barrett",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 106,
+"name": "Gregory Campus",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Gregory_Campus",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 107,
+"name": "Chloe E. Pierce",
+"lines": "DEM/WOR",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Chloe_Pierce",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 107,
+"name": "Scott H. Bendett",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Scott_Bendett",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 108,
+"name": "John T. McDonald III",
+"lines": "DEM",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/John_T._McDonald_III_(New_York)",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 108,
+"name": "Joseph J. Adamo III",
+"lines": "REP",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Joseph_Adamo_III",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 109,
+"name": "Gabriella Romero",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Gabriella_Romero",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 110,
+"name": "Phillip G. Steck",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Phil_Steck",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 110,
+"name": "Frank A. Mauriello",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Frank_Mauriello",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 111,
+"name": "Angelo L. Santabarbara",
+"lines": "DEM/People First",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Angelo_Santabarbara",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 111,
+"name": "Nicholas J. Sokaris",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Nicholas_Sokaris",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 112,
+"name": "Mario L. Fantini",
+"lines": "DEM/WOR",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Mario_Fantini",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 112,
+"name": "Mary Beth Walsh",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Mary_Beth_Walsh",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 113,
+"name": "Carrie Woerner",
+"lines": "DEM",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Carrie_Woerner",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 113,
+"name": "Allen Caruso",
+"lines": "REP/CON/Vote Affordable",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Allen_Caruso",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 113,
+"name": "Thomas J. Kenny",
+"lines": "WOR/No Kings",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Thomas_Kenny",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 114,
+"name": "John Gunther",
+"lines": "DEM/WOR",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/John_Gunther_(New_York_State_Assembly_candidate)",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 114,
+"name": "Matthew J. Simpson",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Matthew_Simpson_(New_York)",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 115,
+"name": "Michael Cashman",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Michael_Cashman",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 116,
+"name": "Scott A. Gray",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Scott_Gray",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 117,
+"name": "Dennis Gordon",
+"lines": "DEM/WOR",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Dennis_Gordon_(New_York)",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 117,
+"name": "Tammie Nabywaniec",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Tammie_Nabywaniec",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 118,
+"name": "Colleen Maxwell",
+"lines": "DEM",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Colleen_Maxwell",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 118,
+"name": "Heather A. Scribner",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Heather_Scribner",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 119,
+"name": "Jonathan E. Lipe",
+"lines": "DEM/WOR/Mohawk Valley 1st",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Jon_Lipe",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 119,
+"name": "Michael C. Gentile",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Michael_Gentile",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 120,
+"name": "Timothy C. Allers",
+"lines": "DEM",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Timothy_Allers",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 120,
+"name": "Jim Weatherup",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Jim_Weatherup",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 121,
+"name": "Vicki Davis",
+"lines": "DEM",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Vicki_Davis",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 121,
+"name": "Joe Angelino",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Joe_Angelino",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 122,
+"name": "Ihor Semko",
+"lines": "DEM/WOR",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Ihor_Semko",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 122,
+"name": "Brian D. Miller",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Brian_Miller_(New_York)",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 123,
+"name": "Dan Norton",
+"lines": "DEM",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Dan_Norton",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 123,
+"name": "Lynn E. Parker",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Lynn_Parker",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 123,
+"name": "Heather L. Micha",
+"lines": "Coalition",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Heather_Micha",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 124,
+"name": "Andrew G. Fagan",
+"lines": "DEM/WOR",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Andrew_Fagan",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 124,
+"name": "Christopher S. Friend",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Christopher_Friend",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 125,
+"name": "Anna Kelles",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Anna_Kelles",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 126,
+"name": "Ian Phillips",
+"lines": "DEM/WOR",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Ian_Phillips",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 126,
+"name": "John Lemondes Jr",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/John_Lemondes_Jr.",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 127,
+"name": "Albert A. Stirpe Jr",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Al_Stirpe",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 127,
+"name": "Timothy R. Kelly",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Timothy_R._Kelly_(New_York)",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 128,
+"name": "Pamela Jo Hunter",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Pamela_Hunter",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 128,
+"name": "Patrick J. Becher",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Patrick_Becher",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 129,
+"name": "Maurice Mo Brown",
+"lines": "DEM/WOR",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Maurice_Brown_(New_York)",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 129,
+"name": "Shawn M. Fiato",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Shawn_Fiato",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 130,
+"name": "Carl Fitzsimmons",
+"lines": "DEM",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Carl_Fitzsimmons",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 130,
+"name": "George Dobbins",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/George_Dobbins",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 130,
+"name": "Joseph Lamanna",
+"lines": "Common Sense",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Joseph_Lamanna_(New_York_State_Assembly_candidate)",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 131,
+"name": "Phillip Fleming",
+"lines": "DEM",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Phillip_Fleming",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 131,
+"name": "Mark Benjamin",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Mark_Benjamin",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 132,
+"name": "Philip A. Palmesano",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Philip_Palmesano",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 133,
+"name": "Gladys Flores",
+"lines": "DEM",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Gladys_Flores",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 133,
+"name": "Andrea K. Bailey",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Andrea_K._Bailey_(New_York)",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 134,
+"name": "Kurt Vanwuyckhuyse",
+"lines": "DEM/WOR",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Kurt_VanWuyckhuyse",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 134,
+"name": "Josh Jensen",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Josh_Jensen_(New_York)",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 135,
+"name": "Jen Lunsford",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Jennifer_Lunsford",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 135,
+"name": "Kalinda Washington",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Kalinda_Washington",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 136,
+"name": "Sarah H. Clark",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Sarah_Clark_(New_York)",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 136,
+"name": "Clianda A. Florence",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Clianda_Florence",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 137,
+"name": "Demond L. Meeks",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Demond_Meeks",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 137,
+"name": "Dave Ferris",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Dave_Ferris",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 137,
+"name": "Mercedes Vazquez-Simmons",
+"lines": "Mercedes Simmons Cares",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Mercedes_Vazquez-Simmons",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 138,
+"name": "Harry B. Bronson",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Harry_Bronson",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 138,
+"name": "Tracy Diflorio",
+"lines": "REP",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Tracy_DiFlorio",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 139,
+"name": "Sarah R. Wolcott",
+"lines": "DEM",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Sarah_Wolcott",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 139,
+"name": "Stephen M. Hawley",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Stephen_Hawley",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 140,
+"name": "William C. Conrad III",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/William_Conrad_(New_York)",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 140,
+"name": "Mohammed H. Faisal",
+"lines": "REP",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Mohammed_Faisal",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 141,
+"name": "Leah M. Halton-Pope",
+"lines": "DEM",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Leah_Halton-Pope",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 142,
+"name": "Patrick B. Burke",
+"lines": "DEM/WOR",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Patrick_Burke_(New_York)",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 142,
+"name": "Gary A. Dickson",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Gary_Dickson",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 143,
+"name": "Ryan J. Taughrin",
+"lines": "DEM/WOR",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Ryan_Taughrin",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 143,
+"name": "Patrick J. Chludzinski",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Patrick_Chludzinski",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 144,
+"name": "Donna L. Dye Sholk",
+"lines": "DEM/WOR",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Donna_Dye_Sholk",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 144,
+"name": "Paul A. Bologna",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Paul_Bologna",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 145,
+"name": "Nathan D. McMurray",
+"lines": "DEM",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Nate_McMurray",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 145,
+"name": "Becky Wydysh",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Becky_Wydysh",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 146,
+"name": "Karen M. McMahon",
+"lines": "DEM",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Karen_McMahon",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 146,
+"name": "Terence G. McGuire",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Terence_McGuire",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 147,
+"name": "David J. DiPietro",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/David_DiPietro",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 148,
+"name": "Joseph Sempolinski",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Joe_Sempolinski",
+"guessed": false,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 149,
+"name": "Adam L. Bojak",
+"lines": "DEM/WOR",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Adam_Bojak",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 149,
+"name": "Frank M. Bogulski",
+"lines": "REP/CON",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Frank_Bogulski",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 150,
+"name": "Thomas A. Carle",
+"lines": "DEM/WOR",
+"member": false,
+"ballotpedia": "https://ballotpedia.org/Thomas_Carle",
+"guessed": true,
+"bpMatched": true
+},
+{
+"chamber": "assembly",
+"district": 150,
+"name": "Andrew M. Molitor",
+"lines": "REP/CON",
+"member": true,
+"ballotpedia": "https://ballotpedia.org/Andrew_Molitor",
+"guessed": false,
+"bpMatched": true
+}
+]

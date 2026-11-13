@@ -29,6 +29,7 @@
   const HISTORY = {}; // chamber id -> totals from every expenditure report on file
   const LEG = {}; // chamber id -> bills each legislator sponsored in the 2025-26 session (Open Legislation)
   const RESULTS = {}; // chamber id -> unofficial 2026 general election results (State Board)
+  const ENDORSE = {}; // chamber id -> where to find each 2026 candidate's endorsements
   let VENDOR_DONORS = null; // chamber id -> donations in depth by district (2025-26) // chamber id -> party makeup now and after the Nov 3, 2026 count // chamber id -> campaign finance by district (State Board of Elections, 2025-26)
   let BUDGET = null; // Legislature appropriations from the FY 2027 Executive Budget
   let BUDGET_HIST = null; // appropriations by fiscal year, FY 2020-21 on
@@ -181,6 +182,10 @@
         PUBFIN[ch.id] = bundled ? bundled.data[pfFile] || null : await (await fetch(pfFile)).json();
       } catch (e) { PUBFIN[ch.id] = null; }
       try {
+        const enlFile = `data/${ch.id}/endorsement_links.json`;
+        ENDORSE[ch.id] = bundled ? bundled.data[enlFile] || null : await (await fetch(enlFile)).json();
+      } catch (e) { ENDORSE[ch.id] = null; }
+      try {
         const rsFile = `data/elections/boe_2026_${ch.id}.json`;
         RESULTS[ch.id] = bundled ? bundled.data[rsFile] || null : await (await fetch(rsFile)).json();
       } catch (e) { RESULTS[ch.id] = null; }
@@ -288,7 +293,7 @@
         ${lastRow && yearAgo ? kpi("A year earlier", money0(yearAgo[1]), `${yearAgo[2]} salaried · ${chgShort(lastRow[1], yearAgo[1])}`) : ""}
       </div>
       <div class="cols small reps">${idx.map((i) => { const r = by.get(i); const a = `${fmtRepDay(pr, i)}: ${r ? `${money0(r[1])}, ${r[2]} salaried, ${r[3]} hourly` : "no staff on this report"}`;
-        return `<div class="col${i === pr.last ? " cur" : ""}" role="img" aria-label="${esc(a)}" title="${esc(a)}"><span class="colbar" style="height:${r ? (r[1] / max * 100).toFixed(1) : 0}%"></span><span class="collabel">${i === idx[0] || yr(i) !== yr(i - 1) ? yr(i) : ""}</span></div>`; }).join("")}</div>
+        return `<div class="col${i === pr.last ? " cur" : ""}" role="img" aria-label="${esc(a)}" title="${esc(a)}"><span class="colbar" style="height:${r ? (r[1] / max * 100).toFixed(1) : 0}%"></span><span class="collabel">${i !== idx[0] && yr(i) !== yr(i - 1) ? yr(i) : ""}</span></div>`; }).join("")}</div>
       <p class="summary">Biweekly rates of the office's salaried staff as listed on each report; hourly staff are counted, not summed. The senator's own salary isn't included. <a href="${buildHash("payroll", {})}">All Senate payroll reports</a></p>
     </section>`;
   }
@@ -738,7 +743,7 @@
     if (!list.length) return `<p class="pfline"><strong>Outside money:</strong> no independent expenditures for or against a candidate here were reported to the State Board for 2025–26.</p>`;
     const tot = list.reduce((a, c) => a + c.support + c.oppose, 0);
     return `<h3 class="mini" style="margin-top:16px">Outside money: ${money0(tot)} in independent expenditures</h3>
-      <div class="table-wrap"><table class="cf-table om-table"><caption class="sr-only">Independent expenditures for and against candidates in ${CH.abbr} ${esc(String(district))}</caption>
+      <div class="table-wrap"><table class="cf-table om-table stack-sm"><caption class="sr-only">Independent expenditures for and against candidates in ${CH.abbr} ${esc(String(district))}</caption>
         <thead><tr><th scope="col">Candidate</th><th scope="col" class="num">Spent to support</th><th scope="col" class="num">Spent to oppose</th><th scope="col">By</th></tr></thead>
         <tbody>${list.map((c) => `<tr><th scope="row"><span class="cf-name">${esc(c.candidate)}</span></th><td class="num">${c.support ? money0(c.support) : "—"}</td><td class="num">${c.oppose ? money0(c.oppose) : "—"}</td>
           <td>${c.committees.map((x) => `${esc(x[0])} <span class="summary">(${x[2] === "Support" ? "for" : "against"}, ${money0(x[3])}${x[4] > 1 ? `, ${x[4]} notices` : ""})</span>`).join("<br>")}</td></tr>`).join("")}</tbody></table></div>
@@ -777,7 +782,7 @@
     const anyPf = linked.some((c) => pfAmt(c) > 0);
     const asOf = cf.asOf ? fmtDay(cf.asOf) : "";
     return `<section class="card campaign"><div class="card-head"><h2>Campaign money in ${CH.abbr} ${esc(String(district))}, 2025–26</h2><span class="summary">raised and spent by each candidate's committees · State Board of Elections${asOf ? `, as of ${esc(asOf)}` : ""}</span></div>
-      ${linked.length ? `<div class="table-wrap"><table class="cf-table">
+      ${linked.length ? `<div class="table-wrap"><table class="cf-table stack-sm">
         <caption class="sr-only">Money raised and spent by candidates in ${CH.abbr} ${esc(String(district))}</caption>
         <thead><tr><th scope="col">Candidate</th><th scope="col" class="num">Raised</th>${hasPf ? `<th scope="col" class="num" title="Public matching funds received from the Public Campaign Finance Board for 2026">Public funds</th><th scope="col" class="num" title="Raised plus public matching funds. An estimate: the two sources are current to different dates">Total, est.</th>` : ""}<th scope="col">Where it came from</th><th scope="col" class="num" title="Itemized contributions from individuals of $250 or less">Gifts ≤ $250</th><th scope="col" class="num">Spent</th></tr></thead>
         <tbody>${linked.map((c) => { const t = total(c); const pf = pfFor(district, c); const pa = pfAmt(c); const v = { ...c.raised, P: pa }; const parts = [["A", "Individuals", "cf-a"], ["B", "Corporations", "cf-b"], ["C", "PACs, unions & other", "cf-c"], ["D", "In-kind", "cf-d"], ["G", "Transfers in", "cf-g"], ["P", "Public matching funds", "cf-p"]]; return `<tr${isMember(c) ? ' class="inc"' : ""}>
@@ -793,6 +798,7 @@
       ${pfNote(district, rows)}
       ${outsideBlock(district)}
       ${limitsLine(district)}
+      ${endorseBlock(district)}
       <p class="summary">Itemized contributions and expenditures filed with the <a href="https://publicreporting.elections.ny.gov/" target="_blank" rel="noopener">NYS Board of Elections</a> for 2025 and 2026 (<a href="https://data.ny.gov/d/4j2b-6a2j" target="_blank" rel="noopener">data.ny.gov</a>). Committees are linked to candidates by name, so each committee is listed. Raised counts monetary and in-kind contributions plus transfers from other committees. Public funds are the matching funds the State Board's <a href="https://publicreporting.elections.ny.gov/PCFBCandidateRegList/PCFBCandidateRegList" target="_blank" rel="noopener">Public Campaign Finance candidate list</a> reports as received for 2026 (as of ${PUBFIN[CH.id] ? esc(fmtDay(PUBFIN[CH.id].retrieved)) : "—"}); they aren't contributions, so they're not in Raised. Total, est. adds the two; since each source is current to a different date, treat it as an estimate. Candidates are listed by that total, and the bar's gold segment is public money.</p>
     </section>`;
   }
@@ -830,10 +836,10 @@
         ${PUBFIN[CH.id] ? (() => { const L = Object.values(PUBFIN[CH.id].districts).flat(); return kpi("Public matching funds", compact(L.reduce((a, p) => a + p.received, 0)), `${L.length} candidates registered for the 2026 program`); })() : ""}
       </div>
       ${VENDOR_DONORS && VENDOR_DONORS.matches.length ? `<p><a class="btn" href="${buildHash("vendors", {})}">Vendors the Legislature pays that also donated (${VENDOR_DONORS.matches.length}) ${I.r}</a></p>` : ""}
-      <div class="table-wrap"><table>
+      <div class="table-wrap"><table class="wide-sticky">
         <caption class="sr-only">Donations by ${esc(CH.name)} district, sortable</caption>
-        <thead><tr>${sortHeader("District", "district", state)}<th scope="col">Member now</th>${sortHeader("Candidates", "cands", state, "num")}${sortHeader("Contributions", "monetary", state, "num")}${sortHeader("Donors", "donors", state, "num")}${sortHeader("From organizations", "orgShare", state, "num")}${sortHeader("In-district $", "inShare", state, "num")}${sortHeader("Out-of-state $", "outShare", state, "num")}${sortHeader("Donors ≤ $250", "smallShare", state, "num")}${sortHeader("Public funds", "pf", state, "num")}</tr></thead>
-        <tbody>${rows.map((r) => `<tr><td><a href="${buildHash("donations/" + r.d, {})}">${CH.abbr} ${r.d}</a></td><td>${esc(r.member)}</td><td class="num">${r.cands}</td>
+        <thead><tr>${sortHeader("District", "district", state)}<th scope="col" class="hide-sm">Member now</th>${sortHeader("Candidates", "cands", state, "num")}${sortHeader("Contributions", "monetary", state, "num")}${sortHeader("Donors", "donors", state, "num")}${sortHeader("From organizations", "orgShare", state, "num")}${sortHeader("In-district $", "inShare", state, "num")}${sortHeader("Out-of-state $", "outShare", state, "num")}${sortHeader("Donors ≤ $250", "smallShare", state, "num")}${sortHeader("Public funds", "pf", state, "num")}</tr></thead>
+        <tbody>${rows.map((r) => `<tr><td><a href="${buildHash("donations/" + r.d, {})}">${CH.abbr} ${r.d}</a><span class="sm-only">${esc(r.member)}</span></td><td class="hide-sm">${esc(r.member)}</td><td class="num">${r.cands}</td>
           <td class="num"><span class="inlinebar"><span style="width:${(r.monetary / maxM * 100).toFixed(1)}%"></span></span>${money0(r.monetary)}</td><td class="num">${int.format(r.donors)}</td>
           <td class="num">${pctf(r.orgShare)}</td><td class="num">${pctf(r.inShare)}</td><td class="num">${pctf(r.outShare)}</td><td class="num">${pctf(r.smallShare)}</td><td class="num">${r.pfFunds ? money0(r.pfFunds) : "—"}${r.pfCands ? `<br><span class="summary">${r.pfCands} in program</span>` : ""}</td></tr>`).join("")}</tbody></table></div>
       <p class="summary">${donationsNote(dn)}</p>`;
@@ -884,6 +890,27 @@
 
   /* ---------- Party endorsements: the ballot lines each candidate ran on ---------- */
   const MAJOR_LINES = { DEM: ["Democratic", "en-d"], REP: ["Republican", "en-r"], CON: ["Conservative", "en-c"], WOR: ["Working Families", "en-w"] };
+  function endorseFor(d, name) {
+    const E = ENDORSE[CH.id];
+    const list = E ? E.districts[String(d)] || [] : [];
+    return list.find((x) => x.name === name) || null;
+  }
+  function endorseLinksHtml(x) {
+    if (!x) return "";
+    const parts = [];
+    if (x.page) parts.push(`<a href="${escUrl(x.page)}" target="_blank" rel="noopener">endorsements page</a>${x.years.length && !x.years.includes(2026) ? ` <span class="summary">(shows ${x.years[0]})</span>` : ""}`);
+    if (x.site) parts.push(`<a href="${escUrl(x.site)}" target="_blank" rel="noopener">campaign site</a>`);
+    if (x.ballotpedia) parts.push(`<a href="${escUrl(x.ballotpedia)}" target="_blank" rel="noopener">Ballotpedia</a>`);
+    return parts.join(" · ");
+  }
+  function endorseBlock(district) {
+    const E = ENDORSE[CH.id];
+    const list = E ? E.districts[String(district)] || [] : [];
+    if (!list.length) return "";
+    return `<h3 class="mini" style="margin-top:16px">Endorsements</h3>
+      <ul class="plainlist endorse-links">${list.map((x) => `<li><strong>${esc(x.name)}</strong>: ${endorseLinksHtml(x) || `<span class="summary">no profile found</span>`}</li>`).join("")}</ul>
+      <p class="summary">Groups and officials announce endorsements themselves, so there's no official list. These link to where each candidate's are shown: their campaign's endorsements page (looked up for sitting members) and their Ballotpedia profile. A page marked with a year still shows an earlier campaign's endorsements. Party-line endorsements are under <a href="${buildHash("endorsements", {})}">Party endorsements</a>.</p>`;
+  }
   function viewEndorsements(params) {
     const R = RESULTS[CH.id];
     if (!R) return `<h1>Party endorsements</h1><p class="empty">Election results couldn't be loaded.</p>`;
@@ -907,6 +934,7 @@
     const chip = (l) => MAJOR_LINES[l] ? `<span class="lchip ${MAJOR_LINES[l][1]}" title="${esc(MAJOR_LINES[l][0])}">${esc(l)}</span>` : `<span class="lchip ind" title="Independent line">${esc(l)}</span>`;
     const status = (c) => c.unopposed ? "unopposed" : c.lead ? (c.eds < c.edt ? "leading" : "most votes") : "";
     const name = (l) => MAJOR_LINES[l] ? MAJOR_LINES[l][0] : l;
+    const partyRow = (p) => `<tr><th scope="row"><a href="${buildHash("endorsements", { line: p.code })}">${MAJOR_LINES[p.code] ? `${chip(p.code)} ` : ""}${esc(name(p.code))}</a>${MAJOR_LINES[p.code] ? "" : ` <span class="summary">independent</span>`}</th><td class="num">${int.format(p.n)}</td><td>${(() => { const maj = p.with.filter(([o]) => MAJOR_LINES[o]), ind = p.with.filter(([o]) => !MAJOR_LINES[o]); const parts = maj.map(([o, k]) => `${esc(name(o))} ${k}`); if (ind.length) parts.push(`${ind.reduce((a, [, k]) => a + k, 0)} on independent lines`); return parts.join(" · ") || "—"; })()}</td><td class="num">${int.format(p.only)}</td><td class="num">${int.format(p.lead)}</td></tr>`;
     return `<h1>Party endorsements, 2026</h1>
       <p class="lede">In New York a candidate can run on more than one party's line, and the votes on every line add up for that candidate. A party that puts another party's nominee on its own line is, in effect, endorsing them. These are the lines each ${esc(CH.name)} candidate appeared on in November.</p>
       <div class="grid kpis">
@@ -915,15 +943,19 @@
         ${majors.filter((p) => p.code === "CON" || p.code === "WOR").map((p) => kpi(`${MAJOR_LINES[p.code][0]} Party`, `${int.format(p.n)} nominees`, `${int.format(p.n - p.only)} also on another line · ${int.format(p.only)} only on theirs`)).join("")}
       </div>
       <section class="card"><div class="card-head"><h2>Each party's nominees</h2><span class="summary">unofficial State Board count, ${esc(R.as_of)}</span></div>
-        <div class="table-wrap"><table class="endorse-table"><caption class="sr-only">Nominees of each party in the ${esc(CH.name)}</caption>
+        <div class="table-wrap"><table class="endorse-table stack-sm"><caption class="sr-only">Nominees of each party in the ${esc(CH.name)}</caption>
           <thead><tr><th scope="col">Party line</th><th scope="col" class="num">Nominees</th><th scope="col">Shared with</th><th scope="col" class="num">Only on this line</th><th scope="col" class="num">Got the most votes or unopposed</th></tr></thead>
-          <tbody>${[...majors, ...indep].map((p) => `<tr><th scope="row"><a href="${buildHash("endorsements", { line: p.code })}">${MAJOR_LINES[p.code] ? `${chip(p.code)} ` : ""}${esc(name(p.code))}</a>${MAJOR_LINES[p.code] ? "" : ` <span class="summary">independent</span>`}</th><td class="num">${int.format(p.n)}</td><td>${(() => { const maj = p.with.filter(([o]) => MAJOR_LINES[o]), ind = p.with.filter(([o]) => !MAJOR_LINES[o]); const parts = maj.map(([o, k]) => `${esc(name(o))} ${k}`); if (ind.length) parts.push(`${ind.reduce((a, [, k]) => a + k, 0)} on independent lines`); return parts.join(" · ") || "—"; })()}</td><td class="num">${int.format(p.only)}</td><td class="num">${int.format(p.lead)}</td></tr>`).join("")}</tbody></table></div>
+          <tbody>${majors.map((p) => partyRow(p)).join("")}</tbody></table></div>
+        ${indep.length ? `<details class="yeartable"><summary>${indep.length} independent lines</summary><div class="table-wrap"><table class="endorse-table stack-sm"><caption class="sr-only">Independent lines</caption>
+          <thead><tr><th scope="col">Line</th><th scope="col" class="num">Candidates</th><th scope="col">Shared with</th><th scope="col" class="num">Only on this line</th><th scope="col" class="num">Got the most votes or unopposed</th></tr></thead>
+          <tbody>${indep.map((p) => partyRow(p)).join("")}</tbody></table></div></details>` : ""}
+
         <p class="summary">Democratic, Republican, Conservative and Working Families are the parties with a permanent ballot line. Every other line here is an independent line a candidate got on the ballot by petition, which isn't an endorsement by a party. "Got the most votes" uses the unofficial count, so a close race can still change.</p>
       </section>
       <section class="card"><div class="card-head"><h2>${f ? `${esc(name(f))} line: ${int.format(shown.length)} candidates` : "Every candidate and their lines"}</h2>${f ? `<a href="${buildHash("endorsements", {})}">show all</a>` : ""}</div>
-        <div class="table-wrap"><table><caption class="sr-only">Candidates and the ballot lines they ran on</caption>
-          <thead><tr><th scope="col">District</th><th scope="col">Candidate</th><th scope="col">Lines</th><th scope="col" class="num">Votes</th><th scope="col">Result so far</th></tr></thead>
-          <tbody>${shown.map((c) => `<tr><td><a href="${buildHash("district/" + c.d, {})}">${CH.abbr} ${c.d}</a></td><td>${esc(c.name)}</td><td>${c.lines.map(chip).join(" ")}</td><td class="num">${int.format(c.votes)} <span class="summary">${c.total ? pctf(c.votes / c.total) : ""}</span></td><td>${status(c)}</td></tr>`).join("")}</tbody></table></div>
+        <div class="table-wrap"><table class="stack-sm"><caption class="sr-only">Candidates and the ballot lines they ran on</caption>
+          <thead><tr><th scope="col">Candidate</th><th scope="col">District</th><th scope="col">Lines</th><th scope="col" class="num">Votes</th><th scope="col">Result so far</th><th scope="col">Other endorsements</th></tr></thead>
+          <tbody>${shown.map((c) => `<tr><th scope="row">${esc(c.name)}</th><td><a href="${buildHash("district/" + c.d, {})}">${CH.abbr} ${c.d}</a></td><td>${c.lines.map(chip).join(" ")}</td><td class="num">${int.format(c.votes)} <span class="summary">${c.total ? pctf(c.votes / c.total) : ""}</span></td><td>${status(c)}</td><td class="small-links">${endorseLinksHtml(endorseFor(c.d, c.name)) || "—"}</td></tr>`).join("")}</tbody></table></div>
         <p class="summary">Source: <a href="${escUrl(R.url)}" target="_blank" rel="noopener">${esc(R.source)}</a>, as of ${esc(R.as_of)}. Vote totals combine every line a candidate ran on. Endorsements from unions, groups and officials aren't recorded here; no official list of them exists.</p>
       </section>`;
   }
@@ -1627,7 +1659,7 @@
         <h1>The ${esc(CH.name)} spent <span class="hero-num">${compact(meta.totalActual)}</span> in ${esc(periodName(DB))}</h1>
         <p class="hero-sub">That's about <strong>${compact(meta.totalActual / DB.periodMonths)} a month</strong> on payroll, operations and travel${chg ? `, <span class="${chg.diff >= 0 ? "up" : "down"}">${chg.diff >= 0 ? I.up : I.down}${Math.abs(chg.pct).toFixed(1)}% ${chg.diff >= 0 ? "more" : "less"}</span> than ${esc(periodName(PREV))}` : ""}. Every one of the report's ${int.format(meta.rowCount)} lines is here, across ${meta.members} member offices and ${meta.offices} central offices and committees.</p>
         <p class="hero-find"><a href="${buildHash("find", {})}">Find your own Assembly member and Senator by address ${I.r}</a></p>
-        <form class="hero-search" id="heroSearch" role="search" aria-label="Search this report"><input type="search" id="heroSearchInput" placeholder="Search a name, district, ZIP, office or vendor…" aria-label="Search the site"><button class="primary" type="submit">Search</button></form>
+        <form class="hero-search" id="heroSearch" role="search" aria-label="Search this report"><input type="search" id="heroSearchInput" placeholder="Name, district, ZIP or vendor" aria-label="Search the site"><button class="primary" type="submit">Search</button></form>
         </div>
         ${heroMap()}
       </section>
@@ -1758,8 +1790,8 @@
     return `<section class="card"><div class="card-head"><h2>${esc(CH.name)} spending over the years</h2><span class="summary">${h.periods.length} half-year reports, ${esc(fmtDay(pFirst.start))} to ${esc(fmtDay(pLast.end))}</span></div>
       ${histCols(series, h.periods)}
       <p class="summary">${chgShort(pLast.actual, (h.periods[last - 2] || pFirst).actual)} versus the same half a year earlier; ${chgShort(pLast.actual, pFirst.actual)} since ${esc(halfLabel(pFirst))}. Not adjusted for inflation.</p>
-      ${yoy.length ? `<div class="grid two"><div><h3 class="mini">Member offices up the most from a year earlier</h3><ul class="plainlist">${yoy.slice(0, 5).map((x) => `<li>${link(x[0])} · ${money0(x[2])} → ${money0(x[1])} <span class="up">+${money0(x[3])}</span></li>`).join("")}</ul></div>
-        <div><h3 class="mini">Down the most</h3><ul class="plainlist">${yoy.slice(-5).reverse().map((x) => `<li>${link(x[0])} · ${money0(x[2])} → ${money0(x[1])} <span class="down">−${money0(-x[3])}</span></li>`).join("")}</ul></div></div>` : ""}
+      ${yoy.length ? `<div class="grid two"><div><h3 class="mini">Member offices up the most from a year earlier</h3><ul class="plainlist chg-list">${yoy.slice(0, 5).map((x) => `<li>${link(x[0])}<span class="chg-nums">${money0(x[2])} → ${money0(x[1])} <span class="up">+${money0(x[3])}</span></span></li>`).join("")}</ul></div>
+        <div><h3 class="mini">Down the most</h3><ul class="plainlist chg-list">${yoy.slice(-5).reverse().map((x) => `<li>${link(x[0])}<span class="chg-nums">${money0(x[2])} → ${money0(x[1])} <span class="down">−${money0(-x[3])}</span></span></li>`).join("")}</ul></div></div>` : ""}
     </section>`;
   }
   function budgetHistoryCard() {
@@ -1773,7 +1805,7 @@
     });
     const max = Math.max(...rows.map((r) => Math.max(r.ap, r.spent || 0)));
     return `<section class="card"><div class="card-head"><h2>Budget vs. spending by fiscal year</h2><span class="summary">General Fund appropriation for the ${esc(CH.name)}${CH.id === "assembly" ? " (with Ways and Means)" : ""} and what its expenditure reports show was spent</span></div>
-      <div class="table-wrap"><table class="bh-table"><caption class="sr-only">${esc(CH.name)} appropriations and spending by fiscal year</caption>
+      <div class="table-wrap"><table class="bh-table stack-sm"><caption class="sr-only">${esc(CH.name)} appropriations and spending by fiscal year</caption>
         <thead><tr><th scope="col">Fiscal year</th><th scope="col" class="num">Appropriated</th><th scope="col" class="num">Spent</th><th scope="col" class="num">Share spent</th><th scope="col"><span class="sr-only">Chart</span></th></tr></thead>
         <tbody>${rows.map((r) => `<tr><th scope="row">${esc(r.y.fy)}${r.y.kind === "requested" ? ` <span class="summary">(requested)</span>` : ""}</th><td class="num">${money0(r.ap)}</td><td class="num">${r.spent != null ? money0(r.spent) : `<span class="summary">${r.y.start > h.periods[h.periods.length - 1].end ? "not yet" : "no report on file"}</span>`}</td><td class="num">${r.spent != null ? pctf(r.spent / r.ap) : "—"}</td>
           <td class="bh-bars" aria-hidden="true"><span class="bh-ap" style="width:${(r.ap / max * 100).toFixed(1)}%"></span>${r.spent != null ? `<span class="bh-sp" style="width:${(r.spent / max * 100).toFixed(1)}%"></span>` : ""}</td></tr>`).join("")}</tbody></table></div>
@@ -1926,12 +1958,6 @@
       <div class="title-row"><h1>${esc(s.name)} ${kindChip(s.kind)}${districtChip(s)}</h1>
         <div class="title-actions">${officialLink(s)}${ballotpediaLink(s)}<a class="btn" href="${buildHash("compare", { u: s.kind === "member" ? [s.name, DB.members[Math.floor(DB.members.length / 2)].name].filter((v, i, a) => a.indexOf(v) === i).join("|") : s.name })}">Compare…</a></div></div>
       <p class="lede">${rankNote || "Central office, committee, or task force."}</p>
-      ${profileCard(s)}
-      ${s.kind === "member" && memberInfo(s).district ? demogCard(memberInfo(s).district, s) + votersCard(memberInfo(s).district, s) : ""}
-      ${historyCard(s)}
-      ${s.kind === "member" ? legislationCard(s) : ""}
-      ${s.kind === "member" && memberInfo(s).district ? campaignCard(memberInfo(s).district, displayName(s)) + lobbyingCard(memberInfo(s).district) : ""}
-      ${CH.id === "senate" ? officeReportsCard(payroll(), s.name) + officeYearsCard(payroll(), s.name) : ""}
       <div class="grid kpis">
         ${kpi("Actual spending", money0(s.actual), ps ? changeText(change(s.actual, ps.actual)) : (PREV ? "Not in prior period" : ""))}
         ${kpi("Per month", money0(s.perMonth), s.partial ? `active ≈${s.months} of ${DB.periodMonths} months` : `${DB.periodMonths}-month period${s.kind === "member" ? ` · member median ${money0(DB.memberMonthlyMedian)}` : ""}`)}
@@ -1940,6 +1966,12 @@
         ${kpi("Travel", money0(s.byType.travel || 0), `${travel.length} reimbursements${vsPrev(s.byType.travel || 0, ps && (ps.byType.travel || 0))}`)}
         ${kpi("Allocated", money0(s.allocated), "Informational only")}
       </div>
+      ${profileCard(s)}
+      ${s.kind === "member" && memberInfo(s).district ? demogCard(memberInfo(s).district, s) + votersCard(memberInfo(s).district, s) : ""}
+      ${historyCard(s)}
+      ${s.kind === "member" ? legislationCard(s) : ""}
+      ${s.kind === "member" && memberInfo(s).district ? campaignCard(memberInfo(s).district, displayName(s)) + lobbyingCard(memberInfo(s).district) : ""}
+      ${CH.id === "senate" ? officeReportsCard(payroll(), s.name) + officeYearsCard(payroll(), s.name) : ""}
 
       <section class="card"><div class="card-head"><h2>M&amp;O + travel by month</h2><span class="summary">by voucher date · click a month for its records</span></div>
         ${columns(monthlyFor(DB, s.id).map((m) => ({ ...m, href: buildHash("records", { unit: s.id, month: m.key }) })))}</section>
@@ -2666,7 +2698,7 @@
       <div class="map-layout">
         <section class="card"><div class="card-head"><h2>District ${d.district} and its neighbors</h2><span class="summary">shaded by actual spending · click a neighbor</span></div>${zoomSvg}</section>
         <div>
-          <section class="card"><div class="card-head"><h2>Where it is</h2></div>${locator}</section>
+          <section class="card locator-card"><div class="card-head"><h2>Where it is</h2></div>${locator}</section>
           <section class="card"><div class="card-head"><h2>How it ranks</h2><span class="summary">#${s.rank} of ${members.length}</span></div>${gauges}</section>
         </div>
       </div>
@@ -2922,6 +2954,39 @@
       default: html = viewOverview();
     }
     if (html != null) app.innerHTML = html;
+    // Long pages (an office, a district): an "On this page" bar that jumps to each section.
+    if (view === "unit" || view === "district") {
+      const heads = [...app.querySelectorAll("section.card > .card-head h2")].filter((h) => h.textContent.trim());
+      if (heads.length > 5) {
+        const short = (t) => t.replace(/,? \d{4}(–\d{2,4})?( session)?$/, "").replace(/^Who lobbied .*/, "Lobbying").replace(/^Campaign money.*/, "Campaign money").replace(/^Outside money.*/, "Outside money").replace(/^(District \d+|Senate District \d+|Assembly District \d+) and its neighbors$/, "Map");
+        const nav = document.createElement("nav");
+        nav.className = "jumpbar"; nav.setAttribute("aria-label", "On this page");
+        nav.innerHTML = `<span class="jb-label">On this page</span>` + heads.map((h, i) => `<button type="button" data-i="${i}">${esc(short(h.textContent.trim()))}</button>`).join("");
+        const lede = app.querySelector(".lede") || app.querySelector("h1");
+        (lede && lede.parentNode === app ? lede : app.firstElementChild).insertAdjacentElement("afterend", nav);
+        nav.addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; const h = heads[Number(b.dataset.i)]; h.setAttribute("tabindex", "-1"); h.closest("section").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" }); h.focus({ preventScroll: true }); });
+      }
+    }
+    // Tables that turn into labeled rows on phones.
+    app.querySelectorAll("table.stack-sm").forEach((t) => {
+      const labels = [...t.querySelectorAll("thead th")].map((th) => th.textContent.replace(/\s+/g, " ").trim());
+      // Keep table semantics for screen readers when phones lay the rows out as blocks.
+      t.setAttribute("role", "table");
+      t.querySelectorAll("thead, tbody").forEach((g) => g.setAttribute("role", "rowgroup"));
+      t.querySelectorAll("tr").forEach((r) => r.setAttribute("role", "row"));
+      t.querySelectorAll("thead th").forEach((h) => h.setAttribute("role", "columnheader"));
+      t.querySelectorAll("tbody th").forEach((h) => h.setAttribute("role", "rowheader"));
+      t.querySelectorAll("td").forEach((c) => c.setAttribute("role", "cell"));
+      t.querySelectorAll("tbody tr").forEach((tr) => [...tr.children].forEach((cell, i) => {
+        if (!labels[i] || cell.hasAttribute("data-label")) return;
+        cell.setAttribute("data-label", labels[i]);
+        if (cell.tagName === "TD" && cell.childNodes.length > 1 && !cell.classList.contains("cf-bar") && !cell.classList.contains("bh-bars")) {
+          const wrap = document.createElement("span"); wrap.className = "cv";
+          while (cell.firstChild) wrap.appendChild(cell.firstChild);
+          cell.appendChild(wrap);
+        }
+      }));
+    });
     // Wide tables and charts that scroll sideways: reachable and scrollable by keyboard, and named for screen readers.
     app.querySelectorAll(".table-wrap, .cols").forEach((el) => {
       if (el.scrollWidth > el.clientWidth + 2) {

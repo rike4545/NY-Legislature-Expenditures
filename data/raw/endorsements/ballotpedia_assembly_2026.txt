@@ -1,0 +1,265 @@
+1|Thomas Schiavoni|Thomas_Schiavoni
+1|Stephen Kiely|Stephen_Kiely
+2|Michael Szika|Michael_Szika
+2|Jodi Giglio|Jodi_Giglio
+2|Kimberly Wilder|Kimberly_Wilder
+3|Joshua Slaughter|Joshua_Slaughter
+3|Joseph DeStefano|Joseph_DeStefano
+4|Rebecca Kassay|Rebecca_Kassay
+4|William Sussman|William_Sussman
+5|Victoria Russell|Victoria_Russell
+5|Doug Smith|Doug_Smith_(New_York)
+6|Philip Ramos|Philip_Ramos
+6|Dennis Barravecchio|Dennis_Barravecchio
+7|Patricia Kopp|Patricia_Kopp
+7|DawnMarie Kuhn|DawnMarie_Kuhn
+8|Lynn Trupiano-O'Keefe|Lynn_Trupiano-O'Keefe
+8|Michael Fitzpatrick|Michael_Fitzpatrick_(New_York)
+9|Christopher Walis|Christopher_Walis
+9|Michael Durso|Michael_Durso
+10|Steve Stern|Steve_Stern
+10|Tiffany LeGrow|Tiffany_LeGrow
+11|Kwani O'Pharrow|Kwani_O'Pharrow
+11|Joseph Cardinale|Joseph_Cardinale
+12|Craig Herskowitz|Craig_Herskowitz_(New_York)
+12|David Weber Jr.|David_Weber_Jr._(New_York)
+13|Charles Lavine|Charles_Lavine
+13|Conner Dunleavy|Conner_Dunleavy
+14|John E. Brooks|John_E._Brooks
+14|Shannon Fredericks|Shannon_Fredericks
+15|Dean Tarulli|Dean_Tarulli
+15|Paolo Pironi|Paolo_Pironi
+16|Kim Keiserman|Kim_Keiserman
+16|David Hassid|David_Hassid
+17|Sunita Lofters|Sunita_Lofters
+17|John Mikulin|John_Mikulin_(New_York)
+18|Noah Burroughs|Noah_Burroughs
+18|Charlene Jackson|Charlene_Jackson_(New_York)
+19|Colleen Connaughton|Colleen_Connaughton
+19|Edward Ra|Edward_Ra
+20|Meir Fischer|Meir_Fischer
+20|Eric Ari Brown|Eric_Ari_Brown_(New_York_State_Assembly_member)
+21|Judy Griffin|Judy_Griffin_(New_York)
+21|Irene Villacci|Irene_Villacci
+22|Michaelle Solages|Michaelle_C._Solages
+22|Robert Inzerillo|Robert_Inzerillo
+23|Pesach Osina|Pesach_Osina
+23|Thomas Sullivan|Thomas_Sullivan_(New_York_State_Assembly_District_23)
+24|David Weprin|David_Weprin
+24|Welson Chang|Welson_Chang
+25|Nily Rozic|Nily_Rozic
+26|Edward Braunstein|Edward_Braunstein
+26|Robert Speranza|Robert_Speranza
+27|Sam Berger|Sam_Berger
+28|Andrew Hevesi|Andrew_Hevesi
+28|David Kemp|David_Kemp
+28|Jonathan Rinaldi|Jonathan_Rinaldi_(New_York_State_Assembly_candidate)
+29|Alicia Hyndman|Alicia_Hyndman
+30|Patrick Martinez|Patrick_Martinez
+30|Brandon Castro|Brandon_Castro
+31|Khaleel Anderson|Khaleel_Anderson
+32|Nathaniel Hezekiah III|Nathaniel_Hezekiah_III
+32|Paul Nichols|Paul_Nichols_(New_York)
+33|Clyde Vanel|Clyde_Vanel
+33|Oster Bryan|Oster_Bryan
+34|Brian Romero|Brian_Romero
+35|Larinda Hooks|Larinda_Hooks
+36|Diana Moreno|Diana_Moreno
+36|Edward Lee|Edward_Lee
+37|Samantha Kattan|Samantha_Kattan
+38|David Orkin|David_Orkin
+38|Ruben Cruz II|Ruben_Cruz_II
+39|Catalina Cruz|Catalina_Cruz
+39|Ramses Frias|Ramses_Frias
+40|Ron Kim|Ron_Kim_(New_York_assemblyman)
+41|Kalman Yeger|Kalman_Yeger
+42|Rodneyse Bichotte Hermelyn|Rodneyse_Bichotte_Hermelyn
+42|Herman Hall|Herman_G._Hall
+43|Brian A. Cunningham|Brian_A._Cunningham
+43|Anna Shpilkovskaya|Anna_Shpilkovskaya
+44|Robert C. Carroll|Robert_C._Carroll
+44|Glenn Nocera|Glenn_Nocera
+45|Joey Cohen-Saban|Joey_Cohen-Saban
+45|Michael Novakhov|Michael_Novakhov
+46|Chris McCreight|Chris_McCreight
+46|Alec Brook-Krasny|Alec_Brook-Krasny
+47|William Colton|William_Colton
+47|John Ricottone|John_Ricottone
+48|Simcha Eichenstein|Simcha_Eichenstein
+49|Joyce Xiaoqiong Xie|Joyce_Xiaoqiong_Xie
+49|Lester Chang|Lester_Chang
+50|Emily Gallagher|Emily_Gallagher
+51|Marcela Mitaynes|Marcela_Mitaynes
+51|Carla Danielson|Carla_Danielson
+52|Jo Anne Simon|Jo_Anne_Simon
+52|Brett Wynkoop|Brett_Wynkoop
+53|Maritza Davila|Maritza_Davila_(New_York)
+54|Christian Celeste Tate|Christian_Celeste_Tate
+55|Latrice Walker|Latrice_Walker
+56|Eon Tyrell Huntley|Eon_Tyrell_Huntley
+57|Phara Souffrant Forrest|Phara_Souffrant_Forrest
+57|Yolanda Allison|Yolanda_Allison
+58|Monique Chandler-Waterman|Monique_Chandler-Waterman
+59|Jaime Williams|Jaime_Williams
+59|Jibreel Jalloh|Jibreel_Jalloh
+60|Nikki Lucas|Nikki_Lucas
+60|Norman Ramsay|Norman_Ramsay
+61|Charles Fall|Charles_Fall
+61|Casey O'Connor-Manasia|Casey_O'Connor-Manasia
+62|Michael Reilly|Michael_Reilly_(New_York)
+63|Matthew Mobilia|Matthew_Mobilia
+63|Samuel Pirozzolo|Samuel_T._Pirozzolo
+64|Shpetim Qorraj|Shpetim_Qorraj
+64|Michael Tannousis|Michael_Tannousis
+65|Illapa Sairitupac|Illapa_Sairitupac
+65|Helen Qiu|Helen_Qiu
+66|David Siffert|David_Siffert
+67|Linda Rosenthal|Linda_Rosenthal
+68|Diana Ayala|Diana_Ayala
+69|Eli Northrup|Eli_Northrup
+70|Jordan Wright|Jordan_Wright
+71|Alfred Taylor|Alfred_Taylor_(New_York)
+72|Manny De Los Santos|Manny_De_Los_Santos
+73|Vanessa Aronson|Vanessa_Aronson
+74|Keith Powers|Keith_Powers_(New_York)
+74|Veronica Gonzalez|Veronica_Gonzalez_(New_York)
+75|Tony Simone|Tony_Simone
+75|Christine Fontanelli|Christine_Fontanelli
+76|Rebecca Seawright|Rebecca_Seawright
+76|Louis Puliafito|Louis_Puliafito
+77|Landon Dais|Landon_Dais
+78|George Alvarez|George_Alvarez
+79|Chantel Jackson|Chantel_Jackson
+79|Emmanuel Findlay Jr.|Emmanuel_Findlay_Jr.
+80|John Zaccaro Jr.|John_Zaccaro_Jr.
+80|Denise Smith|Denise_Smith_(New_York)
+81|Jeffrey Dinowitz|Jeffrey_Dinowitz
+82|Michael Benedetto|Michael_Benedetto
+82|Irene Guanill|Irene_Guanill
+83|Carl Heastie|Carl_Heastie
+83|James Washington-Ward|James_Washington-Ward
+84|Amanda Septimo|Amanda_Septimo
+84|Tyreek Goodman|Tyreek_Goodman
+85|Emerita Torres|Emerita_Torres
+86|Yudelka Tapia|Yudelka_Tapia
+86|Maria Diaz|Maria_Diaz_(New_York)
+86|Shery Olivo|Shery_Olivo
+87|Karines Reyes|Karines_Reyes
+87|Zenobia Merced-Bonilla|Zenobia_Merced-Bonilla
+87|Zakir Choudhury|Zakir_Choudhury
+88|Amy Paulin|Amy_Paulin
+89|J. Gary Pretlow|J._Gary_Pretlow
+90|Frank Jereis|Frank_Jereis
+90|John Isaac|John_Isaac
+91|Steven Otis|Steven_Otis
+92|Maryjane Shimsky|Maryjane_Shimsky
+92|Bob Welch|Bob_Welch
+93|Chris Burdick|Chris_Burdick
+93|Braille Diaz|Braille_Diaz
+94|Daniel Guzman|Daniel_Guzman
+94|Matthew Slater|Matthew_Slater
+95|Dana Levenberg|Dana_Levenberg
+95|Laurie Ryan|Laurie_Ryan
+96|Patrick Carroll|Patrick_Carroll_(New_York)
+96|Brett Yagel|Brett_Yagel
+97|Aron Wieder|Aron_B._Wieder
+97|Rob Bonomolo|Rob_Bonomolo
+97|Abraham Klein|Abraham_Klein
+98|Karl Brabenec|Karl_Brabenec
+99|Christopher Eachus|Christopher_W._Eachus
+99|Richard Vargus|Richard_Vargus
+100|Paula Kay|Paula_Kay
+101|Brian Maher|Brian_Maher_(New_York)
+102|Janet Tweed|Janet_Tweed
+102|Marcus Molinaro|Marcus_Molinaro
+103|Sarahana Shrestha|Sarahana_Shrestha
+103|Santos Lopez|Santos_Lopez
+104|Jonathan Jacobson|Jonathan_Jacobson_(New_York)
+105|Brooklyn Talarico|Brooklyn_Talarico
+105|Anil Beephan Jr.|Anil_Beephan_Jr.
+106|Didi Barrett|Didi_Barrett
+106|Gregory Campus|Gregory_Campus
+107|Chloe Pierce|Chloe_Pierce
+107|Scott H. Bendett|Scott_Bendett
+108|John T. McDonald III|John_T._McDonald_III_(New_York)
+108|Joseph Adamo III|Joseph_Adamo_III
+109|Gabriella Romero|Gabriella_Romero
+110|Phil Steck|Phil_Steck
+110|Frank Mauriello|Frank_Mauriello
+111|Angelo Santabarbara|Angelo_Santabarbara
+111|Nicholas Sokaris|Nicholas_Sokaris
+112|Mario Fantini|Mario_Fantini
+112|Mary Beth Walsh|Mary_Beth_Walsh
+113|Carrie Woerner|Carrie_Woerner
+113|Allen Caruso|Allen_Caruso
+113|Thomas Kenny|Thomas_Kenny
+114|John Gunther|John_Gunther_(New_York_State_Assembly_candidate)
+114|Matthew Simpson|Matthew_Simpson_(New_York)
+115|Michael Cashman|Michael_Cashman
+116|Scott Gray|Scott_Gray
+117|Dennis Gordon|Dennis_Gordon_(New_York)
+117|Tammie Nabywaniec|Tammie_Nabywaniec
+118|Colleen Maxwell|Colleen_Maxwell
+118|Heather Scribner|Heather_Scribner
+119|Jon Lipe|Jon_Lipe
+119|Michael Gentile|Michael_Gentile
+120|Timothy Allers|Timothy_Allers
+120|Jim Weatherup|Jim_Weatherup
+121|Vicki Davis|Vicki_Davis
+121|Joe Angelino|Joe_Angelino
+122|Ihor Semko|Ihor_Semko
+122|Brian Miller|Brian_Miller_(New_York)
+123|Dan Norton|Dan_Norton
+123|Lynn Parker|Lynn_Parker
+123|Heather Micha|Heather_Micha
+124|Andrew Fagan|Andrew_Fagan
+124|Christopher Friend|Christopher_Friend
+125|Anna Kelles|Anna_Kelles
+126|Ian Phillips|Ian_Phillips
+126|John Lemondes Jr.|John_Lemondes_Jr.
+127|Al Stirpe|Al_Stirpe
+127|Timothy R. Kelly|Timothy_R._Kelly_(New_York)
+128|Pamela Hunter|Pamela_Hunter
+128|Patrick Becher|Patrick_Becher
+129|Maurice Brown|Maurice_Brown_(New_York)
+129|Shawn Fiato|Shawn_Fiato
+130|Carl Fitzsimmons|Carl_Fitzsimmons
+130|George Dobbins|George_Dobbins
+130|Joseph Lamanna|Joseph_Lamanna_(New_York_State_Assembly_candidate)
+131|Phillip Fleming|Phillip_Fleming
+131|Mark Benjamin|Mark_Benjamin
+132|Philip Palmesano|Philip_Palmesano
+133|Gladys Flores|Gladys_Flores
+133|Andrea K. Bailey|Andrea_K._Bailey_(New_York)
+134|Kurt VanWuyckhuyse|Kurt_VanWuyckhuyse
+134|Josh Jensen|Josh_Jensen_(New_York)
+135|Jennifer Lunsford|Jennifer_Lunsford
+135|Kalinda Washington|Kalinda_Washington
+136|Sarah Clark|Sarah_Clark_(New_York)
+136|Clianda Florence|Clianda_Florence
+137|Demond Meeks|Demond_Meeks
+137|Dave Ferris|Dave_Ferris
+137|Mercedes Vazquez-Simmons|Mercedes_Vazquez-Simmons
+138|Harry Bronson|Harry_Bronson
+138|Tracy DiFlorio|Tracy_DiFlorio
+139|Sarah Wolcott|Sarah_Wolcott
+139|Stephen Hawley|Stephen_Hawley
+140|William Conrad|William_Conrad_(New_York)
+140|Mohammed Faisal|Mohammed_Faisal
+141|Leah Halton-Pope|Leah_Halton-Pope
+142|Patrick Burke|Patrick_Burke_(New_York)
+142|Gary Dickson|Gary_Dickson
+143|Ryan Taughrin|Ryan_Taughrin
+143|Patrick Chludzinski|Patrick_Chludzinski
+144|Donna Dye Sholk|Donna_Dye_Sholk
+144|Paul Bologna|Paul_Bologna
+145|Nate McMurray|Nate_McMurray
+145|Becky Wydysh|Becky_Wydysh
+146|Karen McMahon|Karen_McMahon
+146|Terence McGuire|Terence_McGuire
+147|David DiPietro|David_DiPietro
+148|Joe Sempolinski|Joe_Sempolinski
+149|Adam Bojak|Adam_Bojak
+149|Frank Bogulski|Frank_Bogulski
+150|Thomas Carle|Thomas_Carle
+150|Andrew Molitor|Andrew_Molitor

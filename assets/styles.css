@@ -777,3 +777,74 @@ a.back { padding: 4px 0; }
 .lchip.en-r { background: #a8261b; }
 .lchip.en-c { background: #6b2318; }
 .lchip.en-w { background: #1b5e70; }
+
+/* ---------- On this page (long office and district pages) ---------- */
+.jumpbar {
+  display: flex; gap: 6px; align-items: center; overflow-x: auto; scrollbar-width: thin;
+  margin: 4px 0 18px; padding: 8px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+}
+.jumpbar .jb-label { flex: none; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-right: 4px; }
+.jumpbar button {
+  flex: none; font: inherit; font-size: 13px; line-height: 1.2; padding: 7px 11px; min-height: 32px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--border); background: var(--surface); color: var(--text); white-space: nowrap;
+}
+.jumpbar button:hover { border-color: var(--accent); color: var(--accent); }
+section.card > .card-head h2[tabindex="-1"]:focus { outline: none; }
+section.card { scroll-margin-top: 140px; }
+
+/* ---------- Two-line change lists ---------- */
+.chg-list li { display: flex; flex-direction: column; gap: 2px; padding: 6px 0; border-bottom: 1px solid var(--border); }
+.chg-list li:last-child { border-bottom: 0; }
+.chg-nums { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* ---------- Phones ---------- */
+@media (max-width: 640px) {
+  /* Tables that become labeled rows */
+  table.stack-sm, table.stack-sm tbody, table.stack-sm tr, table.stack-sm th[scope=row], table.stack-sm td { display: block; width: 100%; }
+  table.stack-sm thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  table.stack-sm { min-width: 0 !important; }
+  table.stack-sm tr { padding: 10px 0; border-bottom: 1px solid var(--border); }
+  table.stack-sm tr:last-child { border-bottom: 0; }
+  table.stack-sm th[scope=row] { position: static; background: none; padding: 0 0 4px; border: 0; box-shadow: none; max-width: none; width: 100%; font-size: 15px; text-transform: none; letter-spacing: 0; }
+  table.stack-sm td { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 3px 0; border: 0; text-align: right; white-space: normal; }
+  table.stack-sm td::before { content: attr(data-label); flex: none; max-width: 48%; text-align: left; font-size: 12px; color: var(--muted); }
+  table.stack-sm td:not([data-label])::before, table.stack-sm td[data-label=""]::before { content: none; }
+  table.stack-sm td.cf-bar, table.stack-sm td.bh-bars { display: block; padding-top: 6px; }
+  table.stack-sm td.cf-bar::before, table.stack-sm td.bh-bars::before { content: none; }
+  table.stack-sm td.cf-bar .cf-stack { min-width: 0; }
+  .table-wrap:has(> table.stack-sm) { overflow: visible; border: 0; }
+  .endorse-table th[scope=row] { width: 100%; max-width: none; }
+  .om-table td:last-child { display: block; text-align: left; }
+  .om-table td:last-child::before { display: block; margin-bottom: 2px; max-width: none; }
+
+  /* Year labels: every other one so they don't collide */
+  .cols.hist .col:nth-child(even) .collabel { visibility: hidden; }
+  .cols.hist { height: 140px; }
+
+  /* Smaller locator map, tighter cards */
+  .locator-card svg { max-height: 150px; }
+  section.card { padding-left: 14px; padding-right: 14px; }
+  .card-head { gap: 4px 10px; }
+  .card-head .summary { font-size: 12.5px; }
+  .grid.kpis.small { gap: 8px; }
+  .lede { font-size: 15px; }
+  h1 { font-size: clamp(24px, 7vw, 30px); line-height: 1.15; }
+  .title-actions { flex-wrap: wrap; gap: 6px; }
+}
+@media (max-width: 640px) {
+  table.stack-sm td > .cv { display: inline; text-align: right; }
+  table.stack-sm td > .cv .lchip { margin-left: 3px; }
+}
+@media (max-width: 640px) { table.stack-sm td:empty { display: none; } }
+.sm-only { display: none; }
+@media (max-width: 640px) {
+  .hide-sm { display: none; }
+  .sm-only { display: block; font-size: 12px; color: var(--muted); font-weight: 400; max-width: 110px; white-space: normal; line-height: 1.25; margin-top: 2px; }
+  table.wide-sticky th:first-child, table.wide-sticky td:first-child { position: sticky; left: 0; z-index: 1; background: var(--surface); box-shadow: 1px 0 0 var(--border); }
+  table.wide-sticky thead th:first-child { z-index: 2; }
+  table.wide-sticky td, table.wide-sticky th { padding-left: 10px; padding-right: 10px; }
+}
+@media (max-width: 640px) {
+  .cols.hist .col .collabel { visibility: hidden; }
+  .cols.hist .col:nth-child(4n+1) .collabel, .cols.hist .col:last-child .collabel { visibility: visible; }
+}
