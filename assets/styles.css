@@ -523,3 +523,8 @@ kbd { font: 600 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace; padding: 
 .budget td.share .fill { display: block; height: 100%; background: var(--accent); border-radius: 4px; }
 .budget td.share span:last-child { min-width: 38px; text-align: right; font-variant-numeric: tabular-nums; }
 @media (forced-colors: active) { .cf-stack span, .budget .fill { forced-color-adjust: none; } }
+details.yeartable { margin-top: 10px; }
+details.yeartable > summary { cursor: pointer; color: var(--accent); font-weight: 600; font-size: 14px; padding: 4px 0; }
+details.yeartable > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+details.yeartable table th[scope=row] { position: static; background: none; font-size: 14px; color: var(--text); text-transform: none; letter-spacing: 0; }
+abbr[title] { text-decoration: underline dotted; cursor: help; }

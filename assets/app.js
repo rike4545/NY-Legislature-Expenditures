@@ -183,6 +183,36 @@
   }
   function fmtRepDay(pr, i) { return fmtDay(pr.reports[i][0]); }
 
+  /* Salaried payroll summed over every biweekly report, by check-date year. */
+  function payrollYearsCard(pr) {
+    if (!pr || !pr.years) return "";
+    const ys = Object.entries(pr.years);
+    const full = (v) => v.reports >= 25;
+    const max = Math.max(1, ...ys.map(([, v]) => v.salary));
+    const last = ys[ys.length - 1], prevFull = ys.filter(([, v]) => full(v)).slice(-2);
+    const chg = prevFull.length === 2 ? (prevFull[1][1].salary / prevFull[0][1].salary - 1) * 100 : null;
+    return `<section class="card"><div class="card-head"><h2>Senate payroll by year</h2><span class="summary">every biweekly payroll report, summed by check date${chg != null ? ` · ${prevFull[1][0]} was ${chg >= 0 ? "+" : ""}${chg.toFixed(1)}% on ${prevFull[0][0]}` : ""}</span></div>
+      <div class="cols">${ys.map(([y, v]) => `<div class="col${full(v) ? "" : " partial"}" title="${y}: ${money(v.salary)} salaried payroll on ${v.reports} reports" role="img" aria-label="${y}: ${money0(v.salary)} salaried payroll, ${v.reports} reports${full(v) ? "" : ", partial year"}">
+        <span class="colval">${compact(v.salary)}</span><span class="colbar${full(v) ? "" : " dimbar"}" style="height:${(v.salary / max * 100).toFixed(1)}%"></span><span class="collabel">${y}${full(v) ? "" : "*"}</span></div>`).join("")}</div>
+      <details class="yeartable"><summary>Year-by-year table</summary><div class="table-wrap"><table>
+        <caption class="sr-only">Senate payroll by year from biweekly payroll reports</caption>
+        <thead><tr><th scope="col">Year</th><th scope="col" class="num">Reports</th><th scope="col" class="num">Salaried payroll</th><th scope="col" class="num">Regular annual</th><th scope="col" class="num">Special annual</th><th scope="col" class="num">People paid</th><th scope="col" class="num">Hourly staff</th><th scope="col" class="num">Median hourly rate</th></tr></thead>
+        <tbody>${ys.slice().reverse().map(([y, v]) => `<tr><th scope="row">${y}${full(v) ? "" : "*"}</th><td class="num">${v.reports}</td><td class="num"><strong>${money0(v.salary)}</strong></td><td class="num">${money0(v.ra)} <span class="summary">· ${int.format(v.ra_people)}</span></td><td class="num">${money0(v.sa)} <span class="summary">· ${int.format(v.sa_people)}</span></td><td class="num">${int.format(v.people)}</td><td class="num">${int.format(v.te_people)}</td><td class="num">${v.te_median_rate != null ? money(v.te_median_rate) : "—"}</td></tr>`).join("")}</tbody></table></div></details>
+      <p class="summary">Salaried payroll is the sum of every Regular Annual and Special Annual employee's biweekly rate on each report, so it's payroll at listed rates, not checks cashed. Temporary staff are paid by the hour and the reports give no hours, so they're counted rather than summed. Members' own salaries aren't in these reports. * Partial year: ${ys.filter(([, v]) => !full(v)).map(([y, v]) => `${y} (${v.reports} reports${y === last[0] ? ", through " + esc(fmtRepDay(pr, pr.last)) : ""})`).join(", ")}; a few reports are also missing from the Senate's archive. Pay types: <abbr title="Appointed for at least 1,820 hours a year (35 hours a week) and expected to be on the payroll year round">RA</abbr> regular annual, <abbr title="Appointed for fewer than 1,820 hours, or for less than a full year">SA</abbr> special annual, <abbr title="Irregular schedule, paid an hourly wage">TE</abbr> temporary (hourly).</p>
+    </section>`;
+  }
+  function officeYearsCard(pr, officeName) {
+    if (!pr || !pr.officeYears) return "";
+    const oi = pr.offices.indexOf(officeName);
+    const ys = oi >= 0 ? Object.entries(pr.officeYears[String(oi)] || {}).sort() : [];
+    if (ys.length < 2) return "";
+    const max = Math.max(1, ...ys.map(([, v]) => v[0]));
+    return `<section class="card"><div class="card-head"><h2>Staff payroll by year</h2><span class="summary">salaried staff at listed biweekly rates, from every Senate payroll report · by check date</span></div>
+      <div class="cols small">${ys.map(([y, v]) => { const part = (pr.years[y] || {}).reports < 25; return `<div class="col${part ? " partial" : ""}" title="${y}: ${money(v[0])}, ${v[1]} people" role="img" aria-label="${y}: ${money0(v[0])} for ${v[1]} salaried staff${part ? ", partial year" : ""}">
+        <span class="colval">${compact(v[0])}</span><span class="colbar${part ? " dimbar" : ""}" style="height:${(v[0] / max * 100).toFixed(1)}%"></span><span class="collabel">${y}${part ? "*" : ""}</span></div>`; }).join("")}</div>
+      <p class="summary">* partial year. Hourly staff and the senator's own salary aren't included.</p></section>`;
+  }
+
   function viewPerson(params) {
     const name = params.name || "";
     const pr = payroll();
@@ -801,6 +831,7 @@
       <p class="lede">${rankNote || "Central office, committee, or task force."}</p>
       ${profileCard(s)}
       ${s.kind === "member" && memberInfo(s).district ? campaignCard(memberInfo(s).district, displayName(s)) : ""}
+      ${CH.id === "senate" ? officeYearsCard(payroll(), s.name) : ""}
       <div class="grid kpis">
         ${kpi("Actual spending", money0(s.actual), ps ? changeText(change(s.actual, ps.actual)) : (PREV ? "Not in prior period" : ""))}
         ${kpi("Per month", money0(s.perMonth), s.partial ? `active ≈${s.months} of ${DB.periodMonths} months` : `${DB.periodMonths}-month period${s.kind === "member" ? ` · member median ${money0(DB.memberMonthlyMedian)}` : ""}`)}
@@ -1046,6 +1077,7 @@
       <p class="lede">Every person on the ${esc(CH.name)} payroll in ${esc(periodName(DB))}, with their regular pay normalized to a yearly rate so part-period and full-period employees can be compared.</p>
       <div class="callout"><strong>How it's calculated.</strong> For each person in each office, regular pay lines are added up and divided by the days their service dates cover, then scaled to 364 days (26 biweekly pay periods). A member paid $70,999.98 for 182 days annualizes to $142,000, the legislative base salary. One-time payments (lump-sum vacation, deferral payments, stipends, allowances, back pay) and stints under one pay period are left out. ${CH.id === "senate" ? "Senators' own MEMBER lines are different: the Senate reports them with only a check date and one amount for the whole report (usually $71,000, 13 checks; $65,538, 12 checks, in the report ending March 2025). Their rate is the base salary set in law, and the amount is shown as a number of biweekly checks at that rate. Leadership stipends (Temporary President, Minority Leader and so on) are paid in uneven lumps and are shown as reported on each senator's page, not annualized." : ""} New York's base legislator salary is $142,000 (<a href="https://www.ncsl.org/about-state-legislatures/2025-legislator-compensation" target="_blank" rel="noopener">NCSL, 2025</a>). It's an estimate of a yearly rate, not a reported salary.</div>
       <p class="summary paywin">${payWindowNote(DB)}</p>
+      ${CH.id === "senate" && pr ? payrollYearsCard(pr) : ""}
       <div class="grid kpis">
         ${kpi("People annualized", int.format(list.length), `of ${int.format(all.length)} in this report`)}
         ${kpi("Median staff rate", money0(median(staff.map((x) => x.annual))), "excluding members")}
