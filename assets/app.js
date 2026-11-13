@@ -3080,6 +3080,10 @@
       { id: "hours", title: "Mobile office hours notice", when: "Before each stop on the mobile-office rotation", body: `Dear Neighbor,\n\nMy staff will hold mobile office hours in [community] on [day, date] from [time] to [time] at [location and address].\n\nStop by for help with a State agency, including unemployment, DMV, tax and STAR questions, benefits such as SNAP or HEAP, health insurance, licenses and permits. Please bring any letters or notices about your issue. No appointment is needed, and help is available in [English and Spanish].\n\nIf you can't make it, call my district office at ${x.phone || "[office phone]"}${x.email ? ` or email ${x.email}` : ""} any weekday.\n\n${sign}` },
     ];
   }
+  // Edited letters are kept in this browser only, per chamber, district and template; null clears back to the template.
+  function nxLetterKey(d, id) { return `nascar-letter:${CH.id}:${d}:${id}`; }
+  function nxLetterLoad(d, id) { try { return localStorage.getItem(nxLetterKey(d, id)); } catch (e) { return null; } }
+  function nxLetterSave(d, id, text) { try { if (text == null) localStorage.removeItem(nxLetterKey(d, id)); else localStorage.setItem(nxLetterKey(d, id), text); } catch (e) { /* storage unavailable: edits last this visit */ } }
   function nxKey(d) { return `nascar:${CH.id}:${d}`; }
   function nxLoad(d) { try { const v = JSON.parse(localStorage.getItem(nxKey(d)) || "[]"); return new Set(Array.isArray(v) ? v : []); } catch (e) { return new Set(); } }
   function nxSave(d, set) { try { localStorage.setItem(nxKey(d), JSON.stringify([...set])); } catch (e) { /* storage unavailable: progress lasts this visit */ } }
@@ -3133,15 +3137,56 @@
       });
       app.querySelectorAll("[data-copy]").forEach((btn) => btn.addEventListener("click", async () => {
         const src = app.querySelector("#" + btn.dataset.copy);
-        const text = src ? src.textContent : "";
+        const text = src ? src.value : "";
         let ok = false;
         try { await navigator.clipboard.writeText(text); ok = true; } catch (err) {
           // Clipboard blocked: select the text so it can be copied by hand.
-          const r = document.createRange(); r.selectNodeContents(src); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+          src.focus(); src.select();
         }
         btn.textContent = ok ? "Copied" : "Selected: press Ctrl+C";
         announce(ok ? "Letter copied" : "Letter selected; press Control C to copy");
         setTimeout(() => { btn.textContent = "Copy letter"; }, 2500);
+      }));
+      const blanks = (id) => {
+        const ta = app.querySelector("#nxL-" + id), out = app.querySelector(`[data-blanks="${id}"]`);
+        if (!ta || !out) return;
+        const n = (ta.value.match(/\[[^\]\n]+\]/g) || []).length;
+        out.textContent = n ? `${n} [bracketed] field${n === 1 ? "" : "s"} left to fill in` : "No [bracketed] fields left";
+      };
+      const tplOf = (id) => letters.find((L) => L.id === id);
+      app.querySelectorAll("textarea[data-letter]").forEach((ta) => {
+        const id = ta.dataset.letter;
+        blanks(id);
+        const fit = () => { ta.style.height = "auto"; ta.style.height = ta.scrollHeight + 4 + "px"; };
+        ta.closest("details").addEventListener("toggle", fit);
+        let t = 0;
+        ta.addEventListener("input", () => {
+          blanks(id); fit();
+          clearTimeout(t);
+          t = setTimeout(() => {
+            nxLetterSave(d.district, id, ta.value === tplOf(id).body ? null : ta.value);
+            const sum = ta.closest("details").querySelector("summary");
+            let tag = sum.querySelector(".nx-edited");
+            if (ta.value !== tplOf(id).body && !tag) sum.insertAdjacentHTML("beforeend", ` <span class="nx-edited">edited</span>`);
+            else if (ta.value === tplOf(id).body && tag) tag.remove();
+          }, 300);
+        });
+      });
+      app.querySelectorAll("[data-reset]").forEach((btn) => btn.addEventListener("click", () => {
+        const id = btn.dataset.reset, ta = app.querySelector("#nxL-" + id);
+        ta.value = tplOf(id).body; nxLetterSave(d.district, id, null); blanks(id); ta.dispatchEvent(new Event("toggle"));
+        const tag = ta.closest("details").querySelector(".nx-edited"); if (tag) tag.remove();
+        announce(`${tplOf(id).title}: reset to the template`);
+      }));
+      app.querySelectorAll("[data-dl]").forEach((btn) => btn.addEventListener("click", () => {
+        const id = btn.dataset.dl, ta = app.querySelector("#nxL-" + id);
+        const blob = new Blob([ta.value.replace(/\n/g, "\r\n")], { type: "text/plain;charset=utf-8" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `${CH.abbr}${d.district}-${id}-letter.txt`;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+        announce("Letter downloaded");
       }));
       const pr = app.querySelector("#nxPrint");
       if (pr) pr.addEventListener("click", () => window.print());
@@ -3212,10 +3257,14 @@
       </section>
 
       <section class="card nx-letters"><div class="card-head"><h2>Sample constituent letters</h2><span class="summary">${letters.length} templates</span></div>
-        <p class="summary">Office details fill in from the current ${esc(CH.name)} District ${d.district} office. Complete the <mark>[bracketed]</mark> fields before sending, and keep each letter to facts the office has confirmed.</p>
-        ${letters.map((L) => `<details class="nx-letter"><summary><strong>${esc(L.title)}</strong> <span class="summary">· ${esc(L.when)}</span></summary>
-          <div class="nx-letter-body" id="nxL-${L.id}">${esc(L.body).replace(/\[[^\]]+\]/g, (m) => `<mark>${m}</mark>`)}</div>
-          <p class="noprint"><button type="button" data-copy="nxL-${L.id}">Copy letter</button></p></details>`).join("")}
+        <p class="summary">Office details fill in from the current ${esc(CH.name)} District ${d.district} office. Edit any letter right here: fill in the [bracketed] fields and change the wording to fit. Edits save automatically in this browser only, for this district; "Reset to template" brings back the original. Keep each letter to facts the office has confirmed.</p>
+        ${letters.map((L) => { const saved = nxLetterLoad(d.district, L.id); const text = saved != null ? saved : L.body; return `<details class="nx-letter"${saved != null ? " open" : ""}><summary><strong>${esc(L.title)}</strong> <span class="summary">· ${esc(L.when)}</span>${saved != null ? ` <span class="nx-edited">edited</span>` : ""}</summary>
+          <label class="sr-only" for="nxL-${L.id}">${esc(L.title)} letter text</label>
+          <textarea class="nx-letter-body" id="nxL-${L.id}" data-letter="${L.id}" rows="${Math.min(30, text.split("\n").length + 2)}" spellcheck="true">${esc(text)}</textarea>
+          <p class="noprint nx-letter-tools"><span class="summary" data-blanks="${L.id}" aria-live="polite"></span>
+            <button type="button" data-copy="nxL-${L.id}">Copy letter</button>
+            <button type="button" data-dl="${L.id}">Download .txt</button>
+            <button type="button" class="link" data-reset="${L.id}">Reset to template</button></p></details>`; }).join("")}
       </section>
 
       <section class="card"><h2>Casework categories and agencies</h2>
