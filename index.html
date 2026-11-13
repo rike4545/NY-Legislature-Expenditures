@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>NYS Assembly Expenditures Explorer</title>
-  <meta name="description" content="Search and explore every line of the New York State Assembly semi-annual Expenditure Reports: member offices, staff payroll, vendors, travel and allocated costs.">
-  <meta property="og:title" content="NYS Assembly Expenditures Explorer">
-  <meta property="og:description" content="Every line of the New York State Assembly's spending reports: searchable, mapped by district, and comparable member by member.">
+  <title>NY Legislature Expenditures Explorer</title>
+  <meta name="description" content="Search and explore every line of the New York State Assembly and Senate semi-annual Expenditure Reports: member offices, staff payroll, vendors, travel and allocated costs.">
+  <meta property="og:title" content="NY Legislature Expenditures Explorer">
+  <meta property="og:description" content="Every line of the New York State Assembly's and Senate's spending reports: searchable, mapped by district, and comparable member by member.">
   <meta property="og:type" content="website">
   <meta property="og:image" content="https://rike4545.github.io/NYS-Assembly-Expenditures/social-preview.png">
   <meta name="twitter:card" content="summary_large_image">
@@ -18,10 +18,13 @@
   <header class="site-header">
     <div class="wrap header-row">
       <div class="brand">
-        <a class="brand-title" href="#/">NYS Assembly Expenditures</a>
-        <label class="period-pick">Report period
-          <select id="periodSelect" aria-label="Report period"></select>
-        </label>
+        <a class="brand-title" href="#/">NY Legislature Expenditures</a>
+        <div class="brand-controls">
+          <div class="chamber-switch" id="chamberSwitch" role="group" aria-label="Chamber"></div>
+          <label class="period-pick"><span>Report period</span>
+            <select id="periodSelect" aria-label="Report period"></select>
+          </label>
+        </div>
       </div>
       <form class="global-search" id="globalSearch" role="search">
         <input type="search" id="globalSearchInput" placeholder="Search members, staff, vendors, descriptions…" aria-label="Search all records" autocomplete="off">
@@ -43,9 +46,9 @@
   </main>
 
   <footer class="wrap site-footer">
-    Source: <a href="https://assembly.ny.gov/expenditure/" target="_blank" rel="noopener">New York State Assembly Expenditure Reports</a>
-    · File <code id="sourceFile">cad00251-20260331.csv</code>
-    · Independent presentation of public records; not affiliated with the Assembly.
+    Sources: <a href="https://assembly.ny.gov/expenditure/" target="_blank" rel="noopener">NYS Assembly</a> and <a href="https://www.nysenate.gov/open-data" target="_blank" rel="noopener">NYS Senate</a> expenditure reports
+    · Viewing <code id="sourceFile"></code>
+    · Independent presentation of public records; not affiliated with the Legislature.
   </footer>
 
   <script src="assets/app.js"></script>

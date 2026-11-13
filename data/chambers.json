@@ -1,0 +1,64 @@
+[
+  {
+    "id": "assembly",
+    "name": "Assembly",
+    "title": "New York State Assembly",
+    "abbr": "AD",
+    "sourceUrl": "https://assembly.ny.gov/expenditure/",
+    "memberRule": "a unit containing a \"MEMBER OF ASSEMBLY\" payroll line",
+    "districts": "data/assembly/districts.json",
+    "periods": [
+      {
+        "id": "2026-03-31",
+        "file": "data/assembly/periods/2026-03-31.json",
+        "start": "2025-10-01",
+        "end": "2026-03-31",
+        "sourceFile": "cad00251-20260331.csv",
+        "rowCount": 13607,
+        "totalActual": 75494885.73,
+        "totalAllocated": 5569722.57
+      },
+      {
+        "id": "2025-09-30",
+        "file": "data/assembly/periods/2025-09-30.json",
+        "start": "2025-04-01",
+        "end": "2025-09-30",
+        "sourceFile": "674cb5b2-20250930.csv",
+        "rowCount": 14742,
+        "totalActual": 71242039.2,
+        "totalAllocated": 2664899.24
+      }
+    ]
+  },
+  {
+    "id": "senate",
+    "name": "Senate",
+    "title": "New York State Senate",
+    "abbr": "SD",
+    "sourceUrl": "https://www.nysenate.gov/open-data",
+    "memberRule": "an office with a payroll line titled \"MEMBER\"",
+    "districts": "data/senate/districts.json",
+    "periods": [
+      {
+        "id": "2026-03-31",
+        "file": "data/senate/periods/2026-03-31.json",
+        "start": "2025-10-01",
+        "end": "2026-03-31",
+        "sourceFile": "nysenate_expenditures_20260331.csv",
+        "rowCount": 5067,
+        "totalActual": 57191676.63,
+        "totalAllocated": 5152383.1
+      },
+      {
+        "id": "2025-09-30",
+        "file": "data/senate/periods/2025-09-30.json",
+        "start": "2025-04-01",
+        "end": "2025-09-30",
+        "sourceFile": "nysenate_expenditures_20250930.csv",
+        "rowCount": 4926,
+        "totalActual": 53547054.14,
+        "totalAllocated": 1932370.88
+      }
+    ]
+  }
+]

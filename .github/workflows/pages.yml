@@ -25,7 +25,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Rebuild data from raw CSV
+      - name: Rebuild data from raw CSVs
         run: |
           python3 scripts/build_data.py
           python3 scripts/build_districts.py
@@ -34,8 +34,8 @@ jobs:
           mkdir -p _site/data
           cp index.html _site/
           cp -r assets _site/
-          cp data/periods.json data/districts.json _site/data/
-          cp -r data/periods _site/data/
+          cp data/chambers.json _site/data/
+          for c in assembly senate; do mkdir -p _site/data/$c && cp -r data/$c/periods data/$c/districts.json _site/data/$c/; done
           cp docs/social-preview.png _site/
           touch _site/.nojekyll
       - uses: actions/configure-pages@v5

@@ -219,3 +219,19 @@ svg.locator .locbox { fill: none; stroke: var(--text); stroke-width: 1.2; }
 .stack.big { height: 22px; width: 100%; }
 .bars li.me .name a { font-weight: 700; }
 .cols .colbar.dimbar { background: var(--bar-alt); }
+
+/* Chamber switch + both-chambers card */
+.brand-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 4px; }
+.brand-controls .period-pick { margin-top: 0; }
+.chamber-switch { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.chamber-switch button { border: 0; border-radius: 0; padding: 4px 12px; font-size: 13px; font-weight: 600; background: var(--surface); color: var(--muted); }
+.chamber-switch button + button { border-left: 1px solid var(--border); }
+.chamber-switch button.on { background: var(--accent); color: #fff; }
+.chamber-switch button:hover:not(.on) { color: var(--text); }
+.card.chambers { margin-bottom: 16px; }
+.chamber-row { display: grid; grid-template-columns: 90px minmax(0, 1fr) auto; gap: 4px 12px; align-items: center; padding: 6px 0; }
+.chamber-row .chamber-name { font-weight: 600; }
+.chamber-row.me .chamber-name { color: var(--text); }
+.chamber-row .stack { height: 16px; }
+.chamber-row .chamber-amt { font-variant-numeric: tabular-nums; font-weight: 600; }
+.chamber-row .chamber-meta { grid-column: 2 / 4; font-size: 12px; color: var(--muted); }

@@ -1,19 +1,21 @@
 #!/usr/bin/env python3
-"""Match Assembly district boundaries to member offices in the expenditure reports.
+"""Match Assembly and Senate district boundaries to member offices in the expenditure reports.
 
 Usage:
     python3 scripts/build_districts.py
 
-Input:  data/geo/nys-assembly-districts-2024.geojson
-        (NYS ITS GIS "NYS_Assembly_Districts" layer, 2024 Legislative Task Force lines;
-         member names and party as published by that layer)
-        data/periods/*.json (from build_data.py)
-Output: data/districts.json  — {district, member (as listed by the GIS layer), party,
-                                unitName (matching name in the reports, or null), geometry}
+Inputs:  data/geo/assembly-districts.geojson, data/geo/senate-districts.geojson
+         (NYS ITS Geospatial Services "NYS_Assembly_Districts" / "NYS_Senate_Districts" layers,
+          2024 lines; member names and party as published by those layers)
+         data/<chamber>/periods/*.json (from build_data.py)
+Output:  data/<chamber>/districts.json — {district, member (as the GIS layer lists them), party,
+         unitName (matching office name in the reports, or null), geometry}
 
-Matching: the GIS layer uses names like "Al Stirpe"; the reports use "STIRPE, ALBERT A. JR.".
-A district matches a report unit when every word of the report's last name appears in the GIS
-name; if several units share that last name, the first initial must also agree.
+Matching: the GIS layers use names like "Al Stirpe"; the Assembly report uses
+"STIRPE, ALBERT A. JR." and the Senate report "SENATOR JOSEPH P. ADDABBO, JR.".
+A district matches an office when the office's last name appears as whole word(s) in the
+GIS name; if several offices share that last name, the first initial must also agree.
+Cases the rules can't resolve are listed in OVERRIDES, checked by hand.
 """
 import json
 import pathlib
@@ -23,9 +25,12 @@ import unicodedata
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SUFFIXES = {"jr", "sr", "ii", "iii", "iv", "dr"}
 
-# Names the rules can't resolve, checked by hand against the reports:
+# (chamber, district) -> office name in the reports.
 # AD 20 "Ari Brown" is Eric Ari Brown; AD 59 "Jaime R. Williams" appears as RIVAS-WILLIAMS.
-OVERRIDES = {20: "BROWN, ERIC G.", 59: "RIVAS-WILLIAMS, JAIME"}
+OVERRIDES = {
+    ("assembly", 20): "BROWN, ERIC G.",
+    ("assembly", 59): "RIVAS-WILLIAMS, JAIME",
+}
 
 
 def words(s: str) -> list:
@@ -34,16 +39,25 @@ def words(s: str) -> list:
     return [w for w in re.sub(r"[^a-z ]", "", s).split() if w not in SUFFIXES]
 
 
-def main() -> None:
-    geo = json.loads((ROOT / "data/geo/nys-assembly-districts-2024.geojson").read_text())
-    members = set()
-    for f in sorted((ROOT / "data/periods").glob("*.json")):
-        members |= {u["name"] for u in json.loads(f.read_text())["units"] if u["kind"] == "member"}
+def parse_assembly(name: str):
+    last, _, first = name.partition(",")
+    return words(last), words(first)
 
-    parsed = []
-    for name in members:
-        last, _, first = name.partition(",")
-        parsed.append((name, words(last), words(first)))
+
+def parse_senate(name: str):
+    w = words(re.sub(r"^(SENATOR|SEN)\s+", "", name))
+    return w[-1:], w[:1]
+
+
+PARSERS = {"assembly": parse_assembly, "senate": parse_senate}
+
+
+def build(chamber: str) -> None:
+    geo = json.loads((ROOT / f"data/geo/{chamber}-districts.geojson").read_text())
+    members = set()
+    for f in sorted((ROOT / f"data/{chamber}/periods").glob("*.json")):
+        members |= {u["name"] for u in json.loads(f.read_text())["units"] if u["kind"] == "member"}
+    parsed = [(n, *PARSERS[chamber](n)) for n in members]
 
     out, unmatched = [], []
     for feat in sorted(geo["features"], key=lambda f: f["properties"]["DISTRICT"]):
@@ -54,22 +68,26 @@ def main() -> None:
         if len(cands) > 1:
             cands = [n for n, last, first in parsed if n in cands and first and gis and first[0][0] == gis[0][0]]
         unit = cands[0] if len(cands) == 1 else None
-        if p["DISTRICT"] in OVERRIDES and OVERRIDES[p["DISTRICT"]] in members:
-            unit = OVERRIDES[p["DISTRICT"]]
+        override = OVERRIDES.get((chamber, p["DISTRICT"]))
+        if override and override in members:
+            unit = override
         if unit is None:
-            unmatched.append(f"AD {p['DISTRICT']}: {p['NAME']} -> {cands or 'no match'}")
-        out.append({
-            "district": p["DISTRICT"],
-            "member": p["NAME"],
-            "party": p.get("PARTY") or "",
-            "unitName": unit,
-            "geometry": feat["geometry"],
-        })
+            unmatched.append(f"{chamber} {p['DISTRICT']}: {p['NAME']} -> {cands or 'no match'}")
+        out.append({"district": p["DISTRICT"], "member": p["NAME"], "party": p.get("PARTY") or "",
+                    "unitName": unit, "geometry": feat["geometry"]})
 
-    (ROOT / "data/districts.json").write_text(json.dumps(out, separators=(",", ":")))
-    print(f"Wrote data/districts.json: {len(out)} districts, {len(out) - len(unmatched)} matched")
+    names = [d["unitName"] for d in out if d["unitName"]]
+    if len(names) != len(set(names)):
+        raise SystemExit(f"{chamber}: an office matched more than one district")
+    (ROOT / f"data/{chamber}/districts.json").write_text(json.dumps(out, separators=(",", ":")))
+    print(f"{chamber}: {len(out)} districts, {len(names)} matched")
     for u in unmatched:
         print("  unmatched", u)
+
+
+def main() -> None:
+    for chamber in PARSERS:
+        build(chamber)
 
 
 if __name__ == "__main__":

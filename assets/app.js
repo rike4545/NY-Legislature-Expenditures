@@ -1,4 +1,4 @@
-/* NYS Assembly Expenditures explorer — vanilla JS, no dependencies. */
+/* NY Legislature Expenditures explorer (Assembly + Senate) — vanilla JS, no dependencies. */
 (function () {
   "use strict";
 
@@ -10,8 +10,13 @@
   let PREV = null;    // the period before it, for comparisons (or null)
   let PERIODS = [];   // manifest, newest first
   const DBS = {};     // period id -> indexed data
-  let DISTRICTS = []; // [{district, member, party, unitName, geometry}]
-  const DISTRICT_BY_UNIT = new Map(); // report unit name -> district record
+  let CHAMBERS = [];   // [{id, name, title, abbr, sourceUrl, memberRule, districts, periods}]
+  let CH = null;       // current chamber
+  const DIST = {};     // chamber id -> districts
+  const DIST_BY_UNIT = {}; // chamber id -> Map(report unit name -> district)
+  let DISTRICTS = [];  // districts of the current chamber
+  let DISTRICT_BY_UNIT = new Map();
+  const dbFor = (periodId, chamberId) => DBS[(chamberId || CH.id) + "/" + periodId];
 
   /* ---------- formatting helpers ---------- */
   const usd0 = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
@@ -67,9 +72,12 @@
   function buildHash(view, params) {
     const clean = {};
     const explicitP = !!params && Object.prototype.hasOwnProperty.call(params, "p");
+    const explicitC = !!params && Object.prototype.hasOwnProperty.call(params, "c");
     for (const [k, v] of Object.entries(params || {})) if (v !== "" && v != null) clean[k] = v;
     if (!explicitP && DB && PERIODS.length && DB.id !== PERIODS[0].id) clean.p = DB.id;
     if (clean.p && PERIODS.length && clean.p === PERIODS[0].id) delete clean.p;
+    if (!explicitC && CH && CHAMBERS.length && CH.id !== CHAMBERS[0].id) clean.c = CH.id;
+    if (clean.c && CHAMBERS.length && clean.c === CHAMBERS[0].id) delete clean.c;
     const qs = new URLSearchParams(clean).toString();
     return `#/${view}${qs ? "?" + qs : ""}`;
   }
@@ -82,22 +90,31 @@
 
   /* ---------- data load & indexing ---------- */
   async function load() {
-    const bundled = window.__EXPENDITURE_PERIODS__;
-    PERIODS = bundled ? bundled.manifest : await (await fetch("data/periods.json")).json();
-    await Promise.all(PERIODS.map(async (pm) => {
-      const raw = bundled ? bundled.data[pm.id] : await (await fetch(pm.file)).json();
-      DBS[pm.id] = indexPeriod(pm.id, raw);
+    const bundled = window.__EXPENDITURE_BUNDLE__;
+    CHAMBERS = bundled ? bundled.chambers : await (await fetch("data/chambers.json")).json();
+    await Promise.all(CHAMBERS.map(async (ch) => {
+      await Promise.all(ch.periods.map(async (pm) => {
+        const raw = bundled ? bundled.data[pm.file] : await (await fetch(pm.file)).json();
+        DBS[ch.id + "/" + pm.id] = indexPeriod(pm.id, raw);
+      }));
+      try {
+        DIST[ch.id] = bundled ? bundled.data[ch.districts] || [] : await (await fetch(ch.districts)).json();
+      } catch (e) { DIST[ch.id] = []; }
+      DIST_BY_UNIT[ch.id] = new Map(DIST[ch.id].filter((d) => d.unitName).map((d) => [d.unitName, d]));
     }));
-    try {
-      DISTRICTS = bundled ? bundled.districts || [] : await (await fetch("data/districts.json")).json();
-    } catch (e) { DISTRICTS = []; }
-    for (const d of DISTRICTS) if (d.unitName) DISTRICT_BY_UNIT.set(d.unitName, d);
+  }
+
+  function selectChamber(id) {
+    CH = CHAMBERS.find((c) => c.id === id) || CHAMBERS[0];
+    PERIODS = CH.periods;
+    DISTRICTS = DIST[CH.id] || [];
+    DISTRICT_BY_UNIT = DIST_BY_UNIT[CH.id] || new Map();
   }
 
   function selectPeriod(id) {
     const i = Math.max(0, PERIODS.findIndex((pm) => pm.id === id));
-    DB = DBS[PERIODS[i].id];
-    PREV = PERIODS[i + 1] ? DBS[PERIODS[i + 1].id] : null;
+    DB = dbFor(PERIODS[i].id);
+    PREV = PERIODS[i + 1] ? dbFor(PERIODS[i + 1].id) : null;
   }
 
   function indexPeriod(id, raw) {
@@ -116,15 +133,17 @@
 
     const unitStats = units.map((unit, id) => ({
       id, name: unit.name, kind: unit.kind,
-      byType: {}, actual: 0, allocated: 0, count: 0, staff: new Set(),
+      byType: {}, byCode: {}, actual: 0, allocated: 0, count: 0, staff: new Set(),
     }));
     for (const r of records) {
       const s = unitStats[r.u];
       const code = types[r.t].code;
-      s.byType[code] = (s.byType[code] || 0) + r.amt;
+      const group = types[r.t].group;
+      s.byType[group] = (s.byType[group] || 0) + r.amt; // ps / mo / travel / allocated
+      s.byCode[code] = (s.byCode[code] || 0) + r.amt;
       if (r.allocated) s.allocated += r.amt; else s.actual += r.amt;
       s.count++;
-      if (code === "PERSSERV") s.staff.add(r.p);
+      if (group === "ps") s.staff.add(r.p);
     }
     unitStats.forEach((s) => { s.staffCount = s.staff.size; });
 
@@ -179,7 +198,7 @@
   function districtChip(s) {
     const d = DISTRICT_BY_UNIT.get(s.name);
     if (!d) return "";
-    return ` <a class="chip muted" href="${buildHash("district/" + d.district, {})}" title="District profile">AD ${d.district}${d.party ? " · " + esc(d.party) : ""}</a>`;
+    return ` <a class="chip muted" href="${buildHash("district/" + d.district, {})}" title="District profile">${CH.abbr} ${d.district}${d.party ? " · " + esc(d.party) : ""}</a>`;
   }
   function kindChip(kind) {
     return kind === "member" ? `<span class="chip">Member</span>` : `<span class="chip muted">Office</span>`;
@@ -221,10 +240,13 @@
   }
 
   function totalsByType(db) {
+    // keyed by expense-type code and by group (ps / mo / travel / allocated)
     const out = Object.fromEntries(db.types.map((t) => [t.code, 0]));
-    for (const r of db.records) out[db.types[r.t].code] += r.amt;
+    for (const g of ["ps", "mo", "travel", "allocated"]) out[g] = 0;
+    for (const r of db.records) { out[db.types[r.t].code] += r.amt; out[db.types[r.t].group] += r.amt; }
     return out;
   }
+  function moCode() { const t = DB.types.find((x) => x.group === "mo"); return t ? t.code : ""; }
 
   /* ---------- views ---------- */
   function viewOverview() {
@@ -232,7 +254,7 @@
     const totalBy = totalsByType(DB);
     const prevBy = PREV ? totalsByType(PREV) : null;
     const vs = (code) => prevBy ? changeText(change(totalBy[code], prevBy[code])) : "";
-    const staffAll = new Set(records.filter((r) => types[r.t].code === "PERSSERV").map((r) => r.p));
+    const staffAll = new Set(records.filter((r) => types[r.t].group === "ps").map((r) => r.p));
 
     const byMonth = sumBy(records.filter((r) => r.month && !r.allocated), (r) => r.month).sort((a, b) => a.key.localeCompare(b.key));
     const maxMonth = Math.max(...byMonth.map((m) => m.total)) || 1;
@@ -240,26 +262,27 @@
     const topMembers = DB.members.slice(0, 10).map((s) => ({ label: s.name, value: s.actual, href: `#/unit/${s.id}` }));
     const topOffices = unitStats.filter((s) => s.kind === "office").sort((a, b) => b.actual - a.actual).slice(0, 10)
       .map((s) => ({ label: s.name, value: s.actual, href: `#/unit/${s.id}` }));
-    const mo = records.filter((r) => types[r.t].code === "M & O");
+    const mo = records.filter((r) => types[r.t].group === "mo");
     const topVendors = sumBy(mo, (r) => r.p).sort((a, b) => b.total - a.total).slice(0, 10)
-      .map((x) => ({ label: payees[x.key] || "(no payee listed)", value: x.total, href: buildHash("records", { payee: payees[x.key], type: "M & O" }) }));
+      .map((x) => ({ label: payees[x.key] || "(no payee listed)", value: x.total, href: buildHash("records", { payee: payees[x.key], type: moCode() }) }));
     const topDescs = sumBy(mo, (r) => r.d).sort((a, b) => b.total - a.total).slice(0, 10)
-      .map((x) => ({ label: titleCase(descs[x.key]), value: x.total, href: buildHash("records", { q: `"${descs[x.key].toLowerCase()}"`, type: "M & O" }) }));
+      .map((x) => ({ label: titleCase(descs[x.key]), value: x.total, href: buildHash("records", { q: `"${descs[x.key].toLowerCase()}"`, type: moCode() }) }));
 
     const typeBars = types.map((t) => ({ label: t.label, value: totalBy[t.code], alt: t.allocated, href: buildHash("records", { type: t.code }) }))
       .sort((a, b) => b.value - a.value);
 
     return `
-      <h1>Where the Assembly's money went</h1>
-      <p class="lede">Every line of the New York State Assembly Expenditure Report for ${fmtDate(meta.period.start)} – ${fmtDate(meta.period.end)}:
+      <h1>Where the ${esc(CH.name)}'s money went</h1>
+      <p class="lede">Every line of the ${esc(CH.title)} Expenditure Report for ${fmtDate(meta.period.start)} – ${fmtDate(meta.period.end)}:
         ${int.format(meta.rowCount)} records across ${meta.members} member offices and ${meta.offices} central offices and committees.</p>
       <div class="grid kpis">
         ${kpi("Actual spending", compact(meta.totalActual), PREV ? changeText(change(meta.totalActual, PREV.meta.totalActual)) : "Payroll + M&amp;O + travel")}
-        ${kpi("Payroll", compact(totalBy["PERSSERV"]), `${int.format(staffAll.size)} people paid${PREV ? "<br>" + vs("PERSSERV") : ""}`)}
-        ${kpi("Maintenance &amp; operations", compact(totalBy["M & O"]), PREV ? vs("M & O") : "Rent, utilities, services")}
-        ${kpi("Travel", compact(totalBy["TRAVEL"]), PREV ? vs("TRAVEL") : "Reimbursed to members &amp; staff")}
+        ${kpi("Payroll", compact(totalBy.ps), `${int.format(staffAll.size)} people paid${PREV ? "<br>" + vs("ps") : ""}`)}
+        ${kpi("Maintenance &amp; operations", compact(totalBy.mo), PREV ? vs("mo") : "Rent, utilities, services")}
+        ${kpi("Travel", compact(totalBy.travel), PREV ? vs("travel") : "Reimbursed to members &amp; staff")}
         ${kpi("Allocated costs", compact(meta.totalAllocated), "Informational only — see About")}
       </div>
+      ${chambersCard()}
       <div class="grid two">
         <section class="card"><div class="card-head"><h2>By expense type</h2><span class="summary">grey = allocated</span></div>${bars(typeBars)}</section>
         <section class="card"><div class="card-head"><h2>Vouchered spending by month</h2><span class="summary">M&amp;O + travel</span></div>
@@ -280,6 +303,30 @@
       </div>`;
   }
 
+  function chambersCard() {
+    if (CHAMBERS.length < 2) return "";
+    const rows = CHAMBERS.map((c) => {
+      const db = dbFor(DB.id, c.id);
+      if (!db) return null;
+      const t = totalsByType(db);
+      return { c, db, t };
+    }).filter(Boolean);
+    const max = Math.max(1, ...rows.map((r) => r.db.meta.totalActual));
+    const total = rows.reduce((a, r) => a + r.db.meta.totalActual, 0);
+    return `<section class="card chambers"><div class="card-head"><h2>Both chambers, ${esc(periodName(DB))}</h2><span class="summary">Legislature total <strong>${money0(total)}</strong> actual spending</span></div>
+      ${rows.map((r) => `<div class="chamber-row${r.c.id === CH.id ? " me" : ""}">
+        <a class="chamber-name" href="${buildHash("", { c: r.c.id })}">${esc(r.c.name)}</a>
+        <div class="stack" style="width:${(r.db.meta.totalActual / max * 100).toFixed(1)}%">
+          <span class="seg-ps" style="flex:${Math.max(r.t.ps, 0)}" title="Payroll ${money(r.t.ps)}"></span>
+          <span class="seg-mo" style="flex:${Math.max(r.t.mo, 0)}" title="M&amp;O ${money(r.t.mo)}"></span>
+          <span class="seg-tr" style="flex:${Math.max(r.t.travel, 0)}" title="Travel ${money(r.t.travel)}"></span></div>
+        <span class="chamber-amt">${money0(r.db.meta.totalActual)}</span>
+        <span class="chamber-meta">${r.db.meta.members} member offices · median ${money0(r.db.memberMedian)}</span>
+      </div>`).join("")}
+      <div class="legend"><span><i class="seg-ps"></i>Payroll</span><span><i class="seg-mo"></i>M&amp;O</span><span><i class="seg-tr"></i>Travel</span></div>
+    </section>`;
+  }
+
   function moversCard() {
     const rows = DB.members.map((s) => ({ s, p: prevUnit(s) })).filter((x) => x.p)
       .map((x) => ({ ...x, d: x.s.actual - x.p.actual }));
@@ -298,8 +345,8 @@
     let list = DB.unitStats.filter((s) => (!state.kind || s.kind === state.kind) && matchesTokens(s.name.toLowerCase(), tokens)
       && (!state.party || (dist(s) && dist(s).party === state.party)));
     const val = {
-      name: (s) => s.name, district: (s) => (dist(s) ? dist(s).district : 999), actual: (s) => s.actual, ps: (s) => s.byType["PERSSERV"] || 0, mo: (s) => s.byType["M & O"] || 0,
-      travel: (s) => s.byType["TRAVEL"] || 0, allocated: (s) => s.allocated, staff: (s) => s.staffCount,
+      name: (s) => s.name, district: (s) => (dist(s) ? dist(s).district : 999), actual: (s) => s.actual, ps: (s) => s.byType.ps || 0, mo: (s) => s.byType.mo || 0,
+      travel: (s) => s.byType.travel || 0, allocated: (s) => s.allocated, staff: (s) => s.staffCount,
       change: (s) => { const p = prevUnit(s); return p ? s.actual - p.actual : -Infinity; },
     }[state.sort] || ((s) => s.actual);
     list.sort((a, b) => {
@@ -311,7 +358,7 @@
 
     const html = `
       <h1>Members &amp; Offices</h1>
-      <p class="lede">Each Assembly member's office and each central office, committee, and task force in the report. Click a name for its full breakdown.</p>
+      <p class="lede">Each ${esc(CH.name)} member's office and each central office, committee, and task force in the report. Click a name for its full breakdown.</p>
       <div class="filters">
         <label class="wide">Filter by name<input type="search" id="uq" value="${esc(state.q)}" placeholder="e.g. Thiele, Ways and Means, minority"></label>
         <label>Show<select id="ukind">
@@ -340,11 +387,11 @@
         <tbody>${list.length ? list.map((s, i) => `<tr>
           <td class="num">${i + 1}</td>
           <td><a href="${unitHref(s.id)}">${highlight(s.name, tokens)}</a></td>
-          <td class="nowrap">${dist(s) ? `AD ${dist(s).district}` : ""}</td>
+          <td class="nowrap">${dist(s) ? `${CH.abbr} ${dist(s).district}` : ""}</td>
           <td>${kindChip(s.kind)}</td>
-          <td class="num">${money0(s.byType["PERSSERV"] || 0)}</td>
-          <td class="num">${money0(s.byType["M & O"] || 0)}</td>
-          <td class="num">${money0(s.byType["TRAVEL"] || 0)}</td>
+          <td class="num">${money0(s.byType.ps || 0)}</td>
+          <td class="num">${money0(s.byType.mo || 0)}</td>
+          <td class="num">${money0(s.byType.travel || 0)}</td>
           <td class="num"><strong>${money0(s.actual)}</strong></td>
           <td class="num">${money0(s.allocated)}</td>
           <td class="num">${s.staffCount}</td>
@@ -363,7 +410,7 @@
     wireSortHeaders(app, state, update, { name: "asc", district: "asc" });
     app.querySelector("#uexport").addEventListener("click", () => downloadCSV("assembly-units.csv",
       ["Period", "Name", "District", "Party", "Type", "Payroll", "M&O", "Travel", "Actual total", "Allocated", "People paid"],
-      list.map((s) => [periodName(DB), s.name, dist(s) ? dist(s).district : "", dist(s) ? dist(s).party : "", s.kind, (s.byType["PERSSERV"] || 0).toFixed(2), (s.byType["M & O"] || 0).toFixed(2), (s.byType["TRAVEL"] || 0).toFixed(2), s.actual.toFixed(2), s.allocated.toFixed(2), s.staffCount])));
+      list.map((s) => [periodName(DB), s.name, dist(s) ? dist(s).district : "", dist(s) ? dist(s).party : "", s.kind, (s.byType.ps || 0).toFixed(2), (s.byType.mo || 0).toFixed(2), (s.byType.travel || 0).toFixed(2), s.actual.toFixed(2), s.allocated.toFixed(2), s.staffCount])));
     return null;
   }
 
@@ -372,13 +419,13 @@
     if (!s) return `<p class="empty">That member or office wasn't found. <a href="${buildHash("units", {})}">Back to the list</a>.</p>`;
     const { types, payees, descs, meta } = DB;
     const recs = DB.records.filter((r) => r.u === s.id);
-    const code = (r) => types[r.t].code;
-    const staffRows = recs.filter((r) => code(r) === "PERSSERV").sort((a, b) => b.amt - a.amt);
-    const mo = recs.filter((r) => code(r) === "M & O");
-    const travel = recs.filter((r) => code(r) === "TRAVEL").sort((a, b) => (a.date || "").localeCompare(b.date || ""));
+    const code = (r) => types[r.t].group;
+    const staffRows = recs.filter((r) => code(r) === "ps").sort((a, b) => b.amt - a.amt);
+    const mo = recs.filter((r) => code(r) === "mo");
+    const travel = recs.filter((r) => code(r) === "travel").sort((a, b) => (a.date || "").localeCompare(b.date || ""));
     const vendors = sumBy(mo, (r) => r.p).sort((a, b) => b.total - a.total);
     const moDescs = sumBy(mo, (r) => r.d).sort((a, b) => b.total - a.total).slice(0, 10);
-    const allocated = types.filter((t) => t.allocated).map((t) => ({ label: t.label, value: s.byType[t.code] || 0, alt: true }));
+    const allocated = types.filter((t) => t.allocated).map((t) => ({ label: t.label, value: s.byCode[t.code] || 0, alt: true }));
 
     const ps = prevUnit(s);
     const vsPrev = (cur, prevVal) => ps ? `<br>${changeText(change(cur, prevVal))}` : "";
@@ -396,9 +443,9 @@
       <p class="lede">${rankNote || "Central office, committee, or task force."}</p>
       <div class="grid kpis">
         ${kpi("Actual spending", money0(s.actual), ps ? changeText(change(s.actual, ps.actual)) : (PREV ? "Not in prior period" : ""))}
-        ${kpi("Payroll", money0(s.byType["PERSSERV"] || 0), `${s.staffCount} ${s.staffCount === 1 ? "person" : "people"} paid${vsPrev(s.byType["PERSSERV"] || 0, ps && (ps.byType["PERSSERV"] || 0))}`)}
-        ${kpi("Maintenance &amp; operations", money0(s.byType["M & O"] || 0), `${vendors.length} payees${vsPrev(s.byType["M & O"] || 0, ps && (ps.byType["M & O"] || 0))}`)}
-        ${kpi("Travel", money0(s.byType["TRAVEL"] || 0), `${travel.length} reimbursements${vsPrev(s.byType["TRAVEL"] || 0, ps && (ps.byType["TRAVEL"] || 0))}`)}
+        ${kpi("Payroll", money0(s.byType.ps || 0), `${s.staffCount} ${s.staffCount === 1 ? "person" : "people"} paid${vsPrev(s.byType.ps || 0, ps && (ps.byType.ps || 0))}`)}
+        ${kpi("Maintenance &amp; operations", money0(s.byType.mo || 0), `${vendors.length} payees${vsPrev(s.byType.mo || 0, ps && (ps.byType.mo || 0))}`)}
+        ${kpi("Travel", money0(s.byType.travel || 0), `${travel.length} reimbursements${vsPrev(s.byType.travel || 0, ps && (ps.byType.travel || 0))}`)}
         ${kpi("Allocated", money0(s.allocated), "Informational only")}
       </div>
 
@@ -426,7 +473,7 @@
       </div>
 
       <section class="card">
-        <div class="card-head"><h2>Travel</h2><span class="summary">${money(s.byType["TRAVEL"] || 0)}</span></div>
+        <div class="card-head"><h2>Travel</h2><span class="summary">${money(s.byType.travel || 0)}</span></div>
         ${travel.length ? `<div class="table-wrap"><table>
           <thead><tr><th>Voucher date</th><th>Payee</th><th>Purpose</th><th>Voucher</th><th class="num">Amount</th></tr></thead>
           <tbody>${travel.map((r) => `<tr><td class="nowrap">${fmtDate(r.date)}</td><td>${esc(payees[r.p])}</td><td>${esc(titleCase(descs[r.d]))}</td><td class="mono">${esc(r.voucher)}</td><td class="num${r.amt < 0 ? " neg" : ""}">${money(r.amt)}</td></tr>`).join("")}</tbody>
@@ -440,9 +487,9 @@
   }
 
   function otherPeriodLinks(s) {
-    const others = PERIODS.filter((pm) => pm.id !== DB.id).map((pm) => ({ pm, u: DBS[pm.id].byName.get(s.name) })).filter((x) => x.u);
+    const others = PERIODS.filter((pm) => pm.id !== DB.id).map((pm) => ({ pm, u: dbFor(pm.id).byName.get(s.name) })).filter((x) => x.u);
     if (!others.length) return "";
-    return `<p class="summary">Also in: ${others.map((x) => `<a href="${buildHash("unit/" + x.u.id, { p: x.pm.id === PERIODS[0].id ? "" : x.pm.id })}">${esc(periodName(DBS[x.pm.id]))}</a>`).join(" · ")}</p>`;
+    return `<p class="summary">Also in: ${others.map((x) => `<a href="${buildHash("unit/" + x.u.id, { p: x.pm.id === PERIODS[0].id ? "" : x.pm.id })}">${esc(periodName(dbFor(x.pm.id)))}</a>`).join(" · ")}</p>`;
   }
 
   function filterRecords(state) {
@@ -560,11 +607,11 @@
   function viewPayees(params) {
     const state = { q: params.q || "", group: params.group || "", sort: params.sort || "total", dir: params.dir || "desc", page: Math.max(1, Number(params.page) || 1) };
     const tokens = tokenize(state.q);
-    const ps = DB.typeIndex["PERSSERV"];
+    const isPs = (r) => DB.types[r.t].group === "ps";
     const agg = new Map();
     for (const r of DB.records) {
       if (r.allocated) continue;
-      const isPayroll = r.t === ps;
+      const isPayroll = isPs(r);
       if (state.group === "vendor" && isPayroll) continue;
       if (state.group === "person" && !isPayroll) continue;
       let a = agg.get(r.p);
@@ -581,7 +628,7 @@
 
     app.innerHTML = `
       <h1>Payees</h1>
-      <p class="lede">Everyone the Assembly paid this period — vendors for operations, people on payroll, and travel reimbursements — combined across all members and offices. Allocated costs are excluded.</p>
+      <p class="lede">Everyone the ${esc(CH.name)} paid this period — vendors for operations, people on payroll, and travel reimbursements — combined across all members and offices. Allocated costs are excluded.</p>
       <div class="filters">
         <label class="wide">Search payees<input type="search" id="pq" value="${esc(state.q)}" placeholder="e.g. national grid, smith"></label>
         <label>Show<select id="pgroup">${opt("", "All payments")}${opt("vendor", "Vendors &amp; travel (no payroll)")}${opt("person", "Payroll only")}</select></label>
@@ -665,9 +712,9 @@
           <button class="link remove" data-name="${esc(s.name)}" aria-label="Remove ${esc(s.name)}">✕</button></th>`).join("")}</tr></thead>
         <tbody>
           ${metric("Actual spending", (s) => s.actual)}
-          ${metric("Payroll", typeVal("PERSSERV"))}
-          ${metric("Maintenance &amp; operations", typeVal("M & O"))}
-          ${metric("Travel", typeVal("TRAVEL"))}
+          ${metric("Payroll", typeVal("ps"))}
+          ${metric("Maintenance &amp; operations", typeVal("mo"))}
+          ${metric("Travel", typeVal("travel"))}
           ${metric("Allocated (informational)", (s) => s.allocated)}
           ${metric("People paid", (s) => s.staffCount, (v) => int.format(v))}
           ${metric("Rank among members", (s) => (s.kind === "member" ? s.rank : null), (v) => `#${v} of ${DB.members.length}`, "min")}
@@ -678,7 +725,7 @@
 
       <section class="card"><div class="card-head"><h2>Spending mix</h2><span class="summary">bar length = share of the largest office's actual spending</span></div>
         ${picked.map((s) => {
-          const seg = [["PERSSERV", "Payroll", "seg-ps"], ["M & O", "M&O", "seg-mo"], ["TRAVEL", "Travel", "seg-tr"]];
+          const seg = [["ps", "Payroll", "seg-ps"], ["mo", "M&O", "seg-mo"], ["travel", "Travel", "seg-tr"]];
           return `<div class="stack-row"><div class="stack-name"><a href="${unitHref(s.id)}">${esc(s.name)}</a><span>${money0(s.actual)}</span></div>
             <div class="stack" style="width:${(Math.max(s.actual, 0) / maxActual * 100).toFixed(1)}%">${seg.map(([code, label, cls]) => {
               const v = Math.max(s.byType[code] || 0, 0);
@@ -698,7 +745,7 @@
 
       <section class="card"><div class="card-head"><h2>Top M&amp;O purposes</h2></div>
         <div class="grid compare-months">${picked.map((s) => {
-          const mo = DB.records.filter((r) => r.u === s.id && DB.types[r.t].code === "M & O");
+          const mo = DB.records.filter((r) => r.u === s.id && DB.types[r.t].group === "mo");
           const top = sumBy(mo, (r) => r.d).sort((a, b) => b.total - a.total).slice(0, 6);
           return `<div><h3 class="mini">${esc(s.name)}</h3>${bars(top.map((v) => ({ label: titleCase(DB.descs[v.key]), value: v.total })))}</div>`;
         }).join("")}</div>
@@ -735,9 +782,9 @@
   /* ---------- district map (plain SVG, no map library) ---------- */
   const MAP_METRICS = {
     actual: { label: "Actual spending", get: (s) => s.actual },
-    ps: { label: "Payroll", get: (s) => s.byType["PERSSERV"] || 0 },
-    mo: { label: "Maintenance & operations", get: (s) => s.byType["M & O"] || 0 },
-    travel: { label: "Travel", get: (s) => s.byType["TRAVEL"] || 0 },
+    ps: { label: "Payroll", get: (s) => s.byType.ps || 0 },
+    mo: { label: "Maintenance & operations", get: (s) => s.byType.mo || 0 },
+    travel: { label: "Travel", get: (s) => s.byType.travel || 0 },
     staff: { label: "People paid", get: (s) => s.staffCount, fmt: (v) => int.format(v) },
     change: { label: "Change vs prior period", get: (s) => { const p = prevUnit(s); return p ? s.actual - p.actual : null; }, diverging: true },
   };
@@ -806,7 +853,7 @@
 
     const panel = (features, box, width, id) => {
       const proj = makeProjection(box, width);
-      return `<svg class="map" id="${id}" viewBox="0 0 ${width} ${proj.height.toFixed(0)}" role="img" aria-label="${esc(metric.label)} by Assembly district">
+      return `<svg class="map" id="${id}" viewBox="0 0 ${width} ${proj.height.toFixed(0)}" role="img" aria-label="${esc(metric.label)} by ${esc(CH.name)} district">
         ${features.map((r) => `<path d="${pathFor(r.d.geometry, proj)}" fill="${r.dim ? "var(--surface)" : scale.color(r.value)}"
           class="district${r.dim ? " dim" : ""}" data-d="${r.d.district}" tabindex="0" aria-label="District ${r.d.district}, ${esc(r.d.member)}"></path>`).join("")}
       </svg>`;
@@ -829,11 +876,11 @@
     const parties = [...new Set(DISTRICTS.map((d) => d.party).filter(Boolean))].sort();
 
     const ranked = rows.filter((r) => r.value != null && !r.dim).sort((a, b) => b.value - a.value);
-    const listItem = (r) => `<li><span class="name"><a href="${buildHash("district/" + r.d.district, {})}">AD ${r.d.district} · ${esc(r.d.member)}</a></span><span class="amt">${metric.diverging ? `${r.value >= 0 ? "+" : "−"}${money0(Math.abs(r.value))}` : fmt(r.value)}</span></li>`;
+    const listItem = (r) => `<li><span class="name"><a href="${buildHash("district/" + r.d.district, {})}">${CH.abbr} ${r.d.district} · ${esc(r.d.member)}</a></span><span class="amt">${metric.diverging ? `${r.value >= 0 ? "+" : "−"}${money0(Math.abs(r.value))}` : fmt(r.value)}</span></li>`;
 
     app.innerHTML = `
       <h1>District map</h1>
-      <p class="lede">Each member office's spending for ${esc(periodName(DB))}, shown on its Assembly district. Hover or tap a district for details; click it for the district's full profile.</p>
+      <p class="lede">Each member office's spending for ${esc(periodName(DB))}, shown on its ${esc(CH.name)} district. Hover or tap a district for details; click it for the district's full profile.</p>
       <div class="filters">
         <label>Color districts by<select id="mmetric">${metricOpts}</select></label>
         <label>Party<select id="mparty"><option value="">All members</option>${parties.map((p) => `<option${p === party ? " selected" : ""}>${esc(p)}</option>`).join("")}</select></label>
@@ -856,7 +903,7 @@
       const r = byDistrict.get(el.dataset.d);
       if (!r) return;
       const val = r.value == null ? "No data this period" : metric.diverging ? `${r.value >= 0 ? "+" : "−"}${money(Math.abs(r.value))}` : (metric.fmt ? metric.fmt(r.value) : money(r.value));
-      tip.innerHTML = `<strong>Assembly District ${r.d.district}</strong><br>${esc(r.d.member)}${r.d.party ? ` · ${esc(r.d.party)}` : ""}<br>${esc(metric.label)}: <strong>${val}</strong>${r.s && r.s.rank ? `<br>Rank #${r.s.rank} of ${DB.members.length}` : ""}`;
+      tip.innerHTML = `<strong>${esc(CH.name)} District ${r.d.district}</strong><br>${esc(r.d.member)}${r.d.party ? ` · ${esc(r.d.party)}` : ""}<br>${esc(metric.label)}: <strong>${val}</strong>${r.s && r.s.rank ? `<br>Rank #${r.s.rank} of ${DB.members.length}` : ""}`;
       tip.hidden = false;
       const pad = 14, w = tip.offsetWidth, h = tip.offsetHeight;
       tip.style.left = Math.min(window.innerWidth - w - 8, x + pad) + "px";
@@ -944,45 +991,45 @@
       <rect x="${fbPx[0][0] - 3}" y="${fbPx[0][1] - 3}" width="${Math.max(6, fbPx[1][0] - fbPx[0][0] + 6)}" height="${Math.max(6, fbPx[1][1] - fbPx[0][1] + 6)}" class="locbox"></rect>
     </svg>`;
 
-    const picker = `<select id="dpick" aria-label="Choose a district">${DISTRICTS.map((x) => `<option value="${x.district}"${x === d ? " selected" : ""}>AD ${x.district} · ${esc(x.member)}</option>`).join("")}</select>`;
+    const picker = `<select id="dpick" aria-label="Choose a district">${DISTRICTS.map((x) => `<option value="${x.district}"${x === d ? " selected" : ""}>${CH.abbr} ${x.district} · ${esc(x.member)}</option>`).join("")}</select>`;
     const head = `
       <div class="crumbs"><a href="${buildHash("map", {})}">← District map</a></div>
       <div class="title-row district-head">
-        <div><h1>Assembly District ${d.district}</h1>
+        <div><h1>${esc(CH.name)} District ${d.district}</h1>
           <p class="lede">${esc(d.member)}${d.party ? ` · ${esc(d.party)}` : ""}${s ? ` · <a href="${unitHref(s.id)}">member office page →</a>` : ""}</p></div>
-        <div class="dnav"><a class="btn" href="${dHref(prevD)}" aria-label="Previous district">← AD ${prevD.district}</a>${picker}<a class="btn" href="${dHref(nextD)}" aria-label="Next district">AD ${nextD.district} →</a></div>
+        <div class="dnav"><a class="btn" href="${dHref(prevD)}" aria-label="Previous district">← ${CH.abbr} ${prevD.district}</a>${picker}<a class="btn" href="${dHref(nextD)}" aria-label="Next district">${CH.abbr} ${nextD.district} →</a></div>
       </div>`;
 
     if (!s) {
       return `${head}<div class="map-layout"><section class="card">${zoomSvg}</section><section class="card">${locator}
-        <p class="empty">No spending data for this district's member in ${esc(periodName(DB))}. Their office may not appear in this report (for example, a member who took office after it). Try the other report period in the header.</p></section></div>`;
+        <p class="empty">${/^vacant$/i.test(d.member) ? `The state's district layer lists this seat as vacant, so there's no member office to show.` : `No spending data for this district's member in ${esc(periodName(DB))}. Their office may not appear in this report (for example, a member who took office after it). Try the other report period in the header.`}</p></section></div>`;
     }
 
     const members = DB.members;
     const metrics = [
       ["Actual spending", (u) => u.actual, money0],
-      ["Payroll", (u) => u.byType["PERSSERV"] || 0, money0],
-      ["Maintenance & operations", (u) => u.byType["M & O"] || 0, money0],
-      ["Travel", (u) => u.byType["TRAVEL"] || 0, money0],
+      ["Payroll", (u) => u.byType.ps || 0, money0],
+      ["Maintenance & operations", (u) => u.byType.mo || 0, money0],
+      ["Travel", (u) => u.byType.travel || 0, money0],
       ["People paid", (u) => u.staffCount, (v) => int.format(v)],
     ];
     const gauges = metrics.map(([label, fn, fmt]) => {
       const v = fn(s), pct = percentile(v, members.map(fn));
-      const med = (() => { const a = members.map(fn).sort((x, y) => x - y); return a[Math.floor(a.length / 2)]; })();
+      const med = (() => { const a = members.map(fn).sort((x, y) => x - y), m = Math.floor(a.length / 2); return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2; })();
       return `<div class="gauge"><div class="gauge-top"><span>${esc(label)}</span><strong>${fmt(v)}</strong></div>
         <div class="gauge-track" title="Higher than ${pct}% of member offices"><span class="gauge-med" style="left:50%"></span><span class="gauge-dot" style="left:${pct}%"></span></div>
         <div class="gauge-foot"><span>Higher than <b>${pct}%</b> of members</span><span>median ${fmt(med)}</span></div></div>`;
     }).join("");
 
     const ps = prevUnit(s);
-    const periodsBars = PERIODS.slice().reverse().map((pm) => { const u = DBS[pm.id].byName.get(s.name); return { key: pm.id, label: periodName(DBS[pm.id]), total: u ? u.actual : 0, cur: pm.id === DB.id }; });
+    const periodsBars = PERIODS.slice().reverse().map((pm) => { const u = dbFor(pm.id).byName.get(s.name); return { key: pm.id, label: periodName(dbFor(pm.id)), total: u ? u.actual : 0, cur: pm.id === DB.id }; });
     const maxP = Math.max(1, ...periodsBars.map((x) => x.total));
 
     const nbrRows = [d, ...nbrs].map((x) => ({ x, u: unitOf(x) })).filter((r) => r.u).sort((a, b) => b.u.actual - a.u.actual);
     const maxN = Math.max(1, ...nbrRows.map((r) => r.u.actual));
-    const mo = DB.records.filter((r) => r.u === s.id && DB.types[r.t].code === "M & O");
+    const mo = DB.records.filter((r) => r.u === s.id && DB.types[r.t].group === "mo");
     const topMo = sumBy(mo, (r) => r.d).sort((a, b) => b.total - a.total).slice(0, 6);
-    const seg = [["PERSSERV", "Payroll", "seg-ps"], ["M & O", "M&O", "seg-mo"], ["TRAVEL", "Travel", "seg-tr"]];
+    const seg = [["ps", "Payroll", "seg-ps"], ["mo", "M&O", "seg-mo"], ["travel", "Travel", "seg-tr"]];
     const compareHref = buildHash("compare", { u: [s, ...nbrRows.filter((r) => r.x !== d).slice(0, 3).map((r) => r.u)].map((u) => u.name).join("|") });
 
     app.innerHTML = `${head}
@@ -999,7 +1046,7 @@
           <div class="legend">${seg.map(([code, label, cls]) => `<span><i class="${cls}"></i>${label} ${money0(s.byType[code] || 0)} (${((s.byType[code] || 0) / s.actual * 100).toFixed(0)}%)</span>`).join("")}</div>
           <h3 class="mini" style="margin-top:14px">Top operating expenses</h3>${bars(topMo.map((v) => ({ label: titleCase(DB.descs[v.key]), value: v.total })))}</section>
         <section class="card"><div class="card-head"><h2>Compared with neighboring districts</h2><a href="${compareHref}">Compare side by side →</a></div>
-          <ul class="bars">${nbrRows.map((r) => `<li class="${r.x === d ? "me" : ""}"><span class="name"><a href="${dHref(r.x)}">AD ${r.x.district} · ${esc(r.x.member)}</a></span><span class="amt">${money0(r.u.actual)}</span>
+          <ul class="bars">${nbrRows.map((r) => `<li class="${r.x === d ? "me" : ""}"><span class="name"><a href="${dHref(r.x)}">${CH.abbr} ${r.x.district} · ${esc(r.x.member)}</a></span><span class="amt">${money0(r.u.actual)}</span>
             <span class="track"><span class="fill${r.x === d ? "" : " alt"}" style="width:${(r.u.actual / maxN * 100).toFixed(1)}%"></span></span></li>`).join("")}</ul></section>
         <section class="card"><div class="card-head"><h2>Across report periods</h2>${ps ? `<span class="summary">${changeText(change(s.actual, ps.actual))}</span>` : ""}</div>
           <div class="cols">${periodsBars.map((m) => `<a class="col" href="${buildHash("district/" + d.district, { p: m.key === PERIODS[0].id ? "" : m.key })}" title="${esc(m.label)}: ${money(m.total)}">
@@ -1016,7 +1063,7 @@
       el.addEventListener("keydown", (e) => { if (e.key === "Enter") go2(); });
       const x = DISTRICTS.find((q) => String(q.district) === el.dataset.d), u = unitOf(x);
       const t = document.createElementNS("http://www.w3.org/2000/svg", "title");
-      t.textContent = `AD ${x.district} · ${x.member}${u ? ` · ${money0(u.actual)}` : ""}`;
+      t.textContent = `${CH.abbr} ${x.district} · ${x.member}${u ? ` · ${money0(u.actual)}` : ""}`;
       el.appendChild(t);
     });
     return null;
@@ -1030,34 +1077,47 @@
 
   function viewAbout() {
     const { meta, types } = DB;
+    const isA = CH.id === "assembly";
+    const gisLayer = isA ? "NYS_Assembly_Districts" : "NYS_Senate_Districts";
+    const allocatedNote = isA
+      ? `Mail, telephone, and supplies lines are each office's share of costs paid centrally in Albany. The Assembly's report states these are shown for informational purposes only and do not reflect actual expenditures.`
+      : `"Allocated operational expenses" are each office's share of postage and supplies. The Senate's report notes they are allocated back to offices after the fact, that the original vouchers appear under the central offices (Post Office and Senate Supply), and that the amounts are for informational purposes only.`;
     return `<div class="about">
       <h1>About the data</h1>
-      <p class="lede">This site presents the New York State Assembly's semi-annual Expenditure Reports. Every line in each original file is included; nothing is added or removed. Use the period menu at the top to switch reports.</p>
+      <p class="lede">This site presents the semi-annual Expenditure Reports of the New York State Assembly and the New York State Senate. Every line in each original file is included; nothing is added or removed. Use the chamber buttons and period menu at the top to switch. You're viewing the <strong>${esc(CH.name)}</strong>.</p>
       <section class="card"><h2>Reports included</h2><div class="table-wrap"><table>
-        <thead><tr><th>Period</th><th>Source file</th><th class="num">Lines</th><th class="num">Actual spending</th><th class="num">Allocated</th></tr></thead>
-        <tbody>${PERIODS.map((pm) => `<tr><td>${fmtDate(pm.start)} – ${fmtDate(pm.end)}</td><td class="mono">${esc(pm.sourceFile)}</td><td class="num">${int.format(pm.rowCount)}</td><td class="num">${money(pm.totalActual)}</td><td class="num">${money(pm.totalAllocated)}</td></tr>`).join("")}</tbody>
+        <thead><tr><th>Chamber</th><th>Period</th><th>Source file</th><th class="num">Lines</th><th class="num">Actual spending</th><th class="num">Allocated</th></tr></thead>
+        <tbody>${CHAMBERS.map((c) => c.periods.map((pm) => `<tr><td>${esc(c.name)}</td><td>${fmtDate(pm.start)} – ${fmtDate(pm.end)}</td><td class="mono">${esc(pm.sourceFile)}</td><td class="num">${int.format(pm.rowCount)}</td><td class="num">${money(pm.totalActual)}</td><td class="num">${money(pm.totalAllocated)}</td></tr>`).join("")).join("")}</tbody>
       </table></div></section>
-      <div class="callout"><strong>Allocated costs are not actual spending.</strong> Mail, telephone, and supplies lines are each office's share of costs paid centrally in Albany. The Assembly's report states these are shown for informational purposes only and do not reflect actual expenditures, so this site keeps them separate from "actual" totals.</div>
-      <section class="card"><h2>Expense types (${esc(periodName(DB))})</h2><dl class="glossary">
+      <div class="callout"><strong>Allocated costs are not actual spending.</strong> ${allocatedNote} This site keeps them separate from "actual" totals.</div>
+      <section class="card"><h2>${esc(CH.name)} expense types (${esc(periodName(DB))})</h2><dl class="glossary">
         ${types.map((t) => `<dt>${esc(t.code)}</dt><dd>${esc(t.label)} — ${int.format(meta.typeCounts[t.code] || 0)} lines${t.allocated ? " (allocated, informational)" : ""}</dd>`).join("")}
       </dl></section>
-      <section class="card"><h2>Pay status codes</h2><p>Shown on payroll lines; reflects each employee's payroll type as of the end of the period.</p><dl class="glossary">
+      <section class="card"><h2>${esc(CH.name)} pay status codes</h2><p>Shown on payroll lines${isA ? "; reflects each employee's payroll type as of the end of the period" : ""}.</p><dl class="glossary">
         ${Object.entries(meta.statusLabels).map(([c, l]) => `<dt>${esc(c)}</dt><dd>${esc(l)}</dd>`).join("")}
       </dl></section>
       <section class="card"><h2>Notes on how the data was prepared</h2><ul>
-        <li><strong>Members vs. offices.</strong> A unit is treated as a member office when it contains a "MEMBER OF ASSEMBLY" payroll line (${meta.members} in ${esc(periodName(DB))}). All others (${meta.offices}) are central offices, committees, and task forces.</li>
-        <li><strong>Voucher dates</strong> in the source have no year (e.g. "9-Oct"); the year is taken from the report period (for an October–March report, October–December fall in the first year and January–March in the second).</li>
+        <li><strong>Members vs. offices.</strong> A member office is ${esc(CH.memberRule)} (${meta.members} in this ${esc(CH.name)} report, including members who joined or left during the period). All others (${meta.offices}) are central offices, committees, and programs.</li>
+        <li><strong>Actual spending</strong> is payroll + maintenance &amp; operations + travel${isA ? "" : " (member and staff travel combined)"}. For a member office it includes the member's own salary.</li>
+        ${isA ? `<li><strong>Voucher dates</strong> in the Assembly source have no year (e.g. "9-Oct"); the year is taken from the report period.</li>
+        <li><strong>Names are truncated</strong> to 40 characters in the Assembly source (e.g. "LEGISLATIVE TASK FORCE ON REAPPORTIONMEN"); they're shown as published.</li>
+        <li><strong>"CHARGEBACK"</strong> payees are charges between the Assembly and other state entities.</li>`
+        : `<li><strong>Dates and vouchers.</strong> The Senate file gives a check date for each non-payroll line; the voucher number is taken from the end of its description ("… - VOUCHER# 79534").</li>
+        <li><strong>Pay types</strong> (RA, SA, TE, VA) are shown as published; the Senate report doesn't define them.</li>
+        <li><strong>Vacant district offices</strong> (e.g. "47TH SENATORIAL DISTRICT") appear as their own offices, as in the report.</li>`}
         <li><strong>Period comparisons</strong> match members and offices by their name as printed in each report. A member who joined or left between periods has no comparison.</li>
-        <li><strong>Payroll lines</strong> have no voucher date; they carry service dates instead, so they don't appear in the by-month chart or month filter.</li>
-        <li><strong>Negative amounts</strong> (${int.format(DB.records.filter((r) => r.amt < 0).length)} lines) are refunds or adjustments and are included in totals as reported.</li>
-        <li><strong>Names are truncated</strong> to 40 characters in the source (e.g. "LEGISLATIVE TASK FORCE ON REAPPORTIONMEN"); they're shown as published.</li>
-        <li><strong>"CHARGEBACK"</strong> payees are charges between the Assembly and other state entities.</li>
-        <li>"Actual spending" for a member office includes the member's own salary, staff payroll, M&amp;O, and travel.</li>
-        <li><strong>District map.</strong> Boundaries are the 2024 Assembly district lines from the New York State GIS "NYS Assembly Districts" layer, which also supplies each district's member name and party. Those names are matched to the reports by last name (two by hand: AD 20 "Ari Brown" = BROWN, ERIC G.; AD 59 "Jaime R. Williams" = RIVAS-WILLIAMS, JAIME). Because the layer lists current members, a member who left before it was published (or joined after a report period) has no district shading for that period.</li>
+        <li><strong>Payroll lines</strong> have no voucher date; they carry service dates instead, so they don't appear in the by-month charts or month filter.</li>
+        <li><strong>Negative amounts</strong> (${int.format(DB.records.filter((r) => r.amt < 0).length)} lines here) are refunds or adjustments and are included in totals as reported.</li>
+        <li><strong>District map.</strong> Boundaries are the 2024 ${esc(CH.name)} district lines from the New York State GIS "${gisLayer}" layer, which also supplies each district's member name and party. Those names are matched to the reports by last name${isA ? ` (two by hand: AD 20 "Ari Brown" = BROWN, ERIC G.; AD 59 "Jaime R. Williams" = RIVAS-WILLIAMS, JAIME)` : ""}. Because the layer lists current members, a member who left before it was published (or joined after a report period) has no district shading for that period.${isA ? "" : " The layer lists Senate District 12 as vacant."}</li>
       </ul></section>
-      <section class="card"><h2>Sources</h2><p>Expenditure reports are published by the Assembly at <a href="${esc(meta.sourceUrl)}" target="_blank" rel="noopener">assembly.ny.gov/expenditure</a>. District boundaries, member names and party: <a href="https://gisservices.its.ny.gov/arcgis/rest/services/NYS_Assembly_Districts/MapServer" target="_blank" rel="noopener">NYS ITS Geospatial Services, NYS Assembly Districts</a>. This is an independent presentation of those public records and is not affiliated with or endorsed by the New York State Assembly.</p></section>
+      <section class="card"><h2>Sources</h2><ul>
+        <li>Assembly expenditure reports: <a href="https://assembly.ny.gov/expenditure/" target="_blank" rel="noopener">assembly.ny.gov/expenditure</a></li>
+        <li>Senate expenditure reports: <a href="https://www.nysenate.gov/open-data" target="_blank" rel="noopener">nysenate.gov/open-data</a></li>
+        <li>District boundaries, member names and party: NYS ITS Geospatial Services — <a href="https://gisservices.its.ny.gov/arcgis/rest/services/NYS_Assembly_Districts/MapServer" target="_blank" rel="noopener">Assembly Districts</a>, <a href="https://gisservices.its.ny.gov/arcgis/rest/services/NYS_Senate_Districts/MapServer" target="_blank" rel="noopener">Senate Districts</a></li>
+      </ul><p>This is an independent presentation of public records and is not affiliated with or endorsed by the New York State Assembly or Senate.</p></section>
     </div>`;
   }
+
 
   /* ---------- render loop ---------- */
   function focusEnd(sel) {
@@ -1072,12 +1132,13 @@
   }
   let lastView = "";
   function render() {
-    if (!PERIODS.length) return;
+    if (!CHAMBERS.length) return;
     const { view, arg, params } = parseHash();
-    const before = DB && DB.id;
+    const before = DB && CH ? CH.id + DB.id : "";
+    selectChamber(params.c || CHAMBERS[0].id);
     selectPeriod(params.p || PERIODS[0].id);
     syncPeriodUI();
-    if (before && before !== DB.id) lastView = "";
+    if (before && before !== CH.id + DB.id) lastView = "";
     setActiveTab(view);
     let html;
     switch (view) {
@@ -1099,14 +1160,18 @@
 
   function syncPeriodUI() {
     const sel = document.getElementById("periodSelect");
-    if (!sel.options.length) {
-      sel.innerHTML = PERIODS.map((pm) => `<option value="${esc(pm.id)}">${esc(periodName(DBS[pm.id]))}</option>`).join("");
+    if (sel.dataset.chamber !== CH.id) {
+      sel.innerHTML = PERIODS.map((pm) => `<option value="${esc(pm.id)}">${esc(periodName(dbFor(pm.id)))}</option>`).join("");
+      sel.dataset.chamber = CH.id;
+    }
+    if (!sel.dataset.wired) {
+      sel.dataset.wired = "1";
       sel.addEventListener("change", () => {
         const { view, arg, params } = parseHash();
         // Unit ids differ between periods: carry the unit across by name.
         if (view === "unit") {
           const cur = DB.unitStats[Number(arg)];
-          const target = cur && DBS[sel.value].byName.get(cur.name);
+          const target = cur && dbFor(sel.value).byName.get(cur.name);
           if (target) { location.hash = buildHash("unit/" + target.id, { p: sel.value }); return; }
           location.hash = buildHash("units", { p: sel.value }); return;
         }
@@ -1117,6 +1182,27 @@
     }
     sel.value = DB.id;
     document.getElementById("sourceFile").textContent = DB.meta.sourceFile;
+    const sw = document.getElementById("chamberSwitch");
+    if (!sw.dataset.wired) {
+      sw.dataset.wired = "1";
+      sw.innerHTML = CHAMBERS.map((c) => `<button type="button" data-c="${esc(c.id)}">${esc(c.name)}</button>`).join("");
+      sw.addEventListener("click", (e) => {
+        const b = e.target.closest("button[data-c]");
+        if (!b || b.dataset.c === CH.id) return;
+        const { view, params } = parseHash();
+        // Offices, districts and comparisons belong to one chamber; keep the view, drop the specifics.
+        const nextView = { unit: "units", district: "map", compare: "compare" }[view] || (view === "overview" ? "" : view);
+        const keep = view === "records" ? { q: params.q || "", type: "", month: params.month || "" } : view === "map" ? { m: params.m || "" } : {};
+        location.hash = buildHash(nextView, { ...keep, c: b.dataset.c, p: params.p || "" });
+      });
+    }
+    sw.querySelectorAll("button").forEach((b) => { b.classList.toggle("on", b.dataset.c === CH.id); b.setAttribute("aria-pressed", b.dataset.c === CH.id); });
+    document.title = `NY ${CH.name} Expenditures · ${periodName(DB)}`;
+    // Keep the chamber and period when moving between tabs.
+    const tabView = { overview: "", units: "units", records: "records", map: "map", compare: "compare", payees: "payees", about: "about" };
+    document.querySelectorAll(".tabs a[data-tab]").forEach((a) => { a.href = buildHash(tabView[a.dataset.tab] ?? a.dataset.tab, {}); });
+    const brand = document.querySelector(".brand-title");
+    if (brand) brand.href = buildHash("", {});
   }
 
   document.getElementById("globalSearch").addEventListener("submit", (e) => {

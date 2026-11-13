@@ -16,16 +16,15 @@ html = (root / "index.html").read_text(encoding="utf-8")
 css = (root / "assets" / "styles.css").read_text(encoding="utf-8")
 js = (root / "assets" / "app.js").read_text(encoding="utf-8")
 import json
-manifest = json.loads((root / "data" / "periods.json").read_text(encoding="utf-8"))
-districts_file = root / "data" / "districts.json"
-bundle = {"manifest": manifest,
-          "districts": json.loads(districts_file.read_text(encoding="utf-8")) if districts_file.exists() else [],
-          "data": {m["id"]: json.loads((root / m["file"]).read_text(encoding="utf-8")) for m in manifest}}
+chambers = json.loads((root / "data" / "chambers.json").read_text(encoding="utf-8"))
+files = [p["file"] for c in chambers for p in c["periods"]] + [c["districts"] for c in chambers]
+bundle = {"chambers": chambers,
+          "data": {f: json.loads((root / f).read_text(encoding="utf-8")) for f in files if (root / f).exists()}}
 data = json.dumps(bundle, separators=(",", ":"), ensure_ascii=False).replace("</", "<\\/")
 
 html = html.replace('<link rel="stylesheet" href="assets/styles.css">', f"<style>\n{css}\n</style>")
 html = html.replace('<script src="assets/app.js"></script>',
-                    f"<script>window.__EXPENDITURE_PERIODS__ = {data};</script>\n<script>\n{js}\n</script>")
+                    f"<script>window.__EXPENDITURE_BUNDLE__ = {data};</script>\n<script>\n{js}\n</script>")
 out.parent.mkdir(parents=True, exist_ok=True)
 out.write_text(html, encoding="utf-8")
 print(f"Wrote {out} ({out.stat().st_size / 1e6:.1f} MB)")
