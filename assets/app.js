@@ -17,7 +17,8 @@
   let DISTRICTS = [];  // districts of the current chamber
   let DISTRICT_BY_UNIT = new Map();
   const BALLOTPEDIA = {}; // chamber id -> {office name: profile url}
-  const CAMPAIGN = {}; // chamber id -> campaign finance by district (State Board of Elections, 2025-26)
+  const CAMPAIGN = {};
+  const MAKEUP = {}; // chamber id -> party makeup now and after the Nov 3, 2026 count // chamber id -> campaign finance by district (State Board of Elections, 2025-26)
   let BUDGET = null; // Legislature appropriations from the FY 2027 Executive Budget
   const MEMBERS = {};     // chamber id -> {office name: {district, contact, roles, offices, assumedOffice, election}}
   let ELECTION_SOURCES = {};
@@ -140,6 +141,10 @@
         BALLOTPEDIA[ch.id] = bundled ? bundled.data[bpFile] || {} : await (await fetch(bpFile)).json();
       } catch (e) { BALLOTPEDIA[ch.id] = {}; }
       try {
+        const mkFile = `data/${ch.id}/makeup.json`;
+        MAKEUP[ch.id] = bundled ? bundled.data[mkFile] || null : await (await fetch(mkFile)).json();
+      } catch (e) { MAKEUP[ch.id] = null; }
+      try {
         const cfFile = `data/${ch.id}/campaign_finance.json`;
         CAMPAIGN[ch.id] = bundled ? bundled.data[cfFile] || null : await (await fetch(cfFile)).json();
       } catch (e) { CAMPAIGN[ch.id] = null; }
@@ -211,6 +216,160 @@
       <div class="cols small">${ys.map(([y, v]) => { const part = (pr.years[y] || {}).reports < 25; return `<div class="col${part ? " partial" : ""}" title="${y}: ${money(v[0])}, ${v[1]} people" role="img" aria-label="${y}: ${money0(v[0])} for ${v[1]} salaried staff${part ? ", partial year" : ""}">
         <span class="colval">${compact(v[0])}</span><span class="colbar${part ? " dimbar" : ""}" style="height:${(v[0] / max * 100).toFixed(1)}%"></span><span class="collabel">${y}${part ? "*" : ""}</span></div>`; }).join("")}</div>
       <p class="summary">* partial year. Hourly staff and the senator's own salary aren't included.</p></section>`;
+  }
+
+  /* ---------- Descriptive statistics, both chambers side by side ---------- */
+  function quantile(sorted, q) {
+    if (!sorted.length) return NaN;
+    const pos = (sorted.length - 1) * q, lo = Math.floor(pos), hi = Math.ceil(pos);
+    return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
+  }
+  function describe(values) {
+    const v = values.filter((x) => Number.isFinite(x)).sort((a, b) => a - b);
+    const n = v.length;
+    if (!n) return null;
+    const sum = v.reduce((a, b) => a + b, 0), mean = sum / n;
+    const sd = n > 1 ? Math.sqrt(v.reduce((a, b) => a + (b - mean) ** 2, 0) / (n - 1)) : 0;
+    return { n, sum, mean, sd, cv: mean ? sd / mean : 0, min: v[0], p10: quantile(v, .1), p25: quantile(v, .25), median: quantile(v, .5), p75: quantile(v, .75), p90: quantile(v, .9), max: v[n - 1] };
+  }
+  /* Party makeup of each chamber, drawn as a semicircular floor plan: now, and after the Nov 3, 2026 unofficial count. */
+  function hemicycle(cells, rows, majority, label, center) {
+    // Seats sit on concentric arcs; each arc gets seats in proportion to its length, then every seat
+    // is ordered by angle so parties fill the chamber left to right, as on a real floor plan.
+    const W = 300, H = 166, cx = W / 2, cy = 152, r0 = 58, r1 = 140;
+    const radii = Array.from({ length: rows }, (_, i) => r0 + (r1 - r0) * (rows === 1 ? 0 : i / (rows - 1)));
+    const total = radii.reduce((a, b) => a + b, 0);
+    let counts = radii.map((r) => Math.floor(cells.length * r / total));
+    let left = cells.length - counts.reduce((a, b) => a + b, 0);
+    for (let i = rows - 1; left > 0; i = (i - 1 + rows) % rows, left--) counts[i]++;
+    const pts = [];
+    radii.forEach((r, i) => { const n = counts[i]; for (let j = 0; j < n; j++) { const a = Math.PI - (n === 1 ? Math.PI / 2 : (j / (n - 1)) * Math.PI); pts.push({ a, x: cx + r * Math.cos(a), y: cy - r * Math.sin(a) }); } });
+    pts.sort((p, q) => q.a - p.a || p.y - q.y);
+    const rad = Math.min(5.6, (r1 - r0) / rows * 0.42, Math.PI * r0 / (counts[0] || 1) * 0.42);
+    return `<figure class="hemi"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(label)}">
+      ${pts.map((pt, i) => { const c = cells[i]; return `<circle cx="${pt.x.toFixed(1)}" cy="${pt.y.toFixed(1)}" r="${rad.toFixed(2)}" class="seat p${c.k[0]}${c.k.endsWith("?") ? " close" : ""}"><title>${esc(c.t)}</title></circle>`; }).join("")}
+      <text x="${cx}" y="${cy - 18}" class="hemi-big">${esc(center[0])}</text><text x="${cx}" y="${cy - 2}" class="hemi-small">${esc(center[1])}</text>
+    </svg><figcaption>${esc(label.split(":")[0])}</figcaption></figure>`;
+  }
+  function makeupCard() {
+    const chs = CHAMBERS.filter((c) => MAKEUP[c.id]);
+    if (!chs.length) return "";
+    const PN = { D: "Democratic", R: "Republican", O: "Other", V: "Vacant" };
+    const order = { D: 0, "D?": 1, O: 2, V: 3, "R?": 4, R: 5 };
+    const describeSeats = (cells) => { const counts = {}; for (const c of cells) counts[c.k] = (counts[c.k] || 0) + 1; return Object.keys(order).filter((k) => counts[k]).map((k) => `${counts[k]} ${k.endsWith("?") ? PN[k[0]] + " leading, not yet decided" : PN[k]}`).join(", "); };
+    return `<section class="card makeup"><div class="card-head"><h2>Party makeup, now and after the election</h2><span class="summary">one dot per seat · after = leader in the State Board's unofficial count, ${esc(MAKEUP[chs[0].id].asOf)}</span></div>
+      <div class="makeup-grid">${chs.map((c) => {
+        const m = MAKEUP[c.id];
+        const now = m.districts.map((r) => ({ k: r[1], t: `${c.abbr} ${r[0]}: ${PN[r[1]]}` })).sort((a, b) => order[a.k] - order[b.k]);
+        const after = m.districts.map((r) => ({ k: r[3] ? r[2] : r[2] + "?", t: `${c.abbr} ${r[0]}: ${r[5]} (${PN[r[2]] || r[2]})${r[3] ? "" : `, leads by ${r[4]} pts, not yet decided`}${r[1] !== r[2] && r[1] !== "V" ? ", would change party" : ""}` })).sort((a, b) => order[a.k] - order[b.k]);
+        const cnt = (arr, k) => arr.filter((x) => x.k === k).length;
+        const flips = m.districts.filter((r) => r[1] !== r[2] && "DR".includes(r[1]));
+        const toD = flips.filter((r) => r[2] === "D").length, toR = flips.filter((r) => r[2] === "R").length;
+        const rows = c.id === "assembly" ? 8 : 5;
+        const dNow = cnt(now, "D"), rNow = cnt(now, "R"), dA = cnt(after, "D") + cnt(after, "D?"), rA = cnt(after, "R") + cnt(after, "R?");
+        return `<div class="makeupchamber"><h3>${esc(c.title || c.name)} <span class="summary">${m.seats} seats · ${m.majority} for a majority</span></h3>
+          <div class="hemis">
+            ${hemicycle(now, rows, m.majority, `Now, 2025–26: ${describeSeats(now)}. ${m.majority} seats make a majority.`, [`${dNow}–${rNow}`, "D–R"])}
+            ${hemicycle(after, rows, m.majority, `After Nov 3, unofficial: ${describeSeats(after)}. ${m.majority} seats make a majority.`, [`${dA}–${rA}`, "D–R incl. leading"])}
+          </div>
+          <p class="makeup-sum"><span class="pd">Democrats ${dNow} → ${cnt(after, "D")}${cnt(after, "D?") ? ` + ${cnt(after, "D?")} leading` : ""}</span> · <span class="pr">Republicans ${rNow} → ${cnt(after, "R")}${cnt(after, "R?") ? ` + ${cnt(after, "R?")} leading` : ""}</span>${cnt(now, "V") ? ` · ${cnt(now, "V")} vacant now` : ""} · ${flips.length} seats change party (${toD} to D, ${toR} to R)</p></div>`;
+      }).join("")}</div>
+      <div class="legend"><span><svg class="lg" viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="5" class="seat pD"/></svg>Democratic</span><span><svg class="lg" viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="5" class="seat pR"/></svg>Republican</span><span><svg class="lg" viewBox="0 0 24 12" aria-hidden="true"><circle cx="6" cy="6" r="4.4" class="seat pD close"/><circle cx="18" cy="6" r="4.4" class="seat pR close"/></svg>Leading, not yet decided</span><span><svg class="lg" viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="5" class="seat pV"/></svg>Vacant</span></div>
+      <p class="summary">Party is the first ballot line of the member or leading candidate (most also ran on the Working Families or Conservative line). "Not yet decided" uses the same rule as the member pages: a lead under 2 points of ballots cast, or under 5 points while election districts are still out. Unofficial until certified. Hover a seat for its district.</p>
+    </section>`;
+  }
+
+  function viewStats() {
+    const sets = CHAMBERS.map((c) => {
+      const pm = c.periods.find((x) => x.id === DB.id) || c.periods[0];
+      return { c, db: dbFor(pm.id, c.id) };
+    }).filter((x) => x.db);
+    const metrics = [
+      ["Actual spending per member office", (db) => db.members.map((s) => s.actual), money0],
+      ["Cost per month per member office", (db) => db.members.map((s) => s.perMonth), money0],
+      ["Payroll per member office", (db) => db.members.map((s) => s.byType.ps || 0), money0],
+      ["Maintenance & operations per member office", (db) => db.members.map((s) => s.byType.mo || 0), money0],
+      ["Travel per member office", (db) => db.members.map((s) => s.byType.travel || 0), money0],
+      ["Allocated costs per member office", (db) => db.members.map((s) => s.allocated || 0), money0],
+      ["People paid per member office", (db) => db.members.map((s) => s.staffCount), (x) => int.format(Math.round(x))],
+      ["Annualized pay, member-office staff", (db) => db.salaries.filter((x) => db.unitStats[x.u] && db.unitStats[x.u].kind === "member" && !/^MEMBER( OF ASSEMBLY)?$/.test(x.titles)).map((x) => x.annual), money0],
+      ["Annualized pay, central-office staff", (db) => db.salaries.filter((x) => db.unitStats[x.u] && db.unitStats[x.u].kind === "office").map((x) => x.annual), money0],
+      ["Actual spending per central office", (db) => db.unitStats.filter((s) => s.kind === "office").map((s) => s.actual), money0],
+    ];
+    const cols = [["n", "N", (v) => int.format(v)], ["mean", "Mean"], ["median", "Median"], ["sd", "Std. dev."], ["min", "Min"], ["p25", "25th pct"], ["p75", "75th pct"], ["p90", "90th pct"], ["max", "Max"]];
+    const box = (rows, fmt) => {
+      const lo = Math.min(...rows.map((r) => r.d.min)), hi = Math.max(...rows.map((r) => r.d.max)) || 1;
+      const x = (v) => ((v - lo) / (hi - lo || 1) * 100).toFixed(2);
+      return `<div class="boxes" aria-hidden="true">${rows.map((r) => `<div class="boxrow"><span class="boxlab">${esc(r.c.name)}</span><div class="boxtrack">
+        <span class="whisk" style="left:${x(r.d.p10)}%;width:${(x(r.d.p90) - x(r.d.p10)).toFixed(2)}%"></span>
+        <span class="iqr ${r.c.id}" style="left:${x(r.d.p25)}%;width:${Math.max(.6, x(r.d.p75) - x(r.d.p25)).toFixed(2)}%"></span>
+        <span class="med" style="left:${x(r.d.median)}%"></span><span class="mean" style="left:${x(r.d.mean)}%"></span></div></div>`).join("")}
+        <div class="boxscale"><span>${fmt(lo)}</span><span>${fmt(hi)}</span></div></div>`;
+    };
+    const head = sets.map((x) => { const t = x.db.meta; return `<div class="statchamber"><h2>${esc(x.c.name)}</h2><p class="summary">${esc(periodName(x.db))}${x.db.id !== DB.id ? " (latest report)" : ""}</p>
+      <dl class="statgrid"><div><dt>Actual spending</dt><dd>${money0(t.totalActual)}</dd></div><div><dt>Per month</dt><dd>${money0(t.totalActual / x.db.periodMonths)}</dd></div>
+      <div><dt>Member offices</dt><dd>${int.format(t.members)}</dd></div><div><dt>Central offices</dt><dd>${int.format(t.offices)}</dd></div>
+      <div><dt>People paid</dt><dd>${int.format(new Set(x.db.records.filter((r) => x.db.types[r.t].group === "ps").map((r) => r.p)).size)}</dd></div>
+      <div><dt>Report lines</dt><dd>${int.format(t.rowCount)}</dd></div>
+      <div><dt>Member offices' share</dt><dd>${(x.db.members.reduce((a, s) => a + s.actual, 0) / t.totalActual * 100).toFixed(1)}%</dd></div>
+      <div><dt>Top 10% of member offices</dt><dd>${(() => { const a = x.db.members.map((s) => s.actual).sort((p, q) => q - p); const k = Math.max(1, Math.round(a.length / 10)); return (a.slice(0, k).reduce((p, q) => p + q, 0) / a.reduce((p, q) => p + q, 0) * 100).toFixed(1) + "% of member spending"; })()}</dd></div></dl></div>`; }).join("");
+    return `<h1>Statistics</h1>
+      <p class="lede">Descriptive statistics for the ${sets.map((x) => esc(x.c.name)).join(" and ")}, side by side, for ${esc(periodName(DB))}. Member offices are compared with member offices, so the figures are per office, not per chamber.</p>
+      <div class="grid two statheads">${head}</div>
+      ${makeupCard()}
+      ${metrics.map(([label, get, fmt]) => {
+        const rows = sets.map((x) => ({ c: x.c, d: describe(get(x.db)) })).filter((r) => r.d);
+        if (!rows.length) return "";
+        return `<section class="card stat"><div class="card-head"><h2>${esc(label)}</h2><span class="summary">box = middle half (25th–75th percentile) · line = median · dot = mean · whiskers = 10th–90th</span></div>
+          ${box(rows, fmt)}
+          <div class="table-wrap"><table><caption class="sr-only">${esc(label)}: descriptive statistics by chamber</caption>
+            <thead><tr><th scope="col">Chamber</th>${cols.map(([, l]) => `<th scope="col" class="num">${l}</th>`).join("")}</tr></thead>
+            <tbody>${rows.map((r) => `<tr><th scope="row">${esc(r.c.name)}</th>${cols.map(([k, , f]) => `<td class="num">${(f || fmt)(r.d[k])}</td>`).join("")}</tr>`).join("")}</tbody></table></div></section>`;
+      }).join("")}
+      <p class="summary">Std. dev. is the sample standard deviation. Percentiles are interpolated. Annualized pay uses the same method as the Salaries page and leaves out members' own salaries. Pick another report period in the header to recompute; a period only one chamber reported shows that chamber's figures next to the other chamber's latest report.</p>`;
+  }
+
+  /* ---------- Senate biweekly payroll ---------- */
+  function viewPayroll(params) {
+    if (CH.id !== "senate") {
+      return `<h1>Payroll</h1><p class="lede">The Senate publishes a payroll report every two weeks, with each employee's office, title, pay type and rate. The Assembly doesn't publish one; its staff pay is in the six-month expenditure reports, on the Salaries page.</p>
+        <p><a class="btn" href="${buildHash("payroll", { c: "senate", p: "" })}">Open the Senate payroll ${I.r}</a> <a class="btn" href="${buildHash("salaries", {})}">Assembly salaries ${I.r}</a></p>`;
+    }
+    const pr = payroll();
+    if (pr === undefined) return `<h1>Senate payroll</h1><p class="empty">Loading 416 biweekly payroll reports…</p>`;
+    if (!pr) return `<h1>Senate payroll</h1><p class="empty">The payroll history couldn't be loaded.</p>`;
+    const q = (params.q || "").trim().toLowerCase();
+    const cur = [];
+    for (const [name, segs] of Object.entries(pr.people)) for (const g of segs) if (g[5] === pr.last) cur.push({ name, g });
+    const sal = cur.filter((x) => x.g[3] !== "TE"), te = cur.filter((x) => x.g[3] === "TE");
+    const annual = sal.map((x) => x.g[2] * 26);
+    const byOffice = new Map();
+    for (const x of sal) { const o = pr.offices[x.g[0]]; const v = byOffice.get(o) || { n: 0, amt: 0 }; v.n++; v.amt += x.g[2] * 26; byOffice.set(o, v); }
+    const topOff = [...byOffice.entries()].sort((a, b) => b[1].amt - a[1].amt).slice(0, 12);
+    const maxO = Math.max(1, ...topOff.map(([, v]) => v.amt));
+    const top = sal.slice().sort((a, b) => b.g[2] - a.g[2]).slice(0, 15);
+    const d = describe(annual);
+    const found = q ? Object.keys(pr.people).filter((n) => n.toLowerCase().includes(q)).slice(0, 40) : [];
+    const rep = pr.reports[pr.last];
+    return `<h1>Senate payroll</h1>
+      <p class="lede">Every biweekly payroll report the Senate has published as a spreadsheet: ${int.format(pr.reports.length)} reports from ${esc(fmtRepDay(pr, 0))} to ${esc(fmtRepDay(pr, pr.last))}, ${int.format(Object.keys(pr.people).length)} people. The latest covers the pay period ending ${esc(fmtDay(rep[0]))}${rep[1] ? `, paid ${esc(fmtDay(rep[1]))}` : ""}.</p>
+      <form class="filters" id="paySearch" role="search" aria-label="Find a person in the Senate payroll"><label class="wide">Find a person<input type="search" id="payq" value="${esc(params.q || "")}" placeholder="Last name, first name" autocomplete="off"></label></form>
+      ${q ? `<section class="card"><div class="card-head"><h2>${int.format(found.length)}${found.length === 40 ? "+" : ""} matching ${found.length === 1 ? "person" : "people"}</h2></div>${found.length ? `<ul class="plainlist cols3">${found.map((n) => { const segs = pr.people[n], g = segs[segs.length - 1]; return `<li><a href="${buildHash("person", { name: n })}">${esc(n)}</a> <span class="summary">· ${esc(titleCase(pr.titles[g[1]]))}, ${esc(fmtRepDay(pr, segs[0][4]).slice(-4))}–${g[5] === pr.last ? "now" : esc(fmtRepDay(pr, g[5]).slice(-4))}</span></li>`; }).join("")}</ul>` : `<p class="empty">No one by that name.</p>`}</section>` : ""}
+      <div class="grid kpis">
+        ${kpi("On the latest report", int.format(cur.length), `${int.format(sal.length)} salaried · ${int.format(te.length)} hourly`)}
+        ${kpi("Salaried payroll, yearly rate", compact(annual.reduce((a, b) => a + b, 0)), "latest biweekly rates × 26")}
+        ${kpi("Median salary", d ? money0(d.median) : "—", d ? `middle half ${money0(d.p25)}–${money0(d.p75)}` : "")}
+        ${kpi("Median hourly rate", te.length ? money(median(te.map((x) => x.g[2]))) : "—", `${int.format(te.length)} temporary staff`)}
+      </div>
+      ${payrollYearsCard(pr)}
+      <div class="grid two">
+        <section class="card"><div class="card-head"><h2>Largest offices by salaried payroll</h2><span class="summary">latest report, yearly rate</span></div>
+          <ul class="bars">${topOff.map(([o, v]) => { const u = DB.byName.get(o); return `<li><span class="name">${u ? `<a href="${unitHref(u.id)}">${esc(o)}</a>` : esc(o)} <span class="summary">· ${v.n}</span></span><span class="amt">${money0(v.amt)}</span><span class="track"><span class="fill" style="width:${(v.amt / maxO * 100).toFixed(1)}%"></span></span></li>`; }).join("")}</ul></section>
+        <section class="card"><div class="card-head"><h2>Highest salaries now</h2><span class="summary">latest report, biweekly rate × 26</span></div>
+          <div class="table-wrap"><table><thead><tr><th scope="col">Name</th><th scope="col">Title / office</th><th scope="col" class="num">Yearly rate</th></tr></thead>
+          <tbody>${top.map((x) => `<tr><td><a href="${buildHash("person", { name: x.name })}">${esc(x.name)}</a></td><td>${esc(titleCase(pr.titles[x.g[1]]))}<br><span class="summary">${esc(titleCase(pr.offices[x.g[0]]))}</span></td><td class="num">${money0(x.g[2] * 26)}</td></tr>`).join("")}</tbody></table></div></section>
+      </div>
+      <p class="summary">Source: <a href="https://www.nysenate.gov/open-data" target="_blank" rel="noopener">NY Senate biweekly payroll reports</a>, issued by the Secretary of the Senate. Members' own salaries aren't in these reports; see each senator's page. Pay types: RA regular annual (at least 1,820 hours a year), SA special annual (fewer hours or part of a year), TE temporary (hourly).</p>`;
   }
 
   function viewPerson(params) {
@@ -606,8 +765,10 @@
         ${kpi("Allocated costs", compact(meta.totalAllocated), "Informational only — see About")}
       </div>
       ${chambersCard()}
+      ${makeupCard()}
       ${periodsCard()}
       ${budgetCard()}
+      ${CH.id === "senate" ? (() => { const pr = payroll(); return pr ? payrollYearsCard(pr).replace("<h2>Senate payroll by year</h2>", `<h2><a href="${buildHash("payroll", {})}">Senate payroll by year</a></h2>`) : ""; })() : ""}
       <div class="grid two">
         <section class="card"><div class="card-head"><h2>By expense type</h2><span class="summary">grey = allocated</span></div>${bars(typeBars)}</section>
         <section class="card"><div class="card-head"><h2>Vouchered spending by month</h2><span class="summary">M&amp;O + travel</span></div>
@@ -1685,7 +1846,7 @@
     const v = el.value; el.value = ""; el.value = v;
   }
   function setActiveTab(view) {
-    const tab = { overview: "overview", units: "units", unit: "units", records: "records", payees: "payees", about: "about", compare: "compare", map: "map", district: "map", salaries: "salaries", person: "salaries" }[view] || "overview";
+    const tab = { overview: "overview", units: "units", unit: "units", records: "records", payees: "payees", about: "about", compare: "compare", map: "map", district: "map", salaries: "salaries", person: "payroll", payroll: "payroll", stats: "stats" }[view] || "overview";
     document.querySelectorAll(".tabs a").forEach((a) => { const on = a.dataset.tab === tab; a.classList.toggle("active", on); if (on) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
   }
   let lastView = "";
@@ -1751,6 +1912,8 @@
       case "payees": html = viewPayees(params); break;
       case "salaries": html = viewSalaries(params); break;
       case "person": html = viewPerson(params); break;
+      case "payroll": html = viewPayroll(params); break;
+      case "stats": html = viewStats(); break;
       case "about": html = viewAbout(); if (params.s) setTimeout(() => { const t = document.getElementById(params.s); if (t) { t.setAttribute("tabindex", "-1"); t.scrollIntoView(); t.focus({ preventScroll: true }); } }, 0); break;
       case "compare": html = viewCompare(params); break;
       case "map": html = viewMap(params); break;
@@ -1758,6 +1921,14 @@
       default: html = viewOverview();
     }
     if (html != null) app.innerHTML = html;
+    const psf = app.querySelector("#paySearch");
+    if (psf) {
+      const inp = psf.querySelector("#payq");
+      let t = 0;
+      inp.addEventListener("input", () => { clearTimeout(t); t = setTimeout(() => go("payroll", { q: inp.value.trim() }, true), 250); });
+      psf.addEventListener("submit", (e) => e.preventDefault());
+      if (params.q) focusEnd("#payq");
+    }
     const hs = app.querySelector("#heroSearch");
     if (hs) hs.addEventListener("submit", (e) => { e.preventDefault(); go("records", { q: app.querySelector("#heroSearchInput").value.trim() }); });
     const key = view + (arg || "");
@@ -1839,7 +2010,7 @@
     sw.querySelectorAll("button").forEach((b) => { b.classList.toggle("on", b.dataset.c === CH.id); b.setAttribute("aria-pressed", b.dataset.c === CH.id); });
     document.title = `NY ${CH.name} Expenditures · ${periodName(DB)}`;
     // Keep the chamber and period when moving between tabs.
-    const tabView = { overview: "", units: "units", records: "records", map: "map", compare: "compare", salaries: "salaries", payees: "payees", about: "about" };
+    const tabView = { overview: "", units: "units", records: "records", map: "map", compare: "compare", salaries: "salaries", payroll: "payroll", stats: "stats", payees: "payees", about: "about" };
     document.querySelectorAll(".tabs a[data-tab]").forEach((a) => { a.href = buildHash(tabView[a.dataset.tab] ?? a.dataset.tab, {}); });
     const brand = document.querySelector(".brand-title");
     if (brand) brand.href = buildHash("", {});

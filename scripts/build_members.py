@@ -175,6 +175,23 @@ def attach_boe(chamber: str, out: dict, by_district: dict) -> None:
     for c in changed:
         print("  State Board count changes", c)
 
+    # Party makeup now and after the election: one row per district.
+    dists = json.loads((ROOT / f"data/{chamber}/districts.json").read_text())
+    now = {d["district"]: {"Democratic": "D", "Republican": "R"}.get(d.get("party") or "", "V" if not d.get("unitName") else "O") for d in dists}
+    rows = []
+    for d, rep, eds, cands, total in boe["districts"]:
+        if not cands:
+            continue
+        cands = sorted(cands, key=lambda c: -c[2])
+        lead = cands[0][2] - (cands[1][2] if len(cands) > 1 else 0)
+        margin = lead / total if total else 1
+        close = margin < (CLOSE_PARTIAL if rep is not None and rep < eds else CLOSE)
+        party = {"DEM": "D", "REP": "R"}.get(cands[0][1].split("/")[0], "O")
+        rows.append([d, now.get(d, "V"), party, 0 if close else 1, round(margin * 100, 2), cands[0][0]])
+    (ROOT / f"data/{chamber}/makeup.json").write_text(json.dumps({
+        "asOf": boe["as_of"], "seats": len(dists), "majority": len(dists) // 2 + 1,
+        "fields": ["district", "nowParty", "leaderParty", "decided", "marginPts", "leader"], "districts": rows}, separators=(",", ":")))
+
 
 if __name__ == "__main__":
     for c in ("assembly", "senate"):

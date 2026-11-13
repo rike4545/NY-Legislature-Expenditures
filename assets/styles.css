@@ -528,3 +528,46 @@ details.yeartable > summary { cursor: pointer; color: var(--accent); font-weight
 details.yeartable > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
 details.yeartable table th[scope=row] { position: static; background: none; font-size: 14px; color: var(--text); text-transform: none; letter-spacing: 0; }
 abbr[title] { text-decoration: underline dotted; cursor: help; }
+
+/* Statistics */
+.statheads .statchamber { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px; box-shadow: var(--shadow); }
+.statchamber h2 { margin: 0; font-size: 20px; }
+.statgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 18px; margin: 12px 0 0; }
+.statgrid dt { font-size: 12.5px; color: var(--muted); }
+.statgrid dd { margin: 2px 0 0; font-weight: 700; font-size: 17px; font-variant-numeric: tabular-nums; }
+.card.stat table th[scope=row] { position: static; background: none; color: var(--text); font-size: 14px; text-transform: none; letter-spacing: 0; }
+.boxes { margin: 6px 0 12px; }
+.boxrow { display: grid; grid-template-columns: 90px 1fr; align-items: center; gap: 10px; margin: 8px 0; }
+.boxlab { font-size: 13px; font-weight: 600; }
+.boxtrack { position: relative; height: 22px; }
+.boxtrack .whisk { position: absolute; top: 10px; height: 2px; background: var(--muted); opacity: .6; }
+.boxtrack .iqr { position: absolute; top: 3px; height: 16px; border-radius: 4px; background: color-mix(in srgb, var(--accent) 30%, transparent); border: 1.5px solid var(--accent); box-sizing: border-box; }
+.boxtrack .iqr.senate { background: color-mix(in srgb, var(--cf-c) 28%, transparent); border-color: var(--cf-c); }
+.boxtrack .med { position: absolute; top: 1px; width: 2px; height: 20px; background: var(--text); transform: translateX(-1px); }
+.boxtrack .mean { position: absolute; top: 7px; width: 8px; height: 8px; border-radius: 50%; background: var(--surface); border: 2px solid var(--text); transform: translateX(-5px); box-sizing: border-box; }
+.boxscale { display: flex; justify-content: space-between; margin-left: 100px; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+ul.cols3 { columns: 3 220px; }
+ul.cols3 li { break-inside: avoid; margin: 3px 0; }
+
+/* Party makeup seat strips */
+:root { --pD: #2563b8; --pR: #c0392b; --pO: #8a6fd1; --pV: #b8c0cc; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --pD: #5b9be0; --pR: #ef6b5b; --pO: #a98bf0; --pV: #4a5260; } }
+:root[data-theme="dark"] { --pD: #5b9be0; --pR: #ef6b5b; --pO: #a98bf0; --pV: #4a5260; }
+.makeup-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 18px 28px; }
+.makeupchamber h3 { margin: 0 0 6px; font-size: 16px; }
+.hemis { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.hemi { margin: 0; text-align: center; }
+.hemi svg { width: 100%; height: auto; display: block; }
+.hemi figcaption { font-size: 13px; font-weight: 600; color: var(--muted); margin-top: 2px; }
+circle.seat.pD { fill: var(--pD); } circle.seat.pR { fill: var(--pR); } circle.seat.pO { fill: var(--pO); } circle.seat.pV { fill: var(--pV); }
+circle.seat.close { fill: var(--surface); stroke-width: 1.8; }
+circle.seat.pD.close { stroke: var(--pD); fill: color-mix(in srgb, var(--pD) 28%, var(--surface)); }
+circle.seat.pR.close { stroke: var(--pR); fill: color-mix(in srgb, var(--pR) 28%, var(--surface)); }
+.hemi-big { font: 800 19px/1 "Public Sans", system-ui, sans-serif; fill: var(--text); text-anchor: middle; font-variant-numeric: tabular-nums; }
+.hemi-small { font: 600 9.5px/1 "Public Sans", system-ui, sans-serif; fill: var(--muted); text-anchor: middle; letter-spacing: .02em; }
+svg.lg { width: 14px; height: 14px; vertical-align: -2px; margin-right: 4px; }
+svg.lg[viewBox="0 0 24 12"] { width: 26px; }
+.makeup-sum { margin: 6px 0 0; font-size: 14px; }
+.makeup-sum .pd { color: var(--pD); font-weight: 700; } .makeup-sum .pr { color: var(--pR); font-weight: 700; }
+@media (max-width: 640px) { .makeup-grid { grid-template-columns: 1fr; } }
+@media (forced-colors: active) { .seat, .boxtrack span, .hemi svg { forced-color-adjust: none; } }
