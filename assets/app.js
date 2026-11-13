@@ -1600,14 +1600,35 @@
 
   function syncPeriodUI() {
     const sel = document.getElementById("periodSelect");
+    // Every report period from both chambers; a period only one chamber has is labeled and
+    // switches to that chamber when picked.
+    const all = new Map();
+    for (const c of CHAMBERS) for (const pm of c.periods) {
+      const x = all.get(pm.id) || { pm, chambers: [] };
+      x.chambers.push(c);
+      all.set(pm.id, x);
+    }
+    const list = [...all.values()].sort((a, b) => b.pm.end.localeCompare(a.pm.end));
     if (sel.dataset.chamber !== CH.id) {
-      sel.innerHTML = PERIODS.map((pm) => `<option value="${esc(pm.id)}">${esc(periodName(dbFor(pm.id)))}</option>`).join("");
+      sel.innerHTML = list.map(({ pm, chambers }) => {
+        const only = chambers.length < CHAMBERS.length ? ` · ${chambers.map((c) => c.name).join(", ")} only` : "";
+        return `<option value="${esc(pm.id)}">${esc(`${fmtShort(pm.start)} – ${fmtShort(pm.end)}`)}${esc(only)}</option>`;
+      }).join("");
       sel.dataset.chamber = CH.id;
     }
     if (!sel.dataset.wired) {
       sel.dataset.wired = "1";
       sel.addEventListener("change", () => {
         const { view, arg, params } = parseHash();
+        const entry = all.get(sel.value);
+        const here = entry && entry.chambers.some((c) => c.id === CH.id);
+        const c = here ? CH.id : entry.chambers[0].id;
+        if (!here) {
+          // The current chamber has no report for this period: open the chamber that does.
+          const v = ["unit", "district", "person"].includes(view) ? (view === "district" ? "map" : view === "person" ? "salaries" : "units") : view;
+          location.hash = buildHash(v === "overview" ? "" : v, { p: sel.value, c });
+          return;
+        }
         // Unit ids differ between periods: carry the unit across by name.
         if (view === "unit") {
           const cur = DB.unitStats[Number(arg)];
