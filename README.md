@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/banner.png" alt="NY Legislature Expenditures — every line of the Assembly's and Senate's spending reports, searchable and mapped by district" width="100%">
+  <img src="docs/banner.png" alt="Where New York's Legislature spends: every line of the Assembly's and Senate's spending reports, searchable and mapped by district" width="100%">
 </p>
 
 <p align="center">
@@ -57,7 +57,7 @@ The New York State Assembly and Senate each publish their spending twice a year:
   </tr>
   <tr>
     <td width="50%"><img src="docs/screenshots/salaries.png" alt="Salaries"><br><sub><b>Salaries</b> — every person's regular pay normalized to a yearly rate, with pay ranges by title.</sub></td>
-    <td width="50%"></td>
+    <td width="50%"><img src="docs/screenshots/scorecard.png" alt="Scorecard"><br><sub><b>Scorecard</b> — every member office ranked on cost, staff retention, election margin and lawmaking, within party or chamber, with sliders to weigh the measures yourself.</sub></td>
   </tr>
 </table>
 
