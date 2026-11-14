@@ -737,10 +737,6 @@ a.back { padding: 4px 0; }
   main, .wrap { padding: 0 !important; margin: 0 !important; max-width: none !important; }
   @page { margin: 0.5in; }
 }
-.cols.hist { gap: 6px; height: 160px; }
-.cols.hist .col.cur .colbar { background: var(--accent); }
-.cols.hist .collabel { font-size: 11px; white-space: nowrap; transform: rotate(-35deg); transform-origin: top center; margin-top: 6px; height: 26px; }
-@media (max-width: 640px) { .cols.hist .colval { display: none; } .cols.hist { gap: 3px; } }
 .bh-table { width: 100%; }
 .bh-bars { width: 38%; min-width: 120px; }
 .bh-bars span { display: block; height: 7px; border-radius: 4px; }
@@ -816,8 +812,6 @@ section.card { scroll-margin-top: 140px; }
   .om-table td:last-child::before { display: block; margin-bottom: 2px; max-width: none; }
 
   /* Year labels: every other one so they don't collide */
-  .cols.hist .col:nth-child(even) .collabel { visibility: hidden; }
-  .cols.hist { height: 140px; }
 
   /* Smaller locator map, tighter cards */
   .locator-card svg { max-height: 150px; }
@@ -841,10 +835,6 @@ section.card { scroll-margin-top: 140px; }
   table.wide-sticky th:first-child, table.wide-sticky td:first-child { position: sticky; left: 0; z-index: 1; background: var(--surface); box-shadow: 1px 0 0 var(--border); }
   table.wide-sticky thead th:first-child { z-index: 2; }
   table.wide-sticky td, table.wide-sticky th { padding-left: 10px; padding-right: 10px; }
-}
-@media (max-width: 640px) {
-  .cols.hist .col .collabel { visibility: hidden; }
-  .cols.hist .col:nth-child(4n+1) .collabel, .cols.hist .col:last-child .collabel { visibility: visible; }
 }
 
 /* ---------- Tooltip ---------- */
@@ -991,15 +981,6 @@ th.csort-th .th-sort:focus-visible { outline: 2px solid var(--accent); outline-o
 .cols .col > .colbar { grid-row: 2; align-self: end; }
 .cols .col > .collabel { grid-row: 3; }
 .cols .col:hover .colbar, .cols .col[data-tip]:hover .colbar { filter: none; background: var(--accent); }
-.cols.hist { height: 184px; gap: 6px; }
-.cols.hist .collabel { transform: none; height: auto; margin-top: 2px; font-size: 11px; line-height: 1.2; text-align: center; white-space: normal; }
-.cols.hist + p.summary { margin-top: 12px; }
-@media (max-width: 640px) {
-  .cols.hist { height: 150px; }
-  .cols.hist .collabel { white-space: nowrap; }
-  .cols.hist .col:first-child .collabel { justify-self: start; text-align: left; }
-  .cols.hist .col:last-child .collabel { justify-self: end; text-align: right; }
-}
 .bars .track { background: color-mix(in srgb, var(--accent-soft) 75%, var(--surface)); }
 
 /* Row headers read as the row's name, not as a column header */
@@ -1066,12 +1047,10 @@ a { text-underline-offset: 2px; }
 .cols .col > .colbar { justify-self: center; }
 .cols .col > .colval, .cols .col > .collabel { max-width: none; }
 @media (max-width: 640px) {
-  .cols.hist .collabel { justify-self: center; width: max-content; }
   table.units-table .pin-mini { display: none; }
   table.units-table { font-size: 13px; }
 }
 .map-layout > .card, .map-layout > div > .card:first-child { margin-top: 0; }
-@media (max-width: 640px) { .cols.hist .col:nth-last-child(2) .collabel, .cols.hist .col:nth-last-child(3) .collabel, .cols.hist .col:nth-last-child(4) .collabel { visibility: hidden; } }
 .as-filed { display: block; font-size: 13px; margin-top: 2px; }
 :root { --btn-primary: #1f5fa8; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --btn-primary: #2a69b5; } }
@@ -1081,3 +1060,7 @@ button.primary, .pin-tray .btn.primary { background: var(--btn-primary); border-
 p.summary, p.lede, p.pfline, .hero-sub { text-wrap: pretty; }
 .site-header .global-search input::placeholder { color: #eef3fa; opacity: .92; }
 .card .table-wrap { box-shadow: none; }
+@media (max-width: 640px) {
+  .card .grid.kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .card .grid.kpis > .kpi:nth-child(odd) { border-left: 0; padding-left: 0; }
+}

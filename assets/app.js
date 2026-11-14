@@ -1836,7 +1836,7 @@
       const tip = `${halfLabel(p)} (${fmtDay(p.start)} – ${fmtDay(p.end)}): ${money0(p.actual)} actual · ${SH_SEGS.map(([k, l]) => `${l} ${compact(p[k])}`).join(" · ")}${y != null ? ` · ${y >= 0 ? "+" : "−"}${Math.abs(y).toFixed(1)}% vs. a year earlier` : ""}`;
       const hasReport = (CH.periods || []).some((x) => x.id === p.id);
       const tag = hasReport ? "a" : "div";
-      return `<${tag} class="sh-col${cur ? " cur" : ""}${keep.has(i) ? " keep" : ""}"${hasReport ? ` href="${buildHash("", { p: p.id })}"` : ""} title="${esc(tip)}" aria-label="${esc(tip)}${cur ? " (showing)" : ""}"${cur ? ' aria-current="page"' : ""}>
+      return `<${tag} class="sh-col${cur ? " cur" : ""}${keep.has(i) ? " keep" : ""}"${hasReport ? ` href="${buildHash("", { p: p.id })}"` : ' role="img"'} title="${esc(tip)}" aria-label="${esc(tip)}${cur ? " (showing)" : ""}"${cur ? ' aria-current="page"' : ""}>
         <span class="sh-val">${compact(p.actual)}</span>
         <span class="sh-bar" style="height:${(p.actual / top * 100).toFixed(2)}%">${SH_SEGS.slice().reverse().map(([k, , cls]) => p[k] > 0 ? `<span class="${cls}" style="flex:${p[k]}"></span>` : "").join("")}</span></${tag}>`;
     }).join("");
