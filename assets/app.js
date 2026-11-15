@@ -55,12 +55,82 @@
   const int = new Intl.NumberFormat("en-US");
   const money = (n) => usd2.format(n);
   const money0 = (n) => usd0.format(n);
-  const compact = (n) => {
+  // Short labels for chart columns, where space is tight ("$75.5M").
+  const chartMoney = (n) => {
     const a = Math.abs(n);
     if (a >= 1e6) return "$" + (n / 1e6).toFixed(a >= 1e7 ? 1 : 2) + "M";
     if (a >= 1e3) return "$" + (n / 1e3).toFixed(a >= 1e5 ? 0 : 1) + "K";
     return money0(n);
   };
+  // Everywhere else, rounded amounts in words, so nobody has to decode "M" and "K":
+  // $75,494,886 -> "$75.5 million", $6,957 -> "$7,000", $780,412 -> "$780,000".
+  const compact = (n) => {
+    const a = Math.abs(n), sgn = n < 0 ? "−" : "";
+    const trim = (x) => x.replace(/\.0+$/, "").replace(/(\.\d*?)0+$/, "$1");
+    if (a >= 1e9) return sgn + "$" + trim((a / 1e9).toFixed(a >= 1e10 ? 1 : 2)) + " billion";
+    if (a >= 1e6) return sgn + "$" + trim((a / 1e6).toFixed(a >= 1e7 ? 1 : 2)) + " million";
+    if (a >= 1e5) return sgn + usd0.format(Math.round(a / 1e3) * 1e3);
+    if (a >= 1e3) return sgn + usd0.format(Math.round(a / 100) * 100);
+    return sgn + usd0.format(Math.round(a));
+  };
+  // A percentage change in words: "2% more", "about the same", "twice as much", "about half as much".
+  function pctWords(p) {
+    if (p == null || !isFinite(p)) return "";
+    const a = Math.abs(p);
+    if (a < 0.5) return "about the same";
+    if (p >= 95) { const x = 1 + p / 100; return x < 2.15 && x > 1.85 ? "about twice as much" : `about ${x.toFixed(1).replace(/\.0$/, "")} times as much`; }
+    if (p <= -45 && p >= -55) return "about half as much";
+    return `${a < 10 ? a.toFixed(1).replace(/\.0$/, "") : Math.round(a)}% ${p > 0 ? "more" : "less"}`;
+  }
+  // "about 7 in 10" for shares people meet in everyday talk.
+  function inTen(share) {
+    if (share == null || !isFinite(share)) return "";
+    if (share >= 0.95) return "almost all";
+    if (share < 0.05) return share < 0.015 ? "very few" : "about 1 in 20 or fewer";
+    const t = Math.round(share * 10);
+    if (t <= 1) { const h = Math.round(1 / share); return `about 1 in ${h}`; }
+    if (t === 5) return "about half";
+    return `about ${t} in 10`;
+  }
+  // A glossary term: dotted underline, plain-language definition on hover, tap or keyboard focus.
+  const GLOSSARY = {
+    "M&O": "Maintenance and operations: rent, supplies, postage, phones, equipment and outside services. Everything except salaries and travel.",
+    "allocated": "Shared costs (like bulk mail or phones) that the report assigns to an office for information. They aren't added to the office's actual spending.",
+    "actual spending": "Money actually paid out in the period: salaries, office expenses (M&O) and travel.",
+    "typical": "The middle office (the median): half of offices spent more and half spent less.",
+    "payroll": "Salaries and wages paid to the member's staff (and the member's own pay, for central offices).",
+    "vouchered": "Paid on a bill (a voucher) with a date, which lets the spending be shown by month. Payroll has no voucher date.",
+    "score": "A score from 0 to 100 that shows where an office stands in its group: 100 is the best, 50 is the middle, 0 is the last.",
+    "prime sponsor": "The lawmaker who introduced the bill and leads it. Co-sponsors who signed on later aren't counted.",
+    "independent expenditure": "Money spent by an outside group for or against a candidate, without working with the candidate's campaign.",
+    "matching funds": "Public money New York gives participating candidates to match small donations from people who live in their district.",
+    "margin of error": "The Census figure is an estimate from a survey; the real number is probably within this much of it.",
+    "typical income": "The middle household: half of households earn more and half earn less (the median).",
+    "turnout": "Votes cast in this race compared with the number of registered voters in the district.",
+    "per resident": "The office's spending divided by the number of people who live in the district.",
+  };
+  // Where a value sits among others, in words. `below` = share of the group that is lower.
+  function standing(below, noun) {
+    if (below == null || !isFinite(below)) return "";
+    const tens = (x) => Math.max(1, Math.min(9, Math.round(x * 10)));
+    if (below >= 0.95) return `among the very highest of all ${noun}`;
+    if (below >= 0.75) return `higher than most ${noun} (about ${tens(below)} in 10)`;
+    if (below >= 0.6) return `a bit above the middle of ${noun}`;
+    if (below > 0.4) return `about in the middle of ${noun}`;
+    if (below > 0.25) return `a bit below the middle of ${noun}`;
+    if (below > 0.05) return `lower than most ${noun} (about ${tens(1 - below)} in 10 are higher)`;
+    return `among the very lowest of all ${noun}`;
+  }
+  // "#52 of 152" in words: near the top, in the top third, about in the middle...
+  function rankWords(rank, total) {
+    const f = (rank - 1) / Math.max(1, total - 1);
+    if (f <= 0.1) return "near the top";
+    if (f <= 0.34) return "in the top third";
+    if (f < 0.66) return "about in the middle";
+    if (f < 0.9) return "in the bottom third";
+    return "near the bottom";
+  }
+  const term = (word, key) => { const d = GLOSSARY[key || word]; return d ? `<dfn class="term" tabindex="0" data-tip="${esc(d)}">${word}</dfn>` : word; };
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   // Links built from data files: only web, mail and in-page links, never javascript: or data: URLs.
   const escUrl = (u) => { const v = String(u == null ? "" : u).trim(); return esc(/^(https?:\/\/|mailto:|#|\/|\.{0,2}\/|[a-z0-9_-]+(\/|\.[a-z]+))/i.test(v) && !/^\s*(javascript|data|vbscript):/i.test(v) ? v : "#"); };
@@ -333,7 +403,7 @@
     const chg = prevFull.length === 2 ? (prevFull[1][1].salary / prevFull[0][1].salary - 1) * 100 : null;
     return `<section class="card"><div class="card-head"><h2>Senate payroll by year</h2><span class="summary">every biweekly payroll report, summed by check date${chg != null ? ` · ${prevFull[1][0]} was ${chg >= 0 ? "+" : ""}${chg.toFixed(1)}% on ${prevFull[0][0]}` : ""}</span></div>
       <div class="cols">${ys.map(([y, v]) => `<div class="col${full(v) ? "" : " partial"}" title="${y}: ${money(v.salary)} salaried payroll on ${v.reports} reports" role="img" aria-label="${y}: ${money0(v.salary)} salaried payroll, ${v.reports} reports${full(v) ? "" : ", partial year"}">
-        <span class="colval">${compact(v.salary)}</span><span class="colbar${full(v) ? "" : " dimbar"}" style="height:${(v.salary / max * 100).toFixed(1)}%"></span><span class="collabel">${y}${full(v) ? "" : "*"}</span></div>`).join("")}</div>
+        <span class="colval">${chartMoney(v.salary)}</span><span class="colbar${full(v) ? "" : " dimbar"}" style="height:${(v.salary / max * 100).toFixed(1)}%"></span><span class="collabel">${y}${full(v) ? "" : "*"}</span></div>`).join("")}</div>
       <details class="yeartable"><summary>Year-by-year table</summary><div class="table-wrap"><table>
         <caption class="sr-only">Senate payroll by year from biweekly payroll reports</caption>
         <thead><tr><th scope="col">Year</th><th scope="col" class="num">Reports</th><th scope="col" class="num">Salaried payroll</th><th scope="col" class="num">Regular annual</th><th scope="col" class="num">Special annual</th><th scope="col" class="num">People paid</th><th scope="col" class="num">Hourly staff</th><th scope="col" class="num">Median hourly rate</th></tr></thead>
@@ -349,7 +419,7 @@
     const max = Math.max(1, ...ys.map(([, v]) => v[0]));
     return `<section class="card"><div class="card-head"><h2>Staff payroll by year</h2><span class="summary">salaried staff at listed biweekly rates, from every Senate payroll report · by check date</span></div>
       <div class="cols small">${ys.map(([y, v]) => { const part = (pr.years[y] || {}).reports < 25; return `<div class="col${part ? " partial" : ""}" title="${y}: ${money(v[0])}, ${v[1]} people" role="img" aria-label="${y}: ${money0(v[0])} for ${v[1]} salaried staff${part ? ", partial year" : ""}">
-        <span class="colval">${compact(v[0])}</span><span class="colbar${part ? " dimbar" : ""}" style="height:${(v[0] / max * 100).toFixed(1)}%"></span><span class="collabel">${y}${part ? "*" : ""}</span></div>`; }).join("")}</div>
+        <span class="colval">${chartMoney(v[0])}</span><span class="colbar${part ? " dimbar" : ""}" style="height:${(v[0] / max * 100).toFixed(1)}%"></span><span class="collabel">${y}${part ? "*" : ""}</span></div>`; }).join("")}</div>
       <p class="summary">* partial year. Hourly staff and the senator's own salary aren't included.</p></section>`;
   }
 
@@ -617,7 +687,10 @@
     if (!c) return short ? "—" : "";
     const sign = c.diff > 0 ? "+" : c.diff < 0 ? "−" : "";
     const pct = c.pct == null ? "" : ` (${sign}${Math.abs(c.pct).toFixed(1)}%)`;
-    return short ? `${sign}${Math.abs(c.pct || 0).toFixed(1)}%` : `${sign}${compact(Math.abs(c.diff))}${pct} vs ${PREV ? periodName(PREV) : "prior"}`;
+    if (short) return `${sign}${Math.abs(c.pct || 0).toFixed(1)}%`;
+    const when = PREV ? periodName(PREV) : "the report before";
+    if (!c.diff) return `Same as ${when}`;
+    return `${c.diff > 0 ? "Up" : "Down"} ${compact(Math.abs(c.diff))} from ${when}${c.pct == null ? "" : ` (${pctWords(c.pct)})`}`;
   }
   function prevUnit(s) { return PREV ? PREV.byName.get(s.name) || null : null; }
 
@@ -715,7 +788,7 @@
     const url = (no) => L.billUrl.replace("{printNo}", no);
     return `<section class="card"><div class="card-head"><h2>Legislation, ${L.session}–${String(L.session + 1).slice(2)} session</h2><span class="summary">bills ${esc(r.name)} introduced as prime sponsor · Open Legislation, as of ${esc(fmtDay(L.fetched))}</span></div>
       <ul class="bars funnel">${steps.map(([l, v]) => `<li><span class="name">${l}</span><span class="amt">${int.format(v)}${r.introduced && l !== "Introduced" ? ` · ${pctf(v / r.introduced)}` : ""}</span><span class="track"><span class="fill" style="width:${(v / Math.max(1, r.introduced) * 100).toFixed(1)}%"></span></span></li>`).join("")}</ul>
-      <p class="summary">The median ${esc(CH.name)} member introduced ${med("introduced")} bills and had ${med("signed")} signed. ${r.vetoed ? `${r.vetoed} of this member's bills were vetoed. ` : ""}${r.resolutions ? `Also ${r.resolutions} resolutions (not counted above). ` : ""}Majority-party members usually pass far more bills, so compare within a party.</p>
+      <p class="summary">A typical ${esc(CH.name)} member introduced ${med("introduced")} bills and had ${med("signed")} signed. ${r.vetoed ? `${r.vetoed} of this member's bills were vetoed. ` : ""}${r.resolutions ? `Also ${r.resolutions} resolutions (not counted above). ` : ""}Majority-party members usually pass far more bills, so compare within a party.</p>
       ${r.signedBills.length ? `<details><summary>Bills signed into law (${r.signed})</summary><ul class="plainlist">${r.signedBills.map(([no, t]) => `<li><a href="${escUrl(url(no))}" target="_blank" rel="noopener">${esc(no)}</a> · ${esc(t)}</li>`).join("")}</ul></details>` : ""}
       <p class="summary">Counts bills the member sponsored, not co-sponsored, and leaves out budget bills and Rules Committee bills. When a bill was replaced on the floor by its same-as bill from the other house, the steps that bill went on to take count here too, so one law can be credited to both its Senate and Assembly sponsors. Source: <a href="https://legislation.nysenate.gov" target="_blank" rel="noopener">NY Open Legislation</a>.</p>
     </section>`;
@@ -885,7 +958,7 @@
             ${c.topOrgs.length ? `<h3 class="mini" style="margin-top:14px">Biggest organizational donors</h3><table class="mini-results"><tbody>${c.topOrgs.slice(0, 8).map((o) => `<tr><td>${esc(o[0])}<br><span class="summary">${esc(o[1])}${o[3] > 1 ? ` · ${o[3]} gifts` : ""}</span></td><td class="num">${money0(o[2])}</td></tr>`).join("")}</tbody></table>` : `<p class="summary">No contributions from organizations.</p>`}
           </div>
         </div>
-        ${months.length > 1 ? `<h3 class="mini" style="margin-top:14px">Contributions by month</h3><div class="cols small">${months.map((m) => { const v = c.months[m] || 0; return `<div class="col" role="img" aria-label="${monthLabel(m)}: ${money0(v)}" title="${monthLabel(m)}: ${money(v)}"><span class="colval">${v ? compact(v) : ""}</span><span class="colbar" style="height:${(v / maxMonth * 100).toFixed(1)}%"></span><span class="collabel">${monthLabel(m)}</span></div>`; }).join("")}</div>` : ""}
+        ${months.length > 1 ? `<h3 class="mini" style="margin-top:14px">Contributions by month</h3><div class="cols small">${months.map((m) => { const v = c.months[m] || 0; return `<div class="col" role="img" aria-label="${monthLabel(m)}: ${money0(v)}" title="${monthLabel(m)}: ${money(v)}"><span class="colval">${v ? chartMoney(v) : ""}</span><span class="colbar" style="height:${(v / maxMonth * 100).toFixed(1)}%"></span><span class="collabel">${monthLabel(m)}</span></div>`; }).join("")}</div>` : ""}
       </section>`;
     }).join("") + `<p class="summary">${donationsNote(dn)}</p>`;
   }
@@ -1043,7 +1116,7 @@
         </section>
         <section><h2>2026 election</h2>
           ${boe && boe.cands && boe.cands.length ? `<table class="sheet-table"><tbody>${boe.cands.slice().sort((a, b) => b[2] - a[2]).map((c) => row(esc(c[0]), `${int.format(c[2])} votes · ${pctf(c[2] / Math.max(1, boe.total))} <span class="summary">${esc(c[1])}</span>`)).join("")}
-            ${e && e.votes2026 ? row("Votes cast ÷ registered", pctf(turnout(e))) : ""}</tbody></table>
+            ${e && e.votes2026 ? row("Voter turnout", pctf(turnout(e))) : ""}</tbody></table>
             <p class="summary">Unofficial State Board count as of ${esc(boe.asOf)}${boe.reporting ? `, ${boe.reporting[0]} of ${boe.reporting[1]} election districts reporting` : ""}.</p>` : `<p class="summary">${s ? esc(electionState(s) ? electionState(s).label : "No result on file.") : "No result on file."}</p>`}
         </section>
         <section><h2>Campaign money, 2025–26</h2>
@@ -1256,7 +1329,7 @@
   const SC_MEASURES = [
     { key: "cost", label: "Cost per month", better: "low", fmt: (v) => money0(v), help: "Actual spending per month the office was active (lower ranks higher)" },
     { key: "retention", label: "Staff retention", better: "high", fmt: (v) => pctf(v), help: "Share of the previous report's staff still paid by the office in this report" },
-    { key: "margin", label: "2026 margin", better: "high", fmt: (v) => `${v >= 0 ? "+" : ""}${v.toFixed(1)} pts`, help: "Member's lead (or deficit) over the nearest opponent in the State Board's unofficial count; unopposed and non-running members aren't ranked" },
+    { key: "margin", label: "2026 margin", better: "high", fmt: (v) => v >= 0 ? `won by ${Math.round(v)}` : `lost by ${Math.round(-v)}`, help: "How far ahead (or behind) the member finished, in percentage points of the vote: winning 60% to 40% is a 20-point win. Their lead (or deficit) over the nearest opponent in the State Board's unofficial count; unopposed and non-running members aren't ranked" },
     { key: "laws", label: "Bills signed into law", better: "high", fmt: (v) => int.format(v), help: "Bills the member was prime sponsor of in the 2025–26 session that the Governor signed (Open Legislation)" },
     { key: "passRate", label: "Bills passed by own chamber", better: "high", fmt: (v) => pctf(v), help: "Share of the member's 2025–26 bills (prime sponsor, not resolutions) that passed their own chamber" },
     { key: "reach", label: "Donors in district", better: "high", fmt: (v) => pctf(v), help: "Share of the member's 2025–26 individual donors whose ZIP code falls in the district (estimate)" },
@@ -1354,31 +1427,54 @@
       const v = r.values[m.key];
       if (v == null) return `<td class="num summary">—</td>`;
       const pc = r.pct[m.key];
-      return `<td class="num"><span class="scval">${m.fmt(v)}</span><span class="scrank" title="Rank ${r.rank[m.key]} of ${r.of[m.key]}${state.within === "party" ? " in party" : ""}"><span class="scbar"><span style="width:${(pc * 100).toFixed(0)}%"></span></span>#${r.rank[m.key]}</span></td>`;
+      return `<td class="num"><span class="scval">${m.fmt(v)}</span><span class="scrank" title="#${r.rank[m.key]} of ${r.of[m.key]}${state.within === "party" ? " in its party" : ""} · ${rankWords(r.rank[m.key], r.of[m.key])}"><span class="scbar"><span style="width:${(pc * 100).toFixed(0)}%"></span></span>#${r.rank[m.key]}</span></td>`;
     };
     return `<h1>Scorecard</h1>
-      <p class="lede">How each ${esc(CH.name)} member office did in ${esc(periodName(DB))} on measures this site can check against public records. Each column ranks offices${state.within === "party" ? " within their party" : " across the chamber"}; the index averages the percentile ranks${state.w ? ", weighted as set below" : ""}.</p>
+      <p class="lede">How each ${esc(CH.name)} member office compares on things anyone can check in public records, for ${esc(periodName(DB))}. In every column a longer bar is better, and #1 is the best ${state.within === "party" ? "in its party" : "in the chamber"}. The <strong>overall ${term("score")}</strong> combines the columns${state.w ? ", weighted as you set below" : ""}: 100 means best on everything, 50 means about average.</p>
       <div class="filters">
         <label>Rank against<select id="scWithin"><option value="party"${state.within === "party" ? " selected" : ""}>Own party (default)</option><option value="chamber"${state.within === "chamber" ? " selected" : ""}>Whole chamber</option></select></label>
         <label>Party<select id="scParty"><option value="">Both</option><option value="D"${state.party === "D" ? " selected" : ""}>Democrats</option><option value="R"${state.party === "R" ? " selected" : ""}>Republicans</option></select></label>
       </div>
-      <details class="card weights" id="scWeights"${state.w ? " open" : ""}><summary><strong>Weigh the measures yourself</strong> <span class="summary">${state.w ? "custom weights: the index and order below use them" : "every measure counts equally; slide to change"}</span></summary>
+      <details class="card weights" id="scWeights"${state.w ? " open" : ""}><summary><strong>Weigh the measures yourself</strong> <span class="summary">${state.w ? "custom weights: the overall score and order below use them" : "every measure counts the same; slide to change"}</span></summary>
         <div class="weight-grid">${SC_MEASURES.map((m) => `<div class="weight"><label for="w-${m.key}">${esc(m.label)}</label><input type="range" id="w-${m.key}" name="${m.key}" min="0" max="4" step="1" value="${weights[m.key]}" aria-valuetext="${SC_WEIGHT_LABELS[weights[m.key]]}"><output for="w-${m.key}">${SC_WEIGHT_LABELS[weights[m.key]]}</output></div>`).join("")}</div>
-        <p class="summary">Off leaves a measure out of the index; Most counts it twice as much as Normal. The ranks within each column don't change, only how they're combined. Your weights are kept in the page address, so you can share the link. <button type="button" class="linkbtn" id="scReset">Reset to equal weights</button></p>
+        <p class="summary">Off leaves a measure out of the index; Most counts it twice as much as Normal. The columns don't change, only how they're added up into the overall score. Your weights are kept in the page address, so you can share the link. <button type="button" class="linkbtn" id="scReset">Reset to equal weights</button></p>
       </details>
       <div class="table-wrap"><table class="scorecard">
         <caption class="sr-only">${esc(CH.name)} member office scorecard, sortable</caption>
-        <thead><tr>${sortHeader("Member", "name", state)}${sortHeader(CH.abbr, "district", state, "num")}${sortHeader(`<abbr title="Average of the percentile ranks the office has (at least three measures). 100 = best on every measure.">Index</abbr>`, "index", state, "num sc-index")}${SC_MEASURES.map((m) => sortHeader(`<abbr title="${esc(m.help)}">${esc(m.label)}</abbr>`, m.key, state, "num")).join("")}</tr></thead>
-        <tbody>${rows.map((r) => `<tr><td><a href="${unitHref(r.s.id)}">${esc(displayName(r.s))}</a> <span class="ptag p${r.party}">${esc(r.party)}</span></td><td class="num">${r.district ?? ""}</td><td class="num sc-index">${r.index != null ? `<span class="sc-idx"><strong>${r.index.toFixed(0)}</strong><span class="scbar wide" aria-hidden="true"><span style="width:${r.index.toFixed(0)}%"></span></span></span><span class="summary">${r.nMeasures} measures</span>` : `<span class="summary">—</span>`}</td>${SC_MEASURES.map((m) => cell(r, m)).join("")}</tr>`).join("")}</tbody></table></div>
+        <thead><tr>${sortHeader("Member", "name", state)}${sortHeader(CH.abbr, "district", state, "num")}${sortHeader(`<abbr title="Combines the columns into one score from 0 to 100. 100 = best on every measure, 50 = about average.">Overall score</abbr>`, "index", state, "num sc-index")}${SC_MEASURES.map((m) => sortHeader(`<abbr title="${esc(m.help)}">${esc(m.label)}</abbr>`, m.key, state, "num")).join("")}</tr></thead>
+        <tbody>${rows.map((r) => `<tr><td><a href="${unitHref(r.s.id)}">${esc(displayName(r.s))}</a> <span class="ptag p${r.party}">${esc(r.party)}</span></td><td class="num">${r.district ?? ""}</td><td class="num sc-index">${r.index != null ? `<span class="sc-idx"><strong>${r.index.toFixed(0)}</strong><span class="scbar wide" aria-hidden="true"><span style="width:${r.index.toFixed(0)}%"></span></span></span><span class="summary">from ${r.nMeasures} measures</span>` : `<span class="summary">—</span>`}</td>${SC_MEASURES.map((m) => cell(r, m)).join("")}</tr>`).join("")}</tbody></table></div>
       <section class="card"><div class="card-head"><h2>How to read this</h2></div>
         <ul class="plainlist">${SC_MEASURES.map((m) => `<li><strong>${esc(m.label)}.</strong> ${esc(m.help)}.</li>`).join("")}
-          <li><strong>Index.</strong> The average of an office's percentile ranks (0 = last, 100 = first) on the measures it has, shown only when it has at least three; the number under it is how many. Every measure counts equally; that weighting is a choice, so the columns matter more than the index.</li>
+          <li><strong>Overall score.</strong> Each column gives every office a score from 0 (last in its group) to 100 (first); technically, a percentile rank. The overall score is the average of an office's column scores, shown only when it has at least three; the line under it says how many it has. Every measure counts the same unless you change the weights, and that's a choice, so look at the columns too.</li>
           <li><strong>Why rank within party.</strong> The majority conference sets office budgets, and minority-party offices get smaller ones, so cost per month (and bills passed) mostly reflects party. Ranking within party compares like with like; switch to "whole chamber" to see the raw order.</li>
           <li><strong>Lawmaking.</strong> Bills signed into law and the share of bills that passed the member's own chamber come from the Senate's Open Legislation service, for the 2025–26 session. Majority-party members pass far more bills, which is another reason ranking within party is offered. Turn these off with the weights above if you only want the money measures.</li></ul>
         <p class="summary">None of these measures says whether an office served its district well; they're checkable facts about cost, staffing, elections and fundraising. Members who left mid-period or have little data are ranked on what exists. Sources: the ${esc(CH.name)} expenditure reports, the State Board of Elections unofficial count, and campaign finance filings (see About the Data).</p></section>`;
   }
 
   function demog(district, chId) { const d = DEMOG[chId || CH.id]; return d && district != null ? d.districts[String(district)] || null : null; }
+  /* A few sentences, no symbols or percentages to decode, saying what the numbers on an office's page add up to. */
+  function plainSummary(s) {
+    if (!s || !(s.actual > 0)) return "";
+    const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+    const who = s.kind === "member" ? `${esc(displayName(s))}'s office` : `The ${esc(s.name)} office`;
+    const out = [`${who} spent <strong>${compact(s.actual)}</strong> in ${esc(periodName(DB))}, about <strong>${compact(s.perMonth)} a month</strong>.`];
+    const pay = (s.byType.ps || 0) / s.actual;
+    if (s.staffCount) out.push(`${cap(inTen(pay))} of those dollars paid its ${s.staffCount === 1 ? "one staff member" : `${s.staffCount} staff`}; the rest went to office costs and travel.`);
+    const p2 = [];
+    if (s.kind === "member" && DB.memberMonthlyMedian) {
+      const r = s.perMonth / DB.memberMonthlyMedian - 1;
+      const w = pctWords(r * 100);
+      p2.push(`That's ${w === "about the same" ? "about the same as" : /as much$/.test(w) ? `${w} as` : `${w} than`} a ${term("typical")} ${esc(CH.name)} member office.`);
+    }
+    const ps = prevUnit(s);
+    if (ps && ps.actual) {
+      const c = (s.actual - ps.actual) / ps.actual * 100;
+      p2.push(Math.abs(c) < 0.5 ? `Spending stayed about the same as in ${esc(periodName(PREV))}.` : `Spending went ${c > 0 ? "up" : "down"} ${compact(Math.abs(s.actual - ps.actual))} from ${esc(periodName(PREV))} (${pctWords(c)}).`);
+    }
+    const per = s.kind === "member" ? perResident(s) : null;
+    if (per != null) p2.push(`Shared out over everyone who lives in the district, that's about ${money(per)} per person for the period.`);
+    return `<section class="plain" aria-labelledby="plainH"><h2 id="plainH">In plain terms</h2><p>${out.join(" ")}</p>${p2.length ? `<p>${p2.join(" ")}</p>` : ""}</section>`;
+  }
   function perResident(s) { const d = DISTRICT_BY_UNIT.get(s.name); const g = d && demog(d.district); return g && g.pop ? s.actual / g.pop : null; }
   function enroll(district, chId) { const e = ENROLL[chId || CH.id]; return e && district != null ? e.districts[String(district)] || null : null; }
   function turnout(e) { return e && e.votes2026 && e.total ? e.votes2026[0] / e.total : null; }
@@ -1396,8 +1492,8 @@
     return `<section class="card voters"><div class="card-head"><h2>Registered voters</h2><span class="summary">State Board of Elections enrollment, as of ${esc(fmtDay(en.asOf))}</span></div>
       <div class="grid kpis small">
         ${kpi("Registered voters", int.format(e.total), `${int.format(e.active)} active · ${int.format(e.inactive)} inactive`)}
-        ${kpi("Largest party enrollment", `${esc(EN_PARTY[lead][0])} ${pctf(e.party[lead] / act)}`, `${pctf(e.party[5] / act)} enrolled in no party`)}
-        ${t != null ? kpi("Votes cast for this seat, 2026", pctf(t), `${int.format(e.votes2026[0])} votes ÷ registered voters${partial ? ` · ${e.votes2026[1]} of ${e.votes2026[2]} election districts in` : ""}`) : ""}
+        ${kpi("Largest party enrollment", `${esc(EN_PARTY[lead][0])} ${pctf(e.party[lead] / act)}`, `${inTen(e.party[lead] / act)} active voters · ${pctf(e.party[5] / act)} in no party`)}
+        ${t != null ? kpi(term("Voter turnout", "turnout") + " for this seat, 2026", pctf(t), `${inTen(t)} registered voters voted · ${int.format(e.votes2026[0])} votes${partial ? ` · ${e.votes2026[1]} of ${e.votes2026[2]} election districts in` : ""}`) : ""}
         ${per != null ? kpi("Office cost per registered voter", money(per), `${esc(periodName(DB))}`) : ""}
       </div>
       <h3 class="mini">Active voters by party enrollment</h3>
@@ -1420,10 +1516,10 @@
     const incRank = g.income != null ? all.filter((x) => x < g.income).length : null;
     return `<section class="card"><div class="card-head"><h2>The district</h2><span class="summary">Census Bureau, American Community Survey 2020–24 (5-year estimates)</span></div>
       <div class="grid kpis small">
-        ${kpi("Residents", int.format(g.pop), g.popMoe ? `± ${int.format(g.popMoe)}` : "")}
-        ${kpi("Median household income", g.income != null ? money0(g.income) : "—", incRank != null ? `higher than ${pctf(incRank / Math.max(1, all.length - 1))} of ${esc(CH.name)} districts` : "")}
-        ${kpi("Below the poverty line", pr != null ? (pr * 100).toFixed(1) + "%" : "—", "of residents whose status is known")}
-        ${per != null ? kpi("Office cost per resident", money(per), `${esc(periodName(DB))} · ${money(per / DB.periodMonths * 12)} a year`) : ""}
+        ${kpi("Residents", int.format(g.pop), g.popMoe ? `${term("give or take", "margin of error")} ${int.format(g.popMoe)}` : "")}
+        ${kpi(term("Typical household income", "typical income"), g.income != null ? money0(g.income) : "—", incRank != null ? `<span data-tip="Higher than ${pctf(incRank / Math.max(1, all.length - 1))} of ${esc(CH.name)} districts">${standing(incRank / Math.max(1, all.length - 1), `${esc(CH.name)} districts`)}</span>` : "")}
+        ${kpi("Below the poverty line", pr != null ? (pr * 100).toFixed(1) + "%" : "—", pr != null ? `${inTen(pr)} residents (of those whose status is known)` : "of residents whose status is known")}
+        ${per != null ? kpi(term("Office cost per resident", "per resident"), money(per), `${esc(periodName(DB))}, or ${money(per / DB.periodMonths * 12)} a year for each person in the district`) : ""}
       </div></section>`;
   }
   function officialLink(s) {
@@ -1690,33 +1786,33 @@
       <section class="hero">
         <div class="hero-text">
         <h1>The ${esc(CH.name)} spent <span class="hero-num">${compact(meta.totalActual)}</span> in ${esc(periodName(DB))}</h1>
-        <p class="hero-sub">That's about <strong>${compact(meta.totalActual / DB.periodMonths)} a month</strong> on payroll, operations and travel${chg ? `, <span class="${chg.diff >= 0 ? "up" : "down"}">${chg.diff >= 0 ? I.up : I.down}${Math.abs(chg.pct).toFixed(1)}% ${chg.diff >= 0 ? "more" : "less"}</span> than ${esc(periodName(PREV))}` : ""}. Every one of the report's ${int.format(meta.rowCount)} lines is here, across ${meta.members} member offices and ${meta.offices} central offices and committees.</p>
+        <p class="hero-sub">That's about <strong>${compact(meta.totalActual / DB.periodMonths)} a month</strong> on payroll, operations and travel${chg ? `, <span class="${chg.diff >= 0 ? "up" : "down"}">${chg.diff >= 0 ? I.up : I.down}${pctWords(chg.pct)}</span> than ${esc(periodName(PREV))}` : ""}. Every one of the report's ${int.format(meta.rowCount)} lines is here, across ${meta.members} member offices and ${meta.offices} central offices and committees.</p>
         <p class="hero-find"><a href="${buildHash("find", {})}">Find your own Assembly member and Senator by address ${I.r}</a></p>
         <form class="hero-search" id="heroSearch" role="search" aria-label="Search this report"><input type="search" id="heroSearchInput" placeholder="Name, district or ZIP" aria-label="Search the site"><button class="primary" type="submit">Search</button></form>
         </div>
         ${heroMap()}
       </section>
       <div class="grid kpis">
-        ${kpi("Payroll", compact(totalBy.ps), `${int.format(staffAll.size)} people paid${DB.meta.payWindow ? `<br>for work ${esc(fmtShortDay(DB.meta.payWindow[0]))} – ${esc(fmtShortDay(DB.meta.payWindow[1]))}` : ""}${PREV ? "<br>" + vs("ps") : ""}`)}
-        ${kpi("Maintenance &amp; operations", compact(totalBy.mo), PREV ? vs("mo") : "Rent, utilities, services")}
+        ${kpi(term("Payroll", "payroll"), compact(totalBy.ps), `${int.format(staffAll.size)} people paid${DB.meta.payWindow ? `<br>for work ${esc(fmtShortDay(DB.meta.payWindow[0]))} – ${esc(fmtShortDay(DB.meta.payWindow[1]))}` : ""}${PREV ? "<br>" + vs("ps") : ""}`)}
+        ${kpi(`Office expenses (${term("M&amp;O", "M&O")})`, compact(totalBy.mo), PREV ? vs("mo") : "Rent, utilities, services")}
         ${kpi("Travel", compact(totalBy.travel), PREV ? vs("travel") : "Reimbursed to members &amp; staff")}
-        ${kpi("Allocated costs", compact(meta.totalAllocated), "Informational only — see About")}
+        ${kpi(term("Shared costs", "allocated"), compact(meta.totalAllocated), "Listed for information, not in the total")}
       </div>
       ${chambersCard()}
       ${chamberHistoryCard()}
       <div class="grid two">
-        <section class="card"><div class="card-head"><h2>By expense type</h2><span class="summary">grey = allocated</span></div>${bars(typeBars)}</section>
-        <section class="card"><div class="card-head"><h2>Vouchered spending by month</h2><span class="summary">M&amp;O + travel</span></div>
+        <section class="card"><div class="card-head"><h2>What the money went to</h2><span class="summary">grey bars are ${term("shared costs", "allocated")}, not in the total</span></div>${bars(typeBars)}</section>
+        <section class="card"><div class="card-head"><h2>Bills paid each month</h2><span class="summary">office expenses and travel; ${term("why no salaries?", "vouchered")}</span></div>
           <div class="cols">${byMonth.map((m) => `
             <a class="col" href="${buildHash("records", { month: m.key })}" title="${monthLabel(m.key)}: ${money(m.total)}">
-              <span class="colval">${compact(m.total)}</span>
+              <span class="colval">${chartMoney(m.total)}</span>
               <span class="colbar" style="height:${(m.total / maxMonth * 100).toFixed(1)}%"></span>
               <span class="collabel">${monthLabel(m.key)}</span>
             </a>`).join("")}</div>
           <p class="summary">Payroll has no voucher date, so it isn't shown by month.</p>
         </section>
         <section class="card"><div class="card-head"><h2>Highest-spending member offices</h2><a href="${buildHash("units", { kind: "member" })}">All ${DB.members.length} ${I.r}</a></div>${bars(topMembers)}
-          <p class="summary">Median member office: <strong>${money0(DB.memberMedian)}</strong>${PREV ? ` · ${periodName(PREV)}: ${money0(PREV.memberMedian)}` : ""}</p></section>
+          <p class="summary">A ${term("typical")} member office spent <strong>${money0(DB.memberMedian)}</strong>${PREV ? ` (${money0(PREV.memberMedian)} in ${periodName(PREV)})` : ""}.</p></section>
         <section class="card"><div class="card-head"><h2>Largest central offices &amp; committees</h2><a href="${buildHash("units", { kind: "office" })}">All offices ${I.r}</a></div>${bars(topOffices)}</section>
         <section class="card"><div class="card-head"><h2>Top vendors (M&amp;O)</h2><a href="${buildHash("payees", { group: "vendor" })}">All payees ${I.r}</a></div>${bars(topVendors)}</section>
         <section class="card"><div class="card-head"><h2>What M&amp;O money bought</h2></div>${bars(topDescs)}</section>
@@ -1781,12 +1877,12 @@
     const chg = first.totalActual ? (last.totalActual / first.totalActual - 1) * 100 : 0;
     return `<section class="card"><div class="card-head"><h2>Every ${esc(CH.name)} report on file</h2><span class="summary">actual spending per six-month report · ${chg >= 0 ? "+" : ""}${chg.toFixed(1)}% from ${esc(lab(first))} to ${esc(lab(last))} · click a report to open it</span></div>
       <div class="cols">${ps.map((p) => `<a class="col${p.id === DB.id ? " me" : ""}" href="${buildHash("", { p: p.id })}" title="${esc(lab(p))}: ${money(p.totalActual)} actual, ${int.format(p.rowCount)} lines" aria-label="${esc(lab(p))}: ${money(p.totalActual)} actual spending${p.id === DB.id ? " (showing)" : ""}"${p.id === DB.id ? ' aria-current="page"' : ""}>
-        <span class="colval">${compact(p.totalActual)}</span>
+        <span class="colval">${chartMoney(p.totalActual)}</span>
         <span class="colbar" style="height:${(p.totalActual / max * 100).toFixed(1)}%"></span>
         <span class="collabel">${esc(lab(p))}</span></a>`).join("")}</div></section>`;
   }
 
-  const chgShort = (cur, prev) => { const d = cur - prev; const sign = d > 0 ? "+" : d < 0 ? "−" : ""; return `${sign}${compact(Math.abs(d))}${prev ? ` (${sign}${Math.abs(d / prev * 100).toFixed(1)}%)` : ""}`; };
+  const chgShort = (cur, prev) => { const d = cur - prev; if (!d) return "No change"; return `${d > 0 ? "Up" : "Down"} ${compact(Math.abs(d))}${prev ? ` (${pctWords(d / prev * 100)})` : ""}`; };
   const halfLabel = (p) => { const e = new Date(p.end + "T12:00:00"); return `${e.getMonth() === 2 ? "Oct–Mar" : "Apr–Sep"} ’${String(e.getFullYear()).slice(2)}`; };
   function histCols(series, periods, opts = {}) {
     const max = Math.max(1, ...series.map((x) => x.v || 0));
@@ -1804,7 +1900,7 @@
     const sameHalfPrev = byI.get(b[0] - 2);
     return `<section class="card"><div class="card-head"><h2>Spending over the years</h2><span class="summary">actual spending in each half-year report, ${esc(halfLabel(h.periods[a[0]]))} to ${esc(halfLabel(h.periods[b[0]]))}</span></div>
       ${histCols(series, h.periods)}
-      <p class="summary">${sameHalfPrev ? `${chgShort(b[1], sameHalfPrev[1])} compared with the same half a year earlier. ` : ""}Staff paid ranged from ${Math.min(...u.s.map((x) => x[5]))} to ${Math.max(...u.s.map((x) => x[5]))} people per report. Offices are matched across reports by the name printed in each report, so an office that was renamed starts a new series.</p>
+      <p class="summary">${sameHalfPrev ? `${chgShort(b[1], sameHalfPrev[1])} from the same six months a year earlier. ` : ""}Staff paid ranged from ${Math.min(...u.s.map((x) => x[5]))} to ${Math.max(...u.s.map((x) => x[5]))} people per report. Offices are matched across reports by the name printed in each report, so an office that was renamed starts a new series.</p>
     </section>`;
   }
   /* Chamber spending per half-year report: columns stacked by payroll, operations and travel on a zero baseline,
@@ -1837,7 +1933,7 @@
       const hasReport = (CH.periods || []).some((x) => x.id === p.id);
       const tag = hasReport ? "a" : "div";
       return `<${tag} class="sh-col${cur ? " cur" : ""}${keep.has(i) ? " keep" : ""}"${hasReport ? ` href="${buildHash("", { p: p.id })}"` : ' role="img"'} title="${esc(tip)}" aria-label="${esc(tip)}${cur ? " (showing)" : ""}"${cur ? ' aria-current="page"' : ""}>
-        <span class="sh-val">${compact(p.actual)}</span>
+        <span class="sh-val">${chartMoney(p.actual)}</span>
         <span class="sh-bar" style="height:${(p.actual / top * 100).toFixed(2)}%">${SH_SEGS.slice().reverse().map(([k, , cls]) => p[k] > 0 ? `<span class="${cls}" style="flex:${p[k]}"></span>` : "").join("")}</span></${tag}>`;
     }).join("");
     const halves = ps.map((p) => `<span class="sh-half${p.id === DB.id ? " cur" : ""}">${new Date(p.end + "T12:00:00").getMonth() === 2 ? "Oct–Mar" : "Apr–Sep"}</span>`).join("");
@@ -1875,7 +1971,7 @@
         ${kpi(`Latest report · ${esc(halfLabel(pLast))}`, compact(pLast.actual), `actual spending, ${esc(fmtDay(pLast.start))} – ${esc(fmtDay(pLast.end))}`)}
         ${prevYear ? kpi("Vs. a year earlier", chgShort(pLast.actual, prevYear.actual), `same half, ${esc(halfLabel(prevYear))}`) : ""}
         ${kpi(`Since ${esc(halfLabel(pFirst))}`, chgShort(pLast.actual, pFirst.actual), `${h.periods.length} reports · not adjusted for inflation`)}
-        ${kpi("Payroll share, latest", pctf(pLast.ps / pLast.actual), `${pctf(pFirst.ps / pFirst.actual)} in ${esc(halfLabel(pFirst))}`)}
+        ${kpi("Share spent on pay", pctf(pLast.ps / pLast.actual), `${inTen(pLast.ps / pLast.actual)} dollars went to salaries · ${pctf(pFirst.ps / pFirst.actual)} in ${esc(halfLabel(pFirst))}`)}
       </div>`;
     return `<section class="card"><div class="card-head"><h2>${esc(CH.name)} spending over the years</h2><span class="summary">${h.periods.length} half-year reports, ${esc(fmtDay(pFirst.start))} to ${esc(fmtDay(pLast.end))} · click a column to open that report</span></div>
       ${kpis}
@@ -1921,7 +2017,7 @@
           <span class="seg-mo" style="flex:${Math.max(r.t.mo, 0)}" title="M&amp;O ${money(r.t.mo)}"></span>
           <span class="seg-tr" style="flex:${Math.max(r.t.travel, 0)}" title="Travel ${money(r.t.travel)}"></span></div>
         <span class="chamber-amt">${money0(r.db.meta.totalActual)}</span>
-        <span class="chamber-meta">${money0(r.db.meta.totalActual / r.db.periodMonths)} a month · ${r.db.meta.members} member offices · median member office ${money0(r.db.memberMonthlyMedian)} a month</span>
+        <span class="chamber-meta">${money0(r.db.meta.totalActual / r.db.periodMonths)} a month · ${r.db.meta.members} member offices · a ${term("typical")} one spends ${money0(r.db.memberMonthlyMedian)} a month</span>
       </div>`).join("")}
       <div class="legend"><span><i class="seg-ps"></i>Payroll</span><span><i class="seg-mo"></i>M&amp;O</span><span><i class="seg-tr"></i>Travel</span></div>
     </section>`;
@@ -2039,7 +2135,7 @@
     let rankNote = "";
     if (s.kind === "member") {
       const diff = s.actual - DB.memberMedian;
-      rankNote = `Ranks <strong>#${s.rank}</strong> of ${DB.members.length} member offices for ${esc(periodName(DB))} · ${diff >= 0 ? "" : "−"}${money0(Math.abs(diff))} ${diff >= 0 ? "above" : "below"} the median (${money0(DB.memberMedian)}).${ps && ps.rank ? ` Ranked #${ps.rank} in ${esc(periodName(PREV))}.` : ""}`;
+      rankNote = `Ranks <strong>#${s.rank}</strong> of ${DB.members.length} member offices by spending in ${esc(periodName(DB))} (#1 spent the most), ${rankWords(s.rank, DB.members.length)}. That's ${money0(Math.abs(diff))} ${diff >= 0 ? "more" : "less"} than a ${term("typical")} office (${money0(DB.memberMedian)}).${ps && ps.rank ? ` In ${esc(periodName(PREV))} it ranked #${ps.rank}.` : ""}`;
     }
 
     const statusName = (c) => meta.statusLabels[c] || c;
@@ -2048,13 +2144,14 @@
       <div class="title-row"><h1>${esc(s.kind === "member" ? displayName(s) : s.name)} ${kindChip(s.kind)}${districtChip(s)}</h1>
         <div class="title-actions">${officialLink(s)}${ballotpediaLink(s)}${pinBtn(s.name)}<a class="btn" href="${buildHash("compare", { u: s.kind === "member" ? [s.name, DB.members[Math.floor(DB.members.length / 2)].name].filter((v, i, a) => a.indexOf(v) === i).join("|") : s.name })}">Compare…</a></div></div>
       <p class="lede">${rankNote || "Central office, committee, or task force."} ${s.kind === "member" ? `<span class="as-filed">Listed in the report as ${esc(s.name)}${/\.$/.test(s.name) ? "" : "."}</span>` : ""}</p>
+      ${plainSummary(s)}
       <div class="grid kpis">
-        ${kpi("Actual spending", money0(s.actual), ps ? changeText(change(s.actual, ps.actual)) : (PREV ? "Not in prior period" : ""))}
-        ${kpi("Per month", money0(s.perMonth), s.partial ? `active ≈${s.months} of ${DB.periodMonths} months` : `${DB.periodMonths}-month period${s.kind === "member" ? ` · member median ${money0(DB.memberMonthlyMedian)}` : ""}`)}
-        ${kpi("Payroll", money0(s.byType.ps || 0), `${s.staffCount} ${s.staffCount === 1 ? "person" : "people"} paid${vsPrev(s.byType.ps || 0, ps && (ps.byType.ps || 0))}`)}
-        ${kpi("Maintenance &amp; operations", money0(s.byType.mo || 0), `${vendors.length} payees${vsPrev(s.byType.mo || 0, ps && (ps.byType.mo || 0))}`)}
+        ${kpi(term("Actual spending", "actual spending"), money0(s.actual), ps ? changeText(change(s.actual, ps.actual)) : (PREV ? "Not in prior period" : ""))}
+        ${kpi("Per month", money0(s.perMonth), s.partial ? `active about ${s.months} of ${DB.periodMonths} months` : `${DB.periodMonths}-month period${s.kind === "member" ? ` · typical member office ${money0(DB.memberMonthlyMedian)}` : ""}`)}
+        ${kpi(term("Payroll", "payroll"), money0(s.byType.ps || 0), `${s.staffCount} ${s.staffCount === 1 ? "person" : "people"} paid${vsPrev(s.byType.ps || 0, ps && (ps.byType.ps || 0))}`)}
+        ${kpi(`Office expenses (${term("M&amp;O", "M&O")})`, money0(s.byType.mo || 0), `${vendors.length} payees${vsPrev(s.byType.mo || 0, ps && (ps.byType.mo || 0))}`)}
         ${kpi("Travel", money0(s.byType.travel || 0), `${travel.length} reimbursements${vsPrev(s.byType.travel || 0, ps && (ps.byType.travel || 0))}`)}
-        ${kpi("Allocated", money0(s.allocated), "Informational only")}
+        ${kpi(term("Shared costs", "allocated"), money0(s.allocated), "Listed for information, not in the total")}
       </div>
       ${profileCard(s)}
       ${s.kind === "member" && memberInfo(s).district ? demogCard(memberInfo(s).district, s) + votersCard(memberInfo(s).district, s) : ""}
@@ -2316,7 +2413,7 @@
         <label>Office type<select id="skind"><option value="">All offices</option><option value="member"${state.kind === "member" ? " selected" : ""}>Member offices</option><option value="office"${state.kind === "office" ? " selected" : ""}>Central offices</option></select></label>
         <label>Annualized at least $<input type="number" id="smin" value="${esc(state.min)}" step="1000" inputmode="numeric"></label>
       </div>
-      <div class="toolbar"><span class="summary"><strong>${int.format(list.length)}</strong> people · median <strong>${money0(median(list.map((x) => x.annual)))}</strong></span>
+      <div class="toolbar"><span class="summary"><strong>${int.format(list.length)}</strong> people · typical pay <strong>${money0(median(list.map((x) => x.annual)))}</strong></span>
         <button id="sexport" class="primary"${list.length ? "" : " disabled"}>Export ${int.format(list.length)} as CSV</button></div>
       <div class="table-wrap"><table>
         <thead><tr>${sortHeader("Name", "name", state)}${sortHeader("Title", "title", state)}${sortHeader("Office", "office", state)}<th>Covered</th>${sortHeader("Days", "days", state, "num")}${sortHeader("Regular pay", "paid", state, "num")}${sortHeader("Annualized", "annual", state, "num")}${CH.id === "senate" ? `<th class="num" title="Rate on the Senate's latest biweekly payroll report">Rate now</th>` : ""}</tr></thead>
@@ -2417,7 +2514,7 @@
     const max = opts.max || Math.max(...series.map((x) => x.total), 1);
     return `<div class="cols${opts.small ? " small" : ""}">${series.map((m) => `
       <a class="col" ${m.href ? `href="${m.href}"` : ""} title="${monthLabel(m.key)}: ${money(m.total)}" aria-label="${monthLabel(m.key)}: ${money(m.total)}">
-        <span class="colval">${m.total ? compact(m.total) : "—"}</span>
+        <span class="colval">${m.total ? chartMoney(m.total) : "—"}</span>
         <span class="colbar" style="height:${(Math.max(m.total, 0) / max * 100).toFixed(1)}%"></span>
         <span class="collabel">${monthLabel(m.key)}</span>
       </a>`).join("")}</div>`;
@@ -2569,7 +2666,7 @@
           ${metric("Allocated (informational)", (s) => s.allocated)}
           ${metric("People paid", (s) => s.staffCount, (v) => int.format(v))}
           ${metric("Rank among members", (s) => (s.kind === "member" ? s.rank : null), (v) => `#${v} of ${DB.members.length}`, "min")}
-          ${metric("vs member median", (s) => (s.kind === "member" ? s.actual - DB.memberMedian : null), (v) => `${v >= 0 ? "+" : "−"}${money0(Math.abs(v))}`)}
+          ${metric("vs typical member office", (s) => (s.kind === "member" ? s.actual - DB.memberMedian : null), (v) => `${v >= 0 ? "+" : "−"}${money0(Math.abs(v))}`)}
           ${PREV ? `<tr><th scope="row">Change vs ${esc(periodName(PREV))}</th>${picked.map((s) => { const c = ps(s) ? change(s.actual, ps(s).actual) : null; return `<td class="num${c && c.diff < 0 ? " neg" : ""}">${c ? `${c.diff >= 0 ? "+" : "−"}${money0(Math.abs(c.diff))} (${changeText(c, true)})` : "—"}</td>`; }).join("")}</tr>` : ""}
         </tbody>
       </table></div>
@@ -2644,7 +2741,7 @@
     poverty: { label: "Poverty rate", get: (s) => { const d = DISTRICT_BY_UNIT.get(s.name); return povertyRate(d && demog(d.district)); }, fmt: (v) => (v * 100).toFixed(1) + "%" },
     voters: { label: "Registered voters", get: (s) => { const e = enrollFor(s); return e ? e.total : null; }, fmt: (v) => int.format(v) },
     voter: { label: "Office cost per registered voter", get: (s) => { const e = enrollFor(s); return e && e.total ? s.actual / e.total : null; }, fmt: (v) => money(v) },
-    turnout: { label: "2026 votes cast ÷ registered", get: (s) => turnout(enrollFor(s)), fmt: (v) => (v * 100).toFixed(1) + "%" },
+    turnout: { label: "2026 voter turnout", get: (s) => turnout(enrollFor(s)), fmt: (v) => (v * 100).toFixed(1) + "%" },
     change: { label: "Change vs prior period", get: (s) => { const p = prevUnit(s); return p ? s.actual - p.actual : null; }, diverging: true },
   };
   const SEQ = ["var(--seq-0)", "var(--seq-1)", "var(--seq-2)", "var(--seq-3)", "var(--seq-4)"];
@@ -2724,7 +2821,7 @@
     const legend = scale.breaks.length ? `<div class="map-legend">
       ${scale.colors.map((c, i) => {
         const lo = i === 0 ? null : scale.breaks[i - 1], hi = i === scale.colors.length - 1 ? null : scale.breaks[i];
-        const f = (v) => metric.diverging ? `${v >= 0 ? "+" : "−"}${compact(Math.abs(v))}` : (metric.fmt ? metric.fmt(Math.round(v)) : compact(v));
+        const f = (v) => metric.diverging ? `${v >= 0 ? "+" : "−"}${chartMoney(Math.abs(v))}` : (metric.fmt ? metric.fmt(Math.round(v)) : chartMoney(v));
         const label = lo == null ? `under ${f(hi)}` : hi == null ? `${f(lo)}+` : `${f(lo)} – ${f(hi)}`;
         return `<span><i style="background:${c}"></i>${label}</span>`;
       }).join("")}
@@ -2857,7 +2954,8 @@
         <div><h1>${esc(CH.name)} District ${d.district} ${s ? electionChip(s, true) : ""}</h1>
           <p class="lede">${esc(d.member)}${d.party ? ` · ${esc(d.party)}` : ""}${s ? ` · <a href="${unitHref(s.id)}">member office page ${I.r}</a>` : ""}${s && (BALLOTPEDIA[CH.id] || {})[s.name] ? ` · <a href="${escUrl(BALLOTPEDIA[CH.id][s.name])}" target="_blank" rel="noopener">Ballotpedia ${I.ext}</a>` : ""} · <a href="${buildHash("sheet/" + d.district, {})}">printable fact sheet ${I.r}</a></p></div>
         <div class="dnav">${s ? pinBtn(s.name) : ""}<a class="btn" href="${dHref(prevD)}" aria-label="Previous district">${I.l} ${CH.abbr} ${prevD.district}</a>${picker}<a class="btn" href="${dHref(nextD)}" aria-label="Next district">${CH.abbr} ${nextD.district} ${I.r}</a></div>
-      </div>`;
+      </div>
+      ${s ? plainSummary(s) : ""}`;
 
     if (!s) {
       return `${head}<div class="map-layout"><section class="card">${zoomSvg}</section><section class="card">${locator}
@@ -2878,7 +2976,7 @@
       const med = (() => { const a = members.map(fn).sort((x, y) => x - y), m = Math.floor(a.length / 2); return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2; })();
       return `<div class="gauge"><div class="gauge-top"><span>${esc(label)}</span><strong>${fmt(v)}</strong></div>
         <div class="gauge-track" title="Higher than ${pct}% of member offices"><span class="gauge-med" style="left:50%"></span><span class="gauge-dot" style="left:${pct}%"></span></div>
-        <div class="gauge-foot"><span>Higher than <b>${pct}%</b> of members</span><span>median ${fmt(med)}</span></div></div>`;
+        <div class="gauge-foot"><span>Higher than <b>${pct}%</b> of members</span><span>typical ${fmt(med)}</span></div></div>`;
     }).join("");
 
     const ps = prevUnit(s);
@@ -2910,7 +3008,7 @@
             <span class="track"><span class="fill${r.x === d ? "" : " alt"}" style="width:${(r.u.actual / maxN * 100).toFixed(1)}%"></span></span></li>`).join("")}</ul></section>
         <section class="card"><div class="card-head"><h2>Across report periods</h2>${ps ? `<span class="summary">${changeText(change(s.actual, ps.actual))}</span>` : ""}</div>
           <div class="cols">${periodsBars.map((m) => `<a class="col" href="${buildHash("district/" + d.district, { p: m.key === PERIODS[0].id ? "" : m.key })}" title="${esc(m.label)}: ${money(m.total)}">
-            <span class="colval">${m.total ? compact(m.total) : "—"}</span><span class="colbar${m.cur ? "" : " dimbar"}" style="height:${(m.total / maxP * 100).toFixed(1)}%"></span><span class="collabel">${esc(m.label)}</span></a>`).join("")}</div></section>
+            <span class="colval">${m.total ? chartMoney(m.total) : "—"}</span><span class="colbar${m.cur ? "" : " dimbar"}" style="height:${(m.total / maxP * 100).toFixed(1)}%"></span><span class="collabel">${esc(m.label)}</span></a>`).join("")}</div></section>
         <section class="card"><div class="card-head"><h2>M&amp;O + travel by month</h2><span class="summary">click a month for its records</span></div>
           ${columns(monthlyFor(DB, s.id).map((m) => ({ ...m, href: buildHash("records", { unit: s.id, month: m.key }) })))}</section>
       </div>
@@ -2967,6 +3065,11 @@
         <p class="summary">Something hard to use? <a href="https://github.com/rike4545/NY-Legislature-Expenditures/issues" target="_blank" rel="noopener">Open an issue on GitHub</a>.</p>
       </section>
       <p class="lede">This site presents the semi-annual Expenditure Reports of the New York State Assembly and the New York State Senate. Every line in each original file is included; nothing is added or removed. Use the chamber buttons and period menu at the top to switch. You're viewing the <strong>${esc(CH.name)}</strong>.</p>
+      <section class="card" id="glossary"><div class="card-head"><h2>Words used on this site</h2><span class="summary">dotted words on any page show these too</span></div>
+        <dl class="glossary">${[["Actual spending", "actual spending"], ["Payroll", "payroll"], ["Office expenses (M&amp;O)", "M&O"], ["Shared costs (allocated)", "allocated"], ["Bills paid (vouchered)", "vouchered"], ["Typical (median)", "typical"], ["Typical household income", "typical income"], ["Score (percentile rank)", "score"], ["Give or take (margin of error)", "margin of error"], ["Voter turnout", "turnout"], ["Cost per resident", "per resident"], ["Prime sponsor", "prime sponsor"], ["Outside money (independent expenditure)", "independent expenditure"], ["Public matching funds", "matching funds"]].map(([w, k]) => `<dt>${w}</dt><dd>${esc(GLOSSARY[k])}</dd>`).join("")}
+          <dt>Percent more or less</dt><dd>"10% more" means for every $100 before, there's $110 now. "About twice as much" means it doubled.</dd>
+          <dt>"About 7 in 10"</dt><dd>A share shown as people would say it: 70% of the total, rounded.</dd></dl>
+      </section>
       <section class="card"><h2>Reports included</h2><div class="table-wrap"><table>
         <thead><tr><th>Chamber</th><th>Period</th><th>Source file</th><th class="num">Lines</th><th class="num">Actual spending</th><th class="num">Allocated</th></tr></thead>
         <tbody>${CHAMBERS.map((c) => c.periods.map((pm) => `<tr><td>${esc(c.name)}</td><td>${fmtDate(pm.start)} – ${fmtDate(pm.end)}</td><td class="mono">${esc(pm.sourceFile)}</td><td class="num">${int.format(pm.rowCount)}</td><td class="num">${money(pm.totalActual)}</td><td class="num">${money(pm.totalAllocated)}</td></tr>`).join("")).join("")}</tbody>
