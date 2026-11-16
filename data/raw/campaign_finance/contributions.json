@@ -364,7 +364,7 @@
 ,{"filer_id":"2180","filing_sched_abbrev":"C","n":"1","amt":"250"}
 ,{"filer_id":"2189","filing_sched_abbrev":"A","n":"2477","amt":"206233.53"}
 ,{"filer_id":"2189","filing_sched_abbrev":"C","n":"9","amt":"123000"}
-,{"filer_id":"2191","filing_sched_abbrev":"C","n":"23","amt":"99394.90"}
+,{"filer_id":"2191","filing_sched_abbrev":"C","n":"24","amt":"104535.35"}
 ,{"filer_id":"2197","filing_sched_abbrev":"A","n":"4","amt":"1000"}
 ,{"filer_id":"2197","filing_sched_abbrev":"C","n":"4","amt":"3006.13"}
 ,{"filer_id":"2234","filing_sched_abbrev":"A","n":"90","amt":"30631"}
@@ -1381,6 +1381,9 @@
 ,{"filer_id":"7326","filing_sched_abbrev":"C","n":"1","amt":"1000"}
 ,{"filer_id":"7328","filing_sched_abbrev":"A","n":"5","amt":"13250"}
 ,{"filer_id":"7328","filing_sched_abbrev":"C","n":"10","amt":"127031"}
+,{"filer_id":"7342","filing_sched_abbrev":"A","n":"294","amt":"126694"}
+,{"filer_id":"7342","filing_sched_abbrev":"B","n":"11","amt":"12300"}
+,{"filer_id":"7342","filing_sched_abbrev":"C","n":"43","amt":"35900"}
 ,{"filer_id":"7348","filing_sched_abbrev":"A","n":"216","amt":"38964.96"}
 ,{"filer_id":"7348","filing_sched_abbrev":"B","n":"16","amt":"10205"}
 ,{"filer_id":"7348","filing_sched_abbrev":"C","n":"47","amt":"23455.6"}
@@ -1523,7 +1526,7 @@
 ,{"filer_id":"8048","filing_sched_abbrev":"C","n":"1","amt":"1000"}
 ,{"filer_id":"8048","filing_sched_abbrev":"G","n":"2","amt":"700"}
 ,{"filer_id":"8051","filing_sched_abbrev":"D","n":"24","amt":"479.62"}
-,{"filer_id":"8056","filing_sched_abbrev":"A","n":"639","amt":"92632.81"}
+,{"filer_id":"8056","filing_sched_abbrev":"A","n":"640","amt":"92632.81"}
 ,{"filer_id":"8056","filing_sched_abbrev":"B","n":"47","amt":"36750"}
 ,{"filer_id":"8056","filing_sched_abbrev":"C","n":"83","amt":"70349.29"}
 ,{"filer_id":"8056","filing_sched_abbrev":"D","n":"10","amt":"7830"}
@@ -1962,6 +1965,7 @@
 ,{"filer_id":"10264","filing_sched_abbrev":"C","n":"7","amt":"4375"}
 ,{"filer_id":"10264","filing_sched_abbrev":"G","n":"3","amt":"1500"}
 ,{"filer_id":"10282","filing_sched_abbrev":"C","n":"2","amt":"1530"}
+,{"filer_id":"10304","filing_sched_abbrev":"C","n":"1","amt":"4041"}
 ,{"filer_id":"10307","filing_sched_abbrev":"A","n":"26","amt":"4510"}
 ,{"filer_id":"10307","filing_sched_abbrev":"B","n":"8","amt":"7500"}
 ,{"filer_id":"10307","filing_sched_abbrev":"C","n":"3","amt":"2500"}
@@ -2036,7 +2040,7 @@
 ,{"filer_id":"10600","filing_sched_abbrev":"A","n":"84","amt":"27285.32"}
 ,{"filer_id":"10600","filing_sched_abbrev":"B","n":"8","amt":"3735"}
 ,{"filer_id":"10600","filing_sched_abbrev":"C","n":"28","amt":"18140.71"}
-,{"filer_id":"10606","filing_sched_abbrev":"A","n":"111","amt":"40430.05"}
+,{"filer_id":"10606","filing_sched_abbrev":"A","n":"110","amt":"39905.05"}
 ,{"filer_id":"10606","filing_sched_abbrev":"B","n":"3","amt":"2300"}
 ,{"filer_id":"10606","filing_sched_abbrev":"C","n":"4","amt":"3500"}
 ,{"filer_id":"10606","filing_sched_abbrev":"G","n":"20","amt":"69445"}
@@ -2065,7 +2069,7 @@
 ,{"filer_id":"10741","filing_sched_abbrev":"A","n":"1","amt":"1"}
 ,{"filer_id":"10754","filing_sched_abbrev":"A","n":"416","amt":"18692"}
 ,{"filer_id":"10754","filing_sched_abbrev":"C","n":"17","amt":"5751.18"}
-,{"filer_id":"10766","filing_sched_abbrev":"A","n":"180","amt":"27600.71"}
+,{"filer_id":"10766","filing_sched_abbrev":"A","n":"181","amt":"31600.71"}
 ,{"filer_id":"10766","filing_sched_abbrev":"B","n":"16","amt":"3778.48"}
 ,{"filer_id":"10766","filing_sched_abbrev":"C","n":"40","amt":"15037"}
 ,{"filer_id":"10771","filing_sched_abbrev":"A","n":"1","amt":"125"}
@@ -2556,7 +2560,7 @@
 ,{"filer_id":"12841","filing_sched_abbrev":"C","n":"24","amt":"6395"}
 ,{"filer_id":"12845","filing_sched_abbrev":"A","n":"1","amt":"15"}
 ,{"filer_id":"12866","filing_sched_abbrev":"A","n":"25","amt":"3641.16"}
-,{"filer_id":"12866","filing_sched_abbrev":"C","n":"5","amt":"1169.13"}
+,{"filer_id":"12866","filing_sched_abbrev":"C","n":"6","amt":"1669.13"}
 ,{"filer_id":"12868","filing_sched_abbrev":"A","n":"13","amt":"3069664.2"}
 ,{"filer_id":"12877","filing_sched_abbrev":"A","n":"52","amt":"122801"}
 ,{"filer_id":"12877","filing_sched_abbrev":"C","n":"2","amt":"100000"}
@@ -3199,9 +3203,9 @@
 ,{"filer_id":"16165","filing_sched_abbrev":"B","n":"1","amt":"100"}
 ,{"filer_id":"16165","filing_sched_abbrev":"C","n":"13","amt":"2729"}
 ,{"filer_id":"16189","filing_sched_abbrev":"A","n":"47","amt":"133239.5"}
-,{"filer_id":"16190","filing_sched_abbrev":"A","n":"72","amt":"13349"}
-,{"filer_id":"16190","filing_sched_abbrev":"B","n":"7","amt":"2875"}
-,{"filer_id":"16190","filing_sched_abbrev":"C","n":"4","amt":"2000"}
+,{"filer_id":"16190","filing_sched_abbrev":"A","n":"124","amt":"21898"}
+,{"filer_id":"16190","filing_sched_abbrev":"B","n":"10","amt":"4475"}
+,{"filer_id":"16190","filing_sched_abbrev":"C","n":"8","amt":"2475"}
 ,{"filer_id":"16193","filing_sched_abbrev":"A","n":"106","amt":"3550"}
 ,{"filer_id":"16193","filing_sched_abbrev":"C","n":"12","amt":"45250"}
 ,{"filer_id":"16196","filing_sched_abbrev":"A","n":"70","amt":"10022"}
@@ -3274,10 +3278,11 @@
 ,{"filer_id":"16634","filing_sched_abbrev":"A","n":"74","amt":"7695"}
 ,{"filer_id":"16634","filing_sched_abbrev":"B","n":"57","amt":"5120"}
 ,{"filer_id":"16634","filing_sched_abbrev":"C","n":"24","amt":"4165"}
-,{"filer_id":"16635","filing_sched_abbrev":"A","n":"46","amt":"18508.53"}
-,{"filer_id":"16635","filing_sched_abbrev":"B","n":"5","amt":"4000"}
-,{"filer_id":"16635","filing_sched_abbrev":"C","n":"12","amt":"4470"}
+,{"filer_id":"16635","filing_sched_abbrev":"A","n":"73","amt":"21113.53"}
+,{"filer_id":"16635","filing_sched_abbrev":"B","n":"6","amt":"5000"}
+,{"filer_id":"16635","filing_sched_abbrev":"C","n":"14","amt":"5570"}
 ,{"filer_id":"16635","filing_sched_abbrev":"D","n":"1","amt":"780"}
+,{"filer_id":"16635","filing_sched_abbrev":"G","n":"1","amt":"500"}
 ,{"filer_id":"16640","filing_sched_abbrev":"A","n":"97","amt":"20898"}
 ,{"filer_id":"16640","filing_sched_abbrev":"C","n":"1","amt":"95"}
 ,{"filer_id":"16641","filing_sched_abbrev":"A","n":"383","amt":"29501.44"}
@@ -3445,7 +3450,7 @@
 ,{"filer_id":"17447","filing_sched_abbrev":"G","n":"5","amt":"630"}
 ,{"filer_id":"17448","filing_sched_abbrev":"B","n":"1","amt":"500"}
 ,{"filer_id":"17448","filing_sched_abbrev":"C","n":"1","amt":"1000"}
-,{"filer_id":"17450","filing_sched_abbrev":"A","n":"417","amt":"30112.6"}
+,{"filer_id":"17450","filing_sched_abbrev":"A","n":"454","amt":"35012.6"}
 ,{"filer_id":"17450","filing_sched_abbrev":"C","n":"1","amt":"500"}
 ,{"filer_id":"17450","filing_sched_abbrev":"G","n":"1","amt":"1950"}
 ,{"filer_id":"17451","filing_sched_abbrev":"A","n":"186","amt":"41235"}
@@ -4200,7 +4205,7 @@
 ,{"filer_id":"21264","filing_sched_abbrev":"B","n":"14","amt":"3780"}
 ,{"filer_id":"21264","filing_sched_abbrev":"C","n":"8","amt":"3957"}
 ,{"filer_id":"21264","filing_sched_abbrev":"G","n":"8","amt":"1335"}
-,{"filer_id":"21273","filing_sched_abbrev":"A","n":"149","amt":"169218.04"}
+,{"filer_id":"21273","filing_sched_abbrev":"A","n":"150","amt":"170218.04"}
 ,{"filer_id":"21273","filing_sched_abbrev":"B","n":"24","amt":"28600"}
 ,{"filer_id":"21273","filing_sched_abbrev":"C","n":"53","amt":"157531.46"}
 ,{"filer_id":"21273","filing_sched_abbrev":"G","n":"13","amt":"16350"}
@@ -4345,7 +4350,7 @@
 ,{"filer_id":"21955","filing_sched_abbrev":"B","n":"4","amt":"1000"}
 ,{"filer_id":"21955","filing_sched_abbrev":"C","n":"9","amt":"4130"}
 ,{"filer_id":"21955","filing_sched_abbrev":"G","n":"2","amt":"400"}
-,{"filer_id":"21986","filing_sched_abbrev":"A","n":"23","amt":"2225"}
+,{"filer_id":"21986","filing_sched_abbrev":"A","n":"24","amt":"2625"}
 ,{"filer_id":"21987","filing_sched_abbrev":"A","n":"140","amt":"38354.11"}
 ,{"filer_id":"21987","filing_sched_abbrev":"B","n":"4","amt":"450"}
 ,{"filer_id":"22022","filing_sched_abbrev":"A","n":"30","amt":"6265"}
@@ -4983,6 +4988,7 @@
 ,{"filer_id":"216663","filing_sched_abbrev":"A","n":"10","amt":"200"}
 ,{"filer_id":"216668","filing_sched_abbrev":"A","n":"30","amt":"19735"}
 ,{"filer_id":"216668","filing_sched_abbrev":"C","n":"2","amt":"3500"}
+,{"filer_id":"216670","filing_sched_abbrev":"A","n":"1","amt":"250"}
 ,{"filer_id":"216680","filing_sched_abbrev":"A","n":"1801","amt":"85430.79"}
 ,{"filer_id":"216680","filing_sched_abbrev":"C","n":"12","amt":"20560.1"}
 ,{"filer_id":"216680","filing_sched_abbrev":"D","n":"2","amt":"392.48"}
@@ -5231,6 +5237,7 @@
 ,{"filer_id":"238122","filing_sched_abbrev":"A","n":"240","amt":"13481.0"}
 ,{"filer_id":"238122","filing_sched_abbrev":"C","n":"1","amt":"1000"}
 ,{"filer_id":"238282","filing_sched_abbrev":"A","n":"1","amt":"300"}
+,{"filer_id":"238282","filing_sched_abbrev":"C","n":"1","amt":"212.19"}
 ,{"filer_id":"238287","filing_sched_abbrev":"A","n":"339","amt":"41118.90"}
 ,{"filer_id":"238287","filing_sched_abbrev":"B","n":"12","amt":"5476"}
 ,{"filer_id":"238287","filing_sched_abbrev":"C","n":"19","amt":"5717"}
@@ -5445,7 +5452,7 @@
 ,{"filer_id":"319237","filing_sched_abbrev":"A","n":"4","amt":"950"}
 ,{"filer_id":"319244","filing_sched_abbrev":"A","n":"54","amt":"5326.96"}
 ,{"filer_id":"319244","filing_sched_abbrev":"C","n":"2","amt":"200"}
-,{"filer_id":"319266","filing_sched_abbrev":"A","n":"261","amt":"59092.92"}
+,{"filer_id":"319266","filing_sched_abbrev":"A","n":"262","amt":"59192.92"}
 ,{"filer_id":"319266","filing_sched_abbrev":"C","n":"11","amt":"23.39"}
 ,{"filer_id":"319287","filing_sched_abbrev":"A","n":"1","amt":"5"}
 ,{"filer_id":"319300","filing_sched_abbrev":"A","n":"179","amt":"43938.01"}
@@ -5747,7 +5754,7 @@
 ,{"filer_id":"371605","filing_sched_abbrev":"C","n":"2","amt":"1200"}
 ,{"filer_id":"371605","filing_sched_abbrev":"D","n":"1","amt":"691.49"}
 ,{"filer_id":"371605","filing_sched_abbrev":"G","n":"1","amt":"500"}
-,{"filer_id":"371608","filing_sched_abbrev":"A","n":"252","amt":"26275"}
+,{"filer_id":"371608","filing_sched_abbrev":"A","n":"250","amt":"26170"}
 ,{"filer_id":"371608","filing_sched_abbrev":"B","n":"26","amt":"18650"}
 ,{"filer_id":"371608","filing_sched_abbrev":"C","n":"74","amt":"92000"}
 ,{"filer_id":"371614","filing_sched_abbrev":"A","n":"1","amt":"5"}
@@ -5928,9 +5935,9 @@
 ,{"filer_id":"382619","filing_sched_abbrev":"A","n":"4","amt":"605"}
 ,{"filer_id":"382619","filing_sched_abbrev":"C","n":"4","amt":"8833"}
 ,{"filer_id":"382675","filing_sched_abbrev":"C","n":"1","amt":"750"}
-,{"filer_id":"382686","filing_sched_abbrev":"A","n":"31","amt":"3100.50"}
+,{"filer_id":"382686","filing_sched_abbrev":"A","n":"32","amt":"3175.50"}
 ,{"filer_id":"382686","filing_sched_abbrev":"B","n":"6","amt":"2875"}
-,{"filer_id":"382686","filing_sched_abbrev":"C","n":"15","amt":"4095"}
+,{"filer_id":"382686","filing_sched_abbrev":"C","n":"23","amt":"17046.4"}
 ,{"filer_id":"382735","filing_sched_abbrev":"C","n":"1","amt":"100"}
 ,{"filer_id":"382820","filing_sched_abbrev":"D","n":"14","amt":"1102.97"}
 ,{"filer_id":"382860","filing_sched_abbrev":"A","n":"345","amt":"40312"}
@@ -6033,6 +6040,7 @@
 ,{"filer_id":"414282","filing_sched_abbrev":"D","n":"55","amt":"358.45"}
 ,{"filer_id":"414282","filing_sched_abbrev":"G","n":"9","amt":"2750"}
 ,{"filer_id":"414285","filing_sched_abbrev":"C","n":"2","amt":"707.7"}
+,{"filer_id":"414285","filing_sched_abbrev":"G","n":"1","amt":"250"}
 ,{"filer_id":"414290","filing_sched_abbrev":"A","n":"1","amt":"150"}
 ,{"filer_id":"414293","filing_sched_abbrev":"A","n":"71","amt":"25223.07"}
 ,{"filer_id":"414293","filing_sched_abbrev":"B","n":"7","amt":"3168.48"}
@@ -6617,8 +6625,8 @@
 ,{"filer_id":"445835","filing_sched_abbrev":"G","n":"2","amt":"540"}
 ,{"filer_id":"445839","filing_sched_abbrev":"A","n":"1","amt":"400"}
 ,{"filer_id":"445842","filing_sched_abbrev":"A","n":"1541","amt":"872387"}
-,{"filer_id":"445842","filing_sched_abbrev":"B","n":"236","amt":"399677.88"}
-,{"filer_id":"445842","filing_sched_abbrev":"C","n":"39","amt":"83700"}
+,{"filer_id":"445842","filing_sched_abbrev":"B","n":"202","amt":"364677.88"}
+,{"filer_id":"445842","filing_sched_abbrev":"C","n":"42","amt":"85450"}
 ,{"filer_id":"445842","filing_sched_abbrev":"G","n":"7","amt":"528771"}
 ,{"filer_id":"445844","filing_sched_abbrev":"A","n":"335","amt":"55390.5"}
 ,{"filer_id":"445844","filing_sched_abbrev":"B","n":"1","amt":"150"}
@@ -8016,7 +8024,7 @@
 ,{"filer_id":"517287","filing_sched_abbrev":"A","n":"56","amt":"3065"}
 ,{"filer_id":"517287","filing_sched_abbrev":"B","n":"2","amt":"355"}
 ,{"filer_id":"517287","filing_sched_abbrev":"G","n":"1","amt":"100"}
-,{"filer_id":"517291","filing_sched_abbrev":"A","n":"120","amt":"57691"}
+,{"filer_id":"517291","filing_sched_abbrev":"A","n":"121","amt":"57791"}
 ,{"filer_id":"517291","filing_sched_abbrev":"C","n":"1","amt":"2000"}
 ,{"filer_id":"517294","filing_sched_abbrev":"C","n":"1","amt":"11336"}
 ,{"filer_id":"517301","filing_sched_abbrev":"A","n":"13","amt":"14320.16"}
@@ -9087,9 +9095,9 @@
 ,{"filer_id":"549099","filing_sched_abbrev":"G","n":"8","amt":"1307.10"}
 ,{"filer_id":"549101","filing_sched_abbrev":"A","n":"15","amt":"2096"}
 ,{"filer_id":"549101","filing_sched_abbrev":"C","n":"3","amt":"2000"}
-,{"filer_id":"549102","filing_sched_abbrev":"A","n":"62","amt":"51525"}
+,{"filer_id":"549102","filing_sched_abbrev":"A","n":"63","amt":"52525"}
 ,{"filer_id":"549102","filing_sched_abbrev":"B","n":"5","amt":"2850"}
-,{"filer_id":"549102","filing_sched_abbrev":"C","n":"9","amt":"6850"}
+,{"filer_id":"549102","filing_sched_abbrev":"C","n":"8","amt":"5850"}
 ,{"filer_id":"549102","filing_sched_abbrev":"D","n":"1","amt":"4930.62"}
 ,{"filer_id":"549103","filing_sched_abbrev":"A","n":"19","amt":"9476.81"}
 ,{"filer_id":"549103","filing_sched_abbrev":"B","n":"2","amt":"1099.99"}
@@ -9334,7 +9342,7 @@
 ,{"filer_id":"569711","filing_sched_abbrev":"C","n":"33","amt":"24700"}
 ,{"filer_id":"569711","filing_sched_abbrev":"D","n":"1","amt":"2622.04"}
 ,{"filer_id":"569712","filing_sched_abbrev":"D","n":"5","amt":"2090.71"}
-,{"filer_id":"569717","filing_sched_abbrev":"A","n":"318","amt":"37397"}
+,{"filer_id":"569717","filing_sched_abbrev":"A","n":"371","amt":"41602"}
 ,{"filer_id":"569717","filing_sched_abbrev":"B","n":"7","amt":"9600"}
 ,{"filer_id":"569719","filing_sched_abbrev":"A","n":"2657","amt":"249063.63"}
 ,{"filer_id":"569719","filing_sched_abbrev":"D","n":"2","amt":"1914.65"}
@@ -9401,8 +9409,9 @@
 ,{"filer_id":"580302","filing_sched_abbrev":"C","n":"1","amt":"1352.15"}
 ,{"filer_id":"580302","filing_sched_abbrev":"D","n":"2","amt":"100"}
 ,{"filer_id":"580306","filing_sched_abbrev":"A","n":"213","amt":"14026"}
-,{"filer_id":"580307","filing_sched_abbrev":"A","n":"695","amt":"48991.40"}
-,{"filer_id":"580307","filing_sched_abbrev":"C","n":"11","amt":"14000"}
+,{"filer_id":"580307","filing_sched_abbrev":"A","n":"696","amt":"49382.41"}
+,{"filer_id":"580307","filing_sched_abbrev":"C","n":"12","amt":"15000"}
+,{"filer_id":"580307","filing_sched_abbrev":"G","n":"1","amt":"40"}
 ,{"filer_id":"580310","filing_sched_abbrev":"A","n":"536","amt":"99645.5"}
 ,{"filer_id":"580310","filing_sched_abbrev":"C","n":"3","amt":"1250"}
 ,{"filer_id":"580325","filing_sched_abbrev":"A","n":"820","amt":"187905.11"}
@@ -9483,11 +9492,11 @@
 ,{"filer_id":"580564","filing_sched_abbrev":"A","n":"895","amt":"199894.74"}
 ,{"filer_id":"580564","filing_sched_abbrev":"B","n":"2","amt":"1500"}
 ,{"filer_id":"580564","filing_sched_abbrev":"D","n":"21","amt":"7637.94"}
-,{"filer_id":"580566","filing_sched_abbrev":"A","n":"647","amt":"34004.86"}
+,{"filer_id":"580566","filing_sched_abbrev":"A","n":"674","amt":"35549.86"}
 ,{"filer_id":"580566","filing_sched_abbrev":"D","n":"2","amt":"138.54"}
 ,{"filer_id":"580566","filing_sched_abbrev":"G","n":"2","amt":"2350"}
 ,{"filer_id":"580567","filing_sched_abbrev":"A","n":"1","amt":"486.33"}
-,{"filer_id":"580568","filing_sched_abbrev":"A","n":"281","amt":"15126"}
+,{"filer_id":"580568","filing_sched_abbrev":"A","n":"282","amt":"15176"}
 ,{"filer_id":"580569","filing_sched_abbrev":"A","n":"525","amt":"73516.11"}
 ,{"filer_id":"580569","filing_sched_abbrev":"C","n":"2","amt":"1500"}
 ,{"filer_id":"580571","filing_sched_abbrev":"C","n":"1","amt":"500"}
@@ -9948,7 +9957,7 @@
 ,{"filer_id":"591044","filing_sched_abbrev":"C","n":"11","amt":"5949"}
 ,{"filer_id":"591044","filing_sched_abbrev":"G","n":"4","amt":"236780.7"}
 ,{"filer_id":"591046","filing_sched_abbrev":"A","n":"209","amt":"10028"}
-,{"filer_id":"591048","filing_sched_abbrev":"A","n":"209","amt":"55999.17"}
+,{"filer_id":"591048","filing_sched_abbrev":"A","n":"211","amt":"56149.17"}
 ,{"filer_id":"591048","filing_sched_abbrev":"B","n":"4","amt":"1450"}
 ,{"filer_id":"591048","filing_sched_abbrev":"C","n":"1","amt":"1500"}
 ,{"filer_id":"591048","filing_sched_abbrev":"G","n":"1","amt":"47118.6"}
@@ -10651,7 +10660,7 @@
 ,{"filer_id":"591795","filing_sched_abbrev":"D","n":"3","amt":"165"}
 ,{"filer_id":"591798","filing_sched_abbrev":"A","n":"27","amt":"8179.04"}
 ,{"filer_id":"591798","filing_sched_abbrev":"C","n":"1","amt":"1000"}
-,{"filer_id":"591798","filing_sched_abbrev":"D","n":"4","amt":"243"}
+,{"filer_id":"591798","filing_sched_abbrev":"D","n":"13","amt":"8254.78"}
 ,{"filer_id":"591799","filing_sched_abbrev":"A","n":"7","amt":"1695.01"}
 ,{"filer_id":"591799","filing_sched_abbrev":"B","n":"2","amt":"1000"}
 ,{"filer_id":"591799","filing_sched_abbrev":"D","n":"7","amt":"996.81"}
@@ -10711,7 +10720,7 @@
 ,{"filer_id":"592010","filing_sched_abbrev":"B","n":"6","amt":"775"}
 ,{"filer_id":"592010","filing_sched_abbrev":"C","n":"2","amt":"1750"}
 ,{"filer_id":"592017","filing_sched_abbrev":"A","n":"45","amt":"3401"}
-,{"filer_id":"592025","filing_sched_abbrev":"A","n":"6","amt":"364.81"}
+,{"filer_id":"592025","filing_sched_abbrev":"A","n":"7","amt":"477.37"}
 ,{"filer_id":"592027","filing_sched_abbrev":"A","n":"8","amt":"1350"}
 ,{"filer_id":"592029","filing_sched_abbrev":"A","n":"9","amt":"1000"}
 ,{"filer_id":"592029","filing_sched_abbrev":"C","n":"1","amt":"1656.65"}
@@ -10925,7 +10934,7 @@
 ,{"filer_id":"592355","filing_sched_abbrev":"A","n":"15","amt":"6050.97"}
 ,{"filer_id":"592357","filing_sched_abbrev":"A","n":"1","amt":"150"}
 ,{"filer_id":"592357","filing_sched_abbrev":"C","n":"2","amt":"2800"}
-,{"filer_id":"592364","filing_sched_abbrev":"B","n":"1","amt":"1400"}
+,{"filer_id":"592364","filing_sched_abbrev":"C","n":"1","amt":"1400"}
 ,{"filer_id":"592365","filing_sched_abbrev":"A","n":"19","amt":"4950"}
 ,{"filer_id":"592365","filing_sched_abbrev":"B","n":"5","amt":"1250"}
 ,{"filer_id":"592369","filing_sched_abbrev":"B","n":"1","amt":"500000"}
