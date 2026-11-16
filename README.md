@@ -81,6 +81,10 @@ The New York State Assembly and Senate each publish their spending twice a year:
 - ⬇️ **CSV export** — of member tables and filtered records.
 - 🪶 **No build step, no dependencies** — plain HTML, CSS and JavaScript; Python only to prepare data.
 
+## Design
+
+The site's look and its writing rules live in [`DESIGN.md`](DESIGN.md), in the [DESIGN.md format](https://getdesign.md/what-is-design-md) used by Claude Design and similar tools: colour, type, spacing and component tokens up top, then the reasons behind them. It also records the rules that keep the site trustworthy and readable: a source under every chart, zero-based bars, amounts in words, "typical" instead of median, and no individual donor names. Change the tokens there first, then the CSS.
+
 ## Data sources
 
 | Source | Used for |
@@ -153,6 +157,7 @@ python3 scripts/build_standalone.py dist/ny-legislature-expenditures.html
 index.html                    Page shell
 assets/app.js                 All interactivity (vanilla JS, hash routing, SVG maps)
 assets/styles.css             Styles, light and dark
+DESIGN.md                     Design tokens, components and writing rules
 data/raw/{assembly,senate}/   Original expenditure CSVs, unmodified
 data/chambers.json            Chambers and their reporting periods
 data/<chamber>/periods/*.json Compact, dictionary-encoded data per report
