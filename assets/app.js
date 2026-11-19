@@ -1383,9 +1383,21 @@
     { key: "margin", group: "Elections", label: "2026 margin", better: "high", fmt: (v) => v >= 0 ? `won by ${Math.round(v)}` : `lost by ${Math.round(-v)}`, what: "Lead over the nearest opponent in percentage points of the vote (60% to 40% is a 20-point win); unopposed and non-running members are left out", src: "State Board of Elections, unofficial 2026 count", help: "How far ahead (or behind) the member finished, in percentage points of the vote: winning 60% to 40% is a 20-point win. Their lead (or deficit) over the nearest opponent in the State Board's unofficial count; unopposed and non-running members aren't ranked" },
     { key: "laws", group: "Lawmaking", label: "Bills signed into law", better: "high", fmt: (v) => int.format(v), what: "Bills the member was prime sponsor of that the Governor signed", src: "Open Legislation, 2025–26 session", help: "Bills the member was prime sponsor of in the 2025–26 session that the Governor signed (Open Legislation)" },
     { key: "passRate", group: "Lawmaking", label: "Bills passed by own chamber", better: "high", fmt: (v) => pctf(v), what: "Share of the member's bills (prime sponsor, not resolutions) that passed their own chamber", src: "Open Legislation, 2025–26 session", help: "Share of the member's 2025–26 bills (prime sponsor, not resolutions) that passed their own chamber" },
+    { key: "overMember", group: "Office staff", label: "Staff paid more than the member", better: "low", weight: 0, fmt: (v) => int.format(v), what: "Staff in the member's office whose annualized pay is above the member's own legislative salary in the same report. Off in the overall score unless you turn it on: most offices have none, so it can't rank them", src: "expenditure report payroll, this period", help: "Staff in the member's office whose annualized pay is above the member's own salary (fewer ranks higher). Off in the overall score unless you turn it on" },
     { key: "reach", group: "Fundraising", label: "Donors in district", better: "high", fmt: (v) => pctf(v), what: "Share of individual donors whose ZIP code falls in the district (an estimate: ZIPs can cross district lines)", src: "State Board campaign filings, 2025–26", help: "Share of the member's 2025–26 individual donors whose ZIP code falls in the district (estimate)" },
     { key: "small", group: "Fundraising", label: "Small donors", better: "high", fmt: (v) => pctf(v), what: "Share of individual donors who gave $250 or less in total", src: "State Board campaign filings, 2025–26", help: "Share of the member's individual donors who gave $250 or less in total" },
   ];
+  /* Staff in a member's office whose annualized pay is above the member's own legislative salary
+     (the member's salary line in the same report; leadership stipends paid elsewhere aren't in it). */
+  function staffOverMember(db, unitId) {
+    const rows = db.salaries.filter((x) => x.u === unitId);
+    const me = rows.filter((x) => /^MEMBER( OF ASSEMBLY)?$/.test(x.titles));
+    if (!me.length) return null;
+    const pay = Math.max(...me.map((x) => x.annual || 0));
+    const over = new Map();
+    for (const x of rows) if (!me.includes(x) && x.annual > pay + 1) over.set(x.p, Math.max(over.get(x.p) || 0, x.annual));
+    return { pay, people: [...over.entries()].map(([p, annual]) => ({ name: db.payees[p], annual })).sort((a, b) => b.annual - a.annual) };
+  }
   function scorecardRows() {
     const dn = DONATIONS[CH.id];
     const rows = DB.members.map((s) => {
@@ -1403,6 +1415,8 @@
         const best = Math.max(...c.filter((_, j) => j !== i).map((x) => x[2]));
         r.values.margin = (c[i][2] - best) / m.boe.total * 100;
       }
+      const om = staffOverMember(DB, s.id);
+      if (om) { r.values.overMember = om.people.length; r.over = om; }
       const lg = legFor(s);
       if (lg && lg.introduced) { r.values.laws = lg.signed; r.values.passRate = lg.passedChamber / lg.introduced; }
       const cands = dn && r.district != null ? dn.districts[String(r.district)] || [] : [];
@@ -1420,11 +1434,11 @@
   const SC_WEIGHT_LABELS = ["Off", "Low", "Normal", "High", "Most"];
   function parseWeights(str) {
     const w = {};
-    for (const m of SC_MEASURES) w[m.key] = 2;
+    for (const m of SC_MEASURES) w[m.key] = m.weight ?? 2;
     for (const part of String(str || "").split(",")) { const [k, v] = part.split(":"); if (k in w && /^[0-4]$/.test(v || "")) w[k] = Number(v); }
     return w;
   }
-  const weightsStr = (w) => SC_MEASURES.every((m) => w[m.key] === 2) ? "" : SC_MEASURES.map((m) => `${m.key}:${w[m.key]}`).join(",");
+  const weightsStr = (w) => SC_MEASURES.every((m) => w[m.key] === (m.weight ?? 2)) ? "" : SC_MEASURES.map((m) => `${m.key}:${w[m.key]}`).join(",");
   function percentileRanks(rows, groupOf, weights) {
     for (const m of SC_MEASURES) {
       const groups = new Map();
@@ -1478,7 +1492,8 @@
       const v = r.values[m.key];
       if (v == null) return `<td class="num summary">—</td>`;
       const pc = r.pct[m.key];
-      return `<td class="num"><span class="scval">${m.fmt(v)}</span><span class="scrank" title="#${r.rank[m.key]} of ${r.of[m.key]}${state.within === "party" ? " in its party" : ""} · ${rankWords(r.rank[m.key], r.of[m.key])}"><span class="scbar"><span style="width:${(pc * 100).toFixed(0)}%"></span></span>#${r.rank[m.key]}</span></td>`;
+      const who = m.key === "overMember" && r.over && r.over.people.length ? ` title="${esc(r.over.people.map((x) => `${titleCase(x.name)}: ${money0(x.annual)} a year`).join("; "))} · member: ${money0(r.over.pay)}"` : "";
+      return `<td class="num"><span class="scval"${who}>${m.fmt(v)}</span><span class="scrank" title="#${r.rank[m.key]} of ${r.of[m.key]}${state.within === "party" ? " in its party" : ""} · ${rankWords(r.rank[m.key], r.of[m.key])}"><span class="scbar"><span style="width:${(pc * 100).toFixed(0)}%"></span></span>#${r.rank[m.key]}</span></td>`;
     };
     return `<h1>Scorecard</h1>
       <p class="lede">How each ${esc(CH.name)} member office compares on things anyone can check in public records, for ${esc(periodName(DB))}. In every column a longer bar is better, and #1 is the best ${state.within === "party" ? "in its party" : "in the chamber"}. The <strong>overall ${term("score")}</strong> combines the columns${state.w ? ", weighted as you set below" : ""}: 100 means best on everything, 50 means about average.</p>
@@ -1486,9 +1501,9 @@
         <label>Rank against<select id="scWithin"><option value="party"${state.within === "party" ? " selected" : ""}>Own party (default)</option><option value="chamber"${state.within === "chamber" ? " selected" : ""}>Whole chamber</option></select></label>
         <label>Party<select id="scParty"><option value="">Both</option><option value="D"${state.party === "D" ? " selected" : ""}>Democrats</option><option value="R"${state.party === "R" ? " selected" : ""}>Republicans</option></select></label>
       </div>
-      <details class="card weights" id="scWeights"${state.w ? " open" : ""}><summary><strong>Weigh the measures yourself</strong> <span class="summary">${state.w ? "custom weights: the overall score and order below use them" : "every measure counts the same; slide to change"}</span></summary>
+      <details class="card weights" id="scWeights"${state.w ? " open" : ""}><summary><strong>Weigh the measures yourself</strong> <span class="summary">${state.w ? "custom weights: the overall score and order below use them" : "every measure counts the same, except staff paid more than the member, which is off; slide to change"}</span></summary>
         <div class="weight-grid">${SC_MEASURES.map((m) => `<div class="weight"><label for="w-${m.key}">${esc(m.label)}</label><input type="range" id="w-${m.key}" name="${m.key}" min="0" max="4" step="1" value="${weights[m.key]}" aria-valuetext="${SC_WEIGHT_LABELS[weights[m.key]]}"><output for="w-${m.key}">${SC_WEIGHT_LABELS[weights[m.key]]}</output></div>`).join("")}</div>
-        <p class="summary">Off leaves a measure out of the index; Most counts it twice as much as Normal. The columns don't change, only how they're added up into the overall score. Your weights are kept in the page address, so you can share the link. <button type="button" class="linkbtn" id="scReset">Reset to equal weights</button></p>
+        <p class="summary">Off leaves a measure out of the index; Most counts it twice as much as Normal. The columns don't change, only how they're added up into the overall score. Your weights are kept in the page address, so you can share the link. <button type="button" class="linkbtn" id="scReset">Reset to the default weights</button></p>
       </details>
       <section class="sc-key" aria-labelledby="scKeyH"><h2 id="scKeyH" class="mini">How to read a cell</h2>
         <div class="sc-key-row">
@@ -2276,6 +2291,7 @@
             <td class="num${r.amt < 0 ? " neg" : ""}">${money(r.amt)}</td>
             <td class="num">${showSal ? `<a href="${buildHash("salaries", { q: `"${payees[r.p].toLowerCase()}"` })}" title="${esc(salaryTip(sal))}">${money0(sal.annual)}</a>` : ""}</td></tr>`; }).join("")}</tbody>
         </table></div>
+        ${s.kind === "member" ? (() => { const om = staffOverMember(DB, s.id); return om ? `<p class="${om.people.length ? "callout" : "summary"}">${om.people.length ? `<strong>${om.people.length} ${om.people.length === 1 ? "staff member is" : "staff members are"} paid more than the member</strong> (${money0(om.pay)} a year): ${om.people.map((x) => `${esc(titleCase(x.name))}, ${money0(x.annual)}`).join("; ")}.` : `No one on this office's staff is paid more than the member's ${money0(om.pay)} a year.`}</p>` : ""; })() : ""}
         <p class="summary">Annualized = a person's regular pay in this office divided by the days it covers, scaled to a year of 26 biweekly pay periods. One-time payments (lump sums, deferrals, stipends) aren't annualized. ${payWindowNote(DB)} <a href="${buildHash("salaries", {})}">All salaries ${I.r}</a></p>` : `<p class="empty">No payroll lines.</p>`}
       </section>
 
