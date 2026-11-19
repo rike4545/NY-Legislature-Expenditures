@@ -19,6 +19,11 @@
 
 The New York State Assembly and Senate each publish their spending twice a year: tens of thousands of lines of payroll, rent, utilities, travel and vendor payments. This project turns both chambers' reports into one fast, searchable website where anyone can see **where the money went, who it went to, and how each office and district compares**.
 
+
+## Disclosures
+
+This project takes no outside funding (no donations, grants, advertising or sponsorships) and makes no endorsements: it doesn't support or oppose any candidate, party, ballot measure or bill, and no one endorses it. It isn't affiliated with the Assembly, the Senate or any state agency. Every figure comes from public records named in the sources below. Corrections: open an issue.
+
 ## Highlights from the data
 
 **Actual spending** = payroll + maintenance & operations + travel. Allocated postage/supplies/mail costs are tracked separately, since both chambers describe them as informational shares of centrally paid costs.
