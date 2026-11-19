@@ -1,4 +1,4 @@
-"""Download every bill of the 2025-26 session from NY Open Legislation (legislation.nysenate.gov).
+"""Download every bill of a session (2025-26 by default) from NY Open Legislation (legislation.nysenate.gov).
 
 Needs a free API key in the NYSENATE_API_KEY environment variable (never commit the key).
 Writes a compact snapshot to data/raw/legislation/bills_<session>.json:
@@ -7,7 +7,9 @@ Writes a compact snapshot to data/raw/legislation/bills_<session>.json:
 where sponsor = [memberId, fullName, shortName, districtCode] or null, and milestones =
 [[statusType, actionDate]].
 
-    NYSENATE_API_KEY=... python3 scripts/fetch_legislation.py [session]
+    NYSENATE_API_KEY=... python3 scripts/fetch_legislation.py [session ...] [--missing-only]
+
+--missing-only skips sessions already saved: use it for past sessions, which no longer change.
 """
 import json, os, sys, time, urllib.parse, urllib.request
 from datetime import date
@@ -35,7 +37,16 @@ def get(path, **params):
 
 
 def main():
-    session = int(sys.argv[1]) if len(sys.argv) > 1 else 2025
+    sessions = [int(a) for a in sys.argv[1:] if a.isdigit()] or [2025]
+    for session in sessions:
+        out = os.path.join(ROOT, f"data/raw/legislation/bills_{session}.json")
+        if "--missing-only" in sys.argv and os.path.exists(out):
+            print("have", out)
+            continue
+        fetch(session, out)
+
+
+def fetch(session, out):
     bills, offset, total = [], 1, None
     while total is None or offset <= total:
         d = get(f"bills/{session}", limit=1000, offset=offset)
@@ -54,7 +65,6 @@ def main():
             ])
         print(f"{len(bills):,} / {total:,}", flush=True)
         offset += 1000
-    out = os.path.join(ROOT, f"data/raw/legislation/bills_{session}.json")
     os.makedirs(os.path.dirname(out), exist_ok=True)
     json.dump({"session": session, "fetched": date.today().isoformat(), "source": "https://legislation.nysenate.gov",
                "fields": ["printNo", "chamber", "resolution", "sponsor[memberId,fullName,shortName,district]", "title",

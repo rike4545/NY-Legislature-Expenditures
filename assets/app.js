@@ -787,13 +787,25 @@
     const L = LEG[CH.id];
     const r = legFor(s);
     if (!L || !r) return "";
+    const legDistrict = (DISTRICT_BY_UNIT.get(s.name) || {}).district;
     const steps = [["Introduced", r.introduced], ["Out of committee", r.reported], [`Passed the ${CH.name}`, r.passedChamber], ["Passed both houses", r.passedBoth], ["Signed into law", r.signed]];
     const all = DB.members.map((x) => legFor(x)).filter(Boolean);
     const med = (k) => { const v = all.map((x) => x[k]).sort((a, b) => a - b); return v.length ? v[Math.floor(v.length / 2)] : 0; };
-    const url = (no) => L.billUrl.replace("{printNo}", no);
+    const url = (no) => L.billUrl.replace("{session}", L.session).replace("{printNo}", no);
+    const sess = (y) => `${y}–${String(y + 1).slice(2)}`;
+    const cmpRow = (label, x) => `<tr><th scope="row">${label}</th><td class="num">${int.format(x.introduced)}</td>${[x.reported, x.passedChamber, x.passedBoth, x.signed].map((v) => `<td class="num">${int.format(v)}${x.introduced ? ` <span class="summary">${pctf(v / x.introduced)}</span>` : ""}</td>`).join("")}</tr>`;
+    const hist = L.history || [];
+    const comparison = hist.length ? `<h3 class="mini" style="margin-top:16px">Compared with the prior term and the previous member</h3>
+      <div class="table-wrap"><table class="cf-table stack-sm"><caption class="sr-only">Bills introduced and how far they got: ${esc(r.name)} this session, in their prior term, and the previous member for this district</caption>
+        <thead><tr><th scope="col">Member, session</th><th scope="col" class="num">Introduced</th><th scope="col" class="num">Out of committee</th><th scope="col" class="num">Passed the ${esc(CH.name)}</th><th scope="col" class="num">Passed both houses</th><th scope="col" class="num">Signed</th></tr></thead>
+        <tbody>${cmpRow(`<span class="cf-name">${esc(r.name)}</span>, ${sess(L.session)}<br><span class="summary">this session</span>`, r)}
+          ${r.prior ? cmpRow(`<span class="cf-name">${esc(r.name)}</span>, ${sess(r.prior.session)}<br><span class="summary">prior term${String(r.prior.district) !== String(legDistrict) ? `, then representing district ${esc(String(r.prior.district))}` : ""}</span>`, r.prior) : ""}
+          ${r.predecessor ? cmpRow(`<span class="cf-name">${esc(r.predecessor.name)}</span>, ${sess(r.predecessor.session)}<br><span class="summary">previous member for district ${esc(String(r.predecessor.district))}</span>`, r.predecessor) : ""}</tbody></table></div>
+      <p class="summary">${r.prior ? "" : `No earlier term for ${esc(r.name)} in the ${esc(CH.name)} in the sessions on file (${hist.map(sess).join(", ")}). `}${r.predecessor ? "" : `No one else sponsored bills for this district in those sessions, so the previous member is from before ${sess(hist[hist.length - 1])}. `}Percentages are of bills introduced. A session runs two years; the Governor can act on bills passed this session through year's end, so the newest row may still grow. District lines were redrawn for 2023${CH.id === "assembly" ? " and again for 2025" : ""}, so the same district number may have covered a different area, and a member's party and whether it held the majority matter more than anything here.</p>` : "";
     return `<section class="card"><div class="card-head"><h2>Legislation, ${L.session}–${String(L.session + 1).slice(2)} session</h2><span class="summary">bills ${esc(r.name)} introduced as prime sponsor · Open Legislation, as of ${esc(fmtDay(L.fetched))}</span></div>
       <ul class="bars funnel">${steps.map(([l, v]) => `<li><span class="name">${l}</span><span class="amt">${int.format(v)}${r.introduced && l !== "Introduced" ? ` · ${pctf(v / r.introduced)}` : ""}</span><span class="track"><span class="fill" style="width:${(v / Math.max(1, r.introduced) * 100).toFixed(1)}%"></span></span></li>`).join("")}</ul>
       <p class="summary">A typical ${esc(CH.name)} member introduced ${med("introduced")} bills and had ${med("signed")} signed. ${r.vetoed ? `${r.vetoed} of this member's bills were vetoed. ` : ""}${r.resolutions ? `Also ${r.resolutions} resolutions (not counted above). ` : ""}Majority-party members usually pass far more bills, so compare within a party.</p>
+      ${comparison}
       ${r.signedBills.length ? `<details><summary>Bills signed into law (${r.signed})</summary><ul class="plainlist">${r.signedBills.map(([no, t]) => `<li><a href="${escUrl(url(no))}" target="_blank" rel="noopener">${esc(no)}</a> · ${esc(t)}</li>`).join("")}</ul></details>` : ""}
       <p class="summary">Counts bills the member sponsored, not co-sponsored, and leaves out budget bills and Rules Committee bills. When a bill was replaced on the floor by its same-as bill from the other house, the steps that bill went on to take count here too, so one law can be credited to both its Senate and Assembly sponsors. Source: <a href="https://legislation.nysenate.gov" target="_blank" rel="noopener">NY Open Legislation</a>.</p>
     </section>`;

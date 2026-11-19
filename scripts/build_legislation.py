@@ -1,9 +1,13 @@
-"""Bills each legislator sponsored in the 2025-26 session and how far they got.
+"""Bills each legislator sponsored in the 2025-26 session and how far they got, compared with the
+member's own prior term and with the previous member for the same district.
 
-Input:  data/raw/legislation/bills_2025.json (fetch_legislation.py)
+Input:  data/raw/legislation/bills_<session>.json (fetch_legislation.py), 2025 and any earlier sessions
 Output: data/<chamber>/legislation.json
-    {session, fetched, source, districts: {district: [{memberId, name, shortName, introduced, reported,
-      passedChamber, passedBoth, signed, vetoed, resolutions, signedBills: [[printNo, title]]}]}}
+    {session, fetched, source, billUrl, history: [sessions available],
+     districts: {district: [{memberId, name, shortName, introduced, reported, passedChamber, passedBoth,
+       signed, vetoed, resolutions, signedBills: [[printNo, title]],
+       prior: {session, district, <counts>} | null,
+       predecessor: {session, district, memberId, name, <counts>} | null}]}}
 
 Counted for each bill a member is the prime sponsor of (not resolutions, and not bills introduced
 at the request of the Governor's budget or by the Rules Committee):
@@ -14,14 +18,25 @@ at the request of the Governor's budget or by the Rules Committee):
 When a bill was substituted by its same-as bill from the other house, the substitute's later steps
 (passing both houses, the Governor's action) count for this bill too, since that's how most
 two-house bills become law.
+
+Comparisons, from the earlier sessions that have been fetched:
+  prior        the member's own most recent earlier session in the same chamber (any district)
+  predecessor  the most recent earlier session in which someone else was prime sponsor for this
+               district number in this chamber; if several were (a vacancy mid-session), the one who
+               introduced the most bills. District lines were redrawn for 2023 (and the Assembly's
+               again for 2025), so the same number can cover a somewhat different area.
+A person is the same member across sessions when Open Legislation's memberId matches, or their
+full names match.
 """
-import json, os
+import glob, json, os, re
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CURRENT = 2025
+COUNTS = ("introduced", "reported", "passedChamber", "passedBoth", "signed", "vetoed")
 
 
-def main(session=2025):
-    raw = json.load(open(os.path.join(ROOT, f"data/raw/legislation/bills_{session}.json")))
+def tally(raw):
+    """{chamber: {district: {memberId: record}}} for one session's bills."""
     by_no = {b[0]: b for b in raw["bills"]}
     out = {"senate": {}, "assembly": {}}
     for b in raw["bills"]:
@@ -53,16 +68,62 @@ def main(session=2025):
         rec["vetoed"] += bool(vetoed)
         if signed:
             rec["signedBills"].append([no, title])
-    for ch, dists in out.items():
-        res = {d: sorted(m.values(), key=lambda r: -r["introduced"]) for d, m in dists.items()}
-        for lst in res.values():
+    return out
+
+
+def norm(name):
+    return re.sub(r"[^A-Z]+", " ", (name or "").upper()).strip()
+
+
+def same(a, b):
+    return a["memberId"] == b["memberId"] or (norm(a["name"]) and norm(a["name"]) == norm(b["name"]))
+
+
+def brief(session, district, r, who=False):
+    x = {"session": session, "district": int(district)}
+    if who:
+        x.update(memberId=r["memberId"], name=r["name"])
+    x.update({k: r[k] for k in COUNTS})
+    return x
+
+
+def main():
+    path = lambda s: os.path.join(ROOT, f"data/raw/legislation/bills_{s}.json")
+    raw = json.load(open(path(CURRENT)))
+    cur = tally(raw)
+    earlier = sorted((int(re.search(r"bills_(\d{4})\.json$", p).group(1)) for p in glob.glob(path("*"))), reverse=True)
+    earlier = [s for s in earlier if s < CURRENT]
+    hist = {s: tally(json.load(open(path(s)))) for s in earlier}
+
+    for ch, dists in cur.items():
+        res = {}
+        for d, members in dists.items():
+            lst = sorted(members.values(), key=lambda r: -r["introduced"])
             for r in lst:
                 r["signedBills"] = sorted(r["signedBills"], key=lambda x: (x[0][0], int("".join(c for c in x[0][1:] if c.isdigit()) or 0)))[:40]
-        json.dump({"session": session, "fetched": raw["fetched"], "source": "https://legislation.nysenate.gov",
-                   "billUrl": "https://www.nysenate.gov/legislation/bills/" + str(session) + "/{printNo}", "districts": res},
+                r["prior"] = r["predecessor"] = None
+                for s in earlier:
+                    sess = hist[s][ch]
+                    if r["prior"] is None:
+                        mine = [(dd, x) for dd, ms in sess.items() for x in ms.values() if same(x, r) and x["introduced"]]
+                        if mine:
+                            dd, x = max(mine, key=lambda t: t[1]["introduced"])
+                            r["prior"] = brief(s, dd, x)
+                    if r["predecessor"] is None:
+                        others = [x for x in sess.get(d, {}).values() if not same(x, r) and x["introduced"]]
+                        if others:
+                            r["predecessor"] = brief(s, d, max(others, key=lambda x: x["introduced"]), who=True)
+                    if r["prior"] and r["predecessor"]:
+                        break
+            res[d] = lst
+        json.dump({"session": CURRENT, "fetched": raw["fetched"], "source": "https://legislation.nysenate.gov",
+                   "billUrl": "https://www.nysenate.gov/legislation/bills/{session}/{printNo}", "history": earlier,
+                   "districts": res},
                   open(os.path.join(ROOT, f"data/{ch}/legislation.json"), "w"), separators=(",", ":"))
         allm = [r for v in res.values() for r in v]
-        print(ch, len(res), "districts,", len(allm), "sponsors,", sum(r["introduced"] for r in allm), "bills,", sum(r["signed"] for r in allm), "signed")
+        print(ch, len(res), "districts,", len(allm), "sponsors,", sum(r["introduced"] for r in allm), "bills,",
+              sum(r["signed"] for r in allm), "signed;", sum(bool(r["prior"]) for r in allm), "with a prior term,",
+              sum(bool(r["predecessor"]) for r in allm), "with a predecessor; earlier sessions:", earlier)
 
 
 if __name__ == "__main__":

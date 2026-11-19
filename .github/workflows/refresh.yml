@@ -47,6 +47,7 @@ jobs:
           NYSENATE_API_KEY: ${{ secrets.NYSENATE_API_KEY }}
         run: |
           python3 scripts/fetch_legislation.py 2025
+          python3 scripts/fetch_legislation.py 2023 2021 2019 2017 --missing-only
           python3 scripts/build_legislation.py
       - name: Lobbying reports (data.ny.gov, one legislator at a time)
         continue-on-error: true

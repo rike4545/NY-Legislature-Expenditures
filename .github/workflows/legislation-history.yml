@@ -1,0 +1,46 @@
+name: Legislation history (earlier sessions)
+
+# Fetches past sessions' bills from NY Open Legislation once (they no longer change), rebuilds
+# data/<chamber>/legislation.json so each member's scorecard can compare this session with their
+# prior term and with the previous member for the district, and commits the result to the branch
+# that ran it. Runs when the legislation scripts change, or by hand from the Actions tab.
+on:
+  push:
+    paths:
+      - scripts/fetch_legislation.py
+      - scripts/build_legislation.py
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: legislation-history-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  history:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Fetch past sessions not yet saved
+        env:
+          NYSENATE_API_KEY: ${{ secrets.NYSENATE_API_KEY }}
+        run: python3 scripts/fetch_legislation.py 2023 2021 2019 2017 --missing-only
+      - name: Rebuild legislation summaries
+        run: python3 scripts/build_legislation.py
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/raw/legislation data/assembly/legislation.json data/senate/legislation.json
+          if git diff --cached --quiet; then
+            echo "No changes."
+          else
+            git commit -m "Legislation history: earlier sessions for scorecard comparisons"
+            git push
+          fi
