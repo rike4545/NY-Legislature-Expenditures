@@ -1121,3 +1121,12 @@ dl.glossary dd { margin: 0; color: var(--text); max-width: 70ch; }
 .rule-tag { display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--accent); margin-right: 4px; }
 .mailnote p { font-size: 14px; margin: 10px 0 0; }
 li .rule-note { margin-top: 6px; }
+
+/* Staff job families */
+.role-chip { display: inline-block; margin-top: 2px; font-size: 11px; font-weight: 600; color: var(--muted); border: 1px solid var(--border); border-radius: 999px; padding: 0 8px; }
+details.roles > summary { cursor: pointer; list-style: none; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+details.roles > summary::-webkit-details-marker { display: none; }
+details.roles > summary h2 { margin: 0; display: inline; }
+details.roles > summary::before { content: "▸"; color: var(--muted); }
+details.roles[open] > summary::before { content: "▾"; }
+details.roles table td { white-space: normal; }

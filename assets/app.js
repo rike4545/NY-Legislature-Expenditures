@@ -2345,6 +2345,7 @@
             <td class="num${r.amt < 0 ? " neg" : ""}">${money(r.amt)}</td>
             <td class="num">${showSal ? `<a href="${buildHash("salaries", { q: `"${payees[r.p].toLowerCase()}"` })}" title="${esc(salaryTip(sal))}">${money0(sal.annual)}</a>` : ""}</td></tr>`; }).join("")}</tbody>
         </table></div>
+        ${s.kind === "member" ? staffMixLine(DB, s.id) : ""}
         ${s.kind === "member" ? (() => { const om = staffOverMember(DB, s.id); return om ? `<p class="${om.people.length ? "callout" : "summary"}">${om.people.length ? `<strong>${om.people.length} ${om.people.length === 1 ? "staff member is" : "staff members are"} paid more than the member</strong> (${money0(om.pay)} a year): ${om.people.map((x) => `${esc(titleCase(x.name))}, ${money0(x.annual)}`).join("; ")}.` : `No one on this office's staff is paid more than the member's ${money0(om.pay)} a year.`}</p>` : ""; })() : ""}
         <p class="summary">Annualized = a person's regular pay in this office divided by the days it covers, scaled to a year of 26 biweekly pay periods. One-time payments (lump sums, deferrals, stipends) aren't annualized. ${payWindowNote(DB)} <a href="${buildHash("salaries", {})}">All salaries ${I.r}</a></p>` : `<p class="empty">No payroll lines.</p>`}
       </section>
@@ -2528,12 +2529,59 @@
   function fmtShortDay(iso) { return new Date(iso + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" }).replace(/, (\d\d)$/, " ’$1"); }
   function fmtDay(iso) { return new Date(iso + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }); }
 
+  /* ---------- What staff do: job families for member-office titles ----------
+     Titles vary office to office, so each is sorted into a family by its words. Descriptions are
+     paraphrased from New York Senate and Assembly offices' own job postings (linked). */
+  const SJ = (id) => `https://statejobs.ny.gov/public/vacancyDetailsView.cfm?id=${id}`;
+  const STAFF_ROLES = [
+    { key: "member", label: "The member", re: /^MEMBER( OF ASSEMBLY)?$/ },
+    { key: "intern", label: "Interns and fellows", re: /INTERN|FELLOW/, what: "Students and early-career fellows, usually part-time or seasonal.", src: [] },
+    { key: "leadership", label: "Chief of staff and senior advisors", re: /CHIEF OF STAFF|EXECUTIVE DIRECTOR|SENIOR ADVISOR|SR\.? ADVISOR|SPECIAL ADVISOR|^ADVISOR$|PRINCIPAL/,
+      what: "Runs the office: supervises the communications, community, legislative and scheduling staff, handles hiring and personnel, coordinates with other offices and the conference leadership, and is the member's main political and strategic adviser.",
+      src: [["Sen. Kavanagh, Chief of Staff (2020)", "https://www.nysenate.gov/newsroom/articles/2020/brian-kavanagh/were-hiring-two-positions-chief-staff-legislative-director"]] },
+    { key: "communications", label: "Communications and press", re: /COMMUNICATION|PRESS|MEDIA|DIGITAL|SPEECH|WRITER|SOCIAL|CONTENT|GRAPHIC|PUBLIC INFORMATION|PUBLIC RELATIONS|PUBLIC AFFAIRS/,
+      what: "Writes press releases, statements, op-eds and speeches; runs social media, the e-newsletter and the member's web page; handles reporters and sets up interviews. Directors set the communications plan, including the yearly mail plan.",
+      src: [["Sen. Ramos, Communications Director", SJ(201100)], ["Senate office, Communications Director", SJ(186610)]] },
+    { key: "legislative", label: "Legislative and policy", re: /LEGISLAT|POLICY|COUNSEL|ATTORNEY|RESEARCH|ANALYST|BUDGET|COMMITTEE/,
+      what: "Moves the member's bills, budget and policy agenda: researches issues, drafts and analyzes bills and memos, builds coalitions and meets with advocates and officials. Directors set strategy and manage the aides. Much of the work is in Albany during the January–June session.",
+      src: [["Sen. Kavanagh, Legislative Director (2020)", "https://www.nysenate.gov/newsroom/articles/2020/brian-kavanagh/were-hiring-two-positions-chief-staff-legislative-director"], ["Assembly office, Legislative Director, posted $45,000–$55,000", SJ(197799)], ["Asm. Valdez, Legislative Aide", "https://assembly.state.ny.us/mem/Claire-Valdez/story/113656"]] },
+    { key: "constituent", label: "Constituent services and community", re: /CONSTITUENT|CONSTNT|CONST\. SERV|COMMUNITY|OUTREACH|CASE ?WORK|LIAISON|NEIGHBORHOOD|ENGAGEMENT|CIVIC|FIELD REP|HOUSING SPECIALIST/,
+      what: "Casework and community work: takes requests by phone, email and walk-in, works with government agencies and nonprofits to solve constituents' problems (unemployment claims, housing, social services), represents the member at community board and neighborhood meetings, and runs events. Directors assign and supervise caseloads.",
+      src: [["Sen. Gonzalez, Community Liaison, posted $60,000–$65,000", SJ(210628)], ["Sen. Ramos, Constituent Services Liaison, posted $40,000–$45,000", SJ(208576)], ["Sen. Gonzalez, Director of Constituent Services", SJ(210635)], ["Assembly office, Community Liaison", SJ(198029)]] },
+    { key: "district", label: "District office and operations", re: /DISTRICT|DIST OFF|OPERATION|OPTNS|OFFICE MANAGER|OFFICE DIRECTOR|ADMINISTRATOR|DIRECTOR OF ADMINISTRATION/,
+      what: "Runs the district office or the office's operations: day-to-day systems and procedures, staff in the district, and the link to the Albany office, working in tandem with the chief of staff.",
+      src: [["Assembly office, Chief of Staff (works with the District Director)", SJ(175558)]] },
+    { key: "admin", label: "Scheduling and administration", re: /SCHEDUL|ASSISTANT|SECRETARY|CLERK|RECEPTION|ADMINISTRATIVE|CORRESP|OFFICE AIDE|AIDE|DRIVER|COORDINATOR|STAFF|PROJECT/,
+      what: "Keeps the member's calendar and confirms meetings, screens calls and mail, books travel and does the paperwork, reconciles invoices and orders supplies.",
+      src: [["Senate, Administrative Assistant (Albany), posted $50,000–$55,000", "https://emprego.com/jobs/administrative-assistant-eb05d682-d529-4d2e-95e3-7a5b5fbe3c08"], ["Assembly office, Executive Assistant & Scheduler", SJ(191718)], ["Assembly office, Special Assistant (scheduling)", SJ(167639)]] },
+  ];
+  const OTHER_ROLE = { key: "other", label: "Other titles", what: "Titles that don't fit one family, such as special projects or economic development." };
+  function roleOf(title) {
+    const t = (title || "").split(" → ").pop();
+    return STAFF_ROLES.find((r) => r.re.test(t)) || OTHER_ROLE;
+  }
+  const roleByKey = (k) => STAFF_ROLES.find((r) => r.key === k) || OTHER_ROLE;
+  /* Distinct people in each family for one member office (the member left out). */
+  function staffMix(db, unitId) {
+    const seen = new Map();
+    for (const x of db.salaries) if (x.u === unitId) { const r = roleOf(x.titles); if (r.key !== "member") seen.set(x.p, r.key); }
+    const c = {};
+    for (const k of seen.values()) c[k] = (c[k] || 0) + 1;
+    return c;
+  }
+  function staffMixLine(db, unitId) {
+    const c = staffMix(db, unitId);
+    const order = ["leadership", "legislative", "communications", "constituent", "district", "admin", "intern", "other"];
+    const parts = order.filter((k) => c[k]).map((k) => `<a class="ov-chip" href="${buildHash("salaries", { fam: k, q: `"${(db.units[unitId].name || "").toLowerCase()}"` })}" title="${esc(roleByKey(k).what || "")}">${esc(roleByKey(k).label)} <strong>${c[k]}</strong></a>`);
+    return parts.length ? `<p class="overlap"><span class="ov-label">Staff by role:</span> ${parts.join("")} <a class="summary" href="${buildHash("salaries", { roles: "1" })}#roles">what the roles do</a></p>` : "";
+  }
   function viewSalaries(params) {
-    const state = { q: params.q || "", kind: params.kind || "", min: params.min || "", sort: params.sort || "annual", dir: params.dir || "desc", page: Math.max(1, Number(params.page) || 1) };
+    const state = { q: params.q || "", kind: params.kind || "", fam: params.fam || "", min: params.min || "", sort: params.sort || "annual", dir: params.dir || "desc", page: Math.max(1, Number(params.page) || 1) };
     const tokens = tokenize(state.q);
     const { units, payees } = DB;
     const all = DB.salaries;
     let list = all.filter((x) => (!state.kind || units[x.u].kind === state.kind)
+      && (!state.fam || (units[x.u].kind === "member" && roleOf(x.titles).key === state.fam))
       && (!state.min || x.annual >= Number(state.min))
       && matchesTokens(`${payees[x.p]} | ${x.titles} | ${units[x.u].name}`.toLowerCase(), tokens));
     const key = { name: (x) => payees[x.p], title: (x) => x.titles, office: (x) => units[x.u].name, annual: (x) => x.annual, paid: (x) => x.paid, days: (x) => x.days }[state.sort] || ((x) => x.annual);
@@ -2580,8 +2628,17 @@
           <a class="range-name" href="${buildHash("salaries", { q: `"${t.toLowerCase()}"` })}">${esc(titleCase(t))} <span class="summary">· ${v.length}</span></a>
           <div class="range-track"><span class="range-bar" style="left:${(lo / tmax * 100).toFixed(1)}%;width:${Math.max(0.5, (hi - lo) / tmax * 100).toFixed(1)}%"></span><span class="range-med" style="left:${(md / tmax * 100).toFixed(1)}%" title="median ${money0(md)}"></span></div>
           <span class="range-val">${money0(md)}</span></div>`; }).join("")}</div></section>` : ""}
+      ${(() => { const mem = all.filter((x) => units[x.u].kind === "member"); const by = {}; for (const x of mem) { const k = roleOf(x.titles).key; (by[k] = by[k] || []).push(x.annual); }
+        return `<details class="card roles" id="roles"${params.roles ? " open" : ""}><summary><h2>What member-office staff do</h2><span class="summary">titles sorted into job families · typical annualized pay in ${esc(periodName(DB))}</span></summary>
+        <div class="table-wrap"><table class="cf-table stack-sm"><caption class="sr-only">Job families of staff in member offices</caption>
+          <thead><tr><th scope="col">Job family</th><th scope="col">What the job involves</th><th scope="col" class="num">People</th><th scope="col" class="num">Typical pay</th></tr></thead>
+          <tbody>${[...STAFF_ROLES.filter((r) => r.key !== "member"), OTHER_ROLE].filter((r) => by[r.key]).map((r) => `<tr><th scope="row"><a href="${buildHash("salaries", { fam: r.key, kind: "member" })}">${esc(r.label)}</a></th>
+            <td>${esc(r.what)}${r.src && r.src.length ? `<br><span class="summary">From job postings: ${r.src.map(([l, u]) => `<a href="${escUrl(u)}" target="_blank" rel="noopener">${esc(l)}</a>`).join(" · ")}</span>` : ""}</td>
+            <td class="num">${int.format(by[r.key].length)}</td><td class="num">${money0(median(by[r.key]))}</td></tr>`).join("")}</tbody></table></div>
+        <p class="summary">Each office titles its own staff, so families are assigned from the words in a title (a "Director of Constituent Services" is constituent services; a "Scheduler" is scheduling and administration), and a few mixed titles land in the closest family. Descriptions are summarized from New York Senate and Assembly offices' job postings, where posted pay ranges are shown as posted. Typical pay is the median annualized rate.</p></details>`; })()}
       <div class="filters">
         <label class="wide">Search name, title or office<input type="search" id="sq" value="${esc(state.q)}" placeholder="e.g. chief of staff, counsel, Heastie"></label>
+        <label>Job family<select id="sfam"><option value="">All roles</option>${[...STAFF_ROLES.filter((r) => r.key !== "member"), OTHER_ROLE].map((r) => `<option value="${r.key}"${state.fam === r.key ? " selected" : ""}>${esc(r.label)}</option>`).join("")}</select></label>
         <label>Office type<select id="skind"><option value="">All offices</option><option value="member"${state.kind === "member" ? " selected" : ""}>Member offices</option><option value="office"${state.kind === "office" ? " selected" : ""}>Central offices</option></select></label>
         <label>Annualized at least $<input type="number" id="smin" value="${esc(state.min)}" step="1000" inputmode="numeric"></label>
       </div>
@@ -2591,7 +2648,7 @@
         <thead><tr>${sortHeader("Name", "name", state)}${sortHeader("Title", "title", state)}${sortHeader("Office", "office", state)}<th>Covered</th>${sortHeader("Days", "days", state, "num")}${sortHeader("Regular pay", "paid", state, "num")}${sortHeader("Annualized", "annual", state, "num")}${CH.id === "senate" ? `<th class="num" title="Rate on the Senate's latest biweekly payroll report">Rate now</th>` : ""}</tr></thead>
         <tbody>${slice.length ? slice.map((x) => `<tr>
           <td><a href="${buildHash("records", { payee: payees[x.p] })}">${highlight(payees[x.p], tokens)}</a></td>
-          <td>${highlight(titleCase(x.titles), tokens)}</td>
+          <td>${highlight(titleCase(x.titles), tokens)}${units[x.u].kind === "member" ? (() => { const r = roleOf(x.titles); return r.key === "member" ? "" : `<br><span class="role-chip" title="${esc(r.what || "")}">${esc(r.label)}</span>`; })() : ""}</td>
           <td><a href="${unitHref(x.u)}">${highlight(units[x.u].name, tokens)}</a></td>
           <td class="nowrap mono">${x.basis === "lump" ? `check ${esc(x.to)}` : `${esc(x.from)} – ${esc(x.to)}`}</td>
           <td class="num"${x.basis === "lump" ? ` title="${esc(salaryTip(x))}"` : ""}>${x.basis === "lump" ? "≈" : ""}${int.format(x.days)}</td>
@@ -2605,6 +2662,7 @@
     let timer;
     sq.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(() => { update({ q: sq.value }); focusEnd("#sq"); }, 220); });
     app.querySelector("#skind").addEventListener("change", (e) => update({ kind: e.target.value }));
+    app.querySelector("#sfam").addEventListener("change", (e) => update({ fam: e.target.value }));
     app.querySelector("#smin").addEventListener("change", (e) => update({ min: e.target.value }));
     wireSortHeaders(app, state, update, { name: "asc", title: "asc", office: "asc" });
     app.querySelector("#sprev").addEventListener("click", () => { update({ page: page - 1 }); window.scrollTo(0, 0); });
