@@ -1570,6 +1570,10 @@
         ${per != null ? kpi(term("Office cost per resident", "per resident"), money(per), `${esc(periodName(DB))}, or ${money(per / DB.periodMonths * 12)} a year for each person in the district`) : ""}
       </div></section>`;
   }
+  function disclosureLink(s) {
+    const f = memberInfo(s).disclosure;
+    return s.kind === "member" && f ? `<a class="btn" href="${escUrl(f.url)}" target="_blank" rel="noopener" title="The member's annual statement of financial disclosure for ${f.year} (covering ${f.year - 1}), filed with the state ethics commission: outside jobs, income sources, investments and debts. A scanned PDF.">Financial disclosure ${f.year} ${I.ext}</a>` : "";
+  }
   function officialLink(s) {
     const u = memberInfo(s).profileUrl;
     const d = DISTRICT_BY_UNIT.get(s.name);
@@ -1636,7 +1640,8 @@
         <p class="findlinks">${u ? `<a class="btn" href="${buildHash("unit/" + u.id, chq)}">Office spending &amp; staff ${I.r}</a>` : ""}
           <a class="btn" href="${buildHash("district/" + d.district, chq)}">District map &amp; results ${I.r}</a>
           ${DONATIONS[c.id] && DONATIONS[c.id].districts[String(d.district)] ? `<a class="btn" href="${buildHash("donations/" + d.district, chq)}">Campaign donations ${I.r}</a>` : ""}
-          ${m.profileUrl ? `<a class="btn" href="${escUrl(m.profileUrl)}" target="_blank" rel="noopener">Official page ${I.ext}</a>` : ""}</p>
+          ${m.profileUrl ? `<a class="btn" href="${escUrl(m.profileUrl)}" target="_blank" rel="noopener">Official page ${I.ext}</a>` : ""}
+          ${m.disclosure ? `<a class="btn" href="${escUrl(m.disclosure.url)}" target="_blank" rel="noopener">Financial disclosure ${m.disclosure.year} ${I.ext}</a>` : ""}</p>
       </section>`;
     }).join("") : "";
     return `<h1>Find your legislators</h1>
@@ -2190,7 +2195,7 @@
     return `
       <div class="crumbs"><a href="${buildHash("units", { kind: s.kind })}">${I.l} ${s.kind === "member" ? "Members" : "Offices"}</a></div>
       <div class="title-row"><h1>${esc(s.kind === "member" ? displayName(s) : s.name)} ${kindChip(s.kind)}${districtChip(s)}</h1>
-        <div class="title-actions">${officialLink(s)}${ballotpediaLink(s)}${pinBtn(s.name)}<a class="btn" href="${buildHash("compare", { u: s.kind === "member" ? [s.name, DB.members[Math.floor(DB.members.length / 2)].name].filter((v, i, a) => a.indexOf(v) === i).join("|") : s.name })}">Compare…</a></div></div>
+        <div class="title-actions">${officialLink(s)}${disclosureLink(s)}${ballotpediaLink(s)}${pinBtn(s.name)}<a class="btn" href="${buildHash("compare", { u: s.kind === "member" ? [s.name, DB.members[Math.floor(DB.members.length / 2)].name].filter((v, i, a) => a.indexOf(v) === i).join("|") : s.name })}">Compare…</a></div></div>
       <p class="lede">${rankNote || "Central office, committee, or task force."} ${s.kind === "member" ? `<span class="as-filed">Listed in the report as ${esc(s.name)}${/\.$/.test(s.name) ? "" : "."}</span>` : ""}</p>
       ${plainSummary(s)}
       <div class="grid kpis">
