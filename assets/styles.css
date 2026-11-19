@@ -1114,3 +1114,10 @@ dl.glossary dd { margin: 0; color: var(--text); max-width: 70ch; }
 .ov-chip:hover, .ov-chip:focus-visible { border-color: var(--accent); }
 .ov-chip .summary { font-size: 12px; }
 @media (forced-colors: active) { .page-switch a.on { forced-color-adjust: none; } }
+
+/* A chamber rule, shown where it bears on the numbers */
+.rule-note { font-size: 13px; color: var(--muted); line-height: 1.5; margin: 10px 0 0; padding: 8px 12px; border-left: 3px solid var(--accent); background: var(--accent-soft); border-radius: 0 8px 8px 0; }
+.rule-note a { white-space: nowrap; }
+.rule-tag { display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--accent); margin-right: 4px; }
+.mailnote p { font-size: 14px; margin: 10px 0 0; }
+li .rule-note { margin-top: 6px; }
