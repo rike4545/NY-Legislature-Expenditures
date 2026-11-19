@@ -1375,13 +1375,13 @@
   }
   /* ---------- Scorecard: how each member office did, on measures the site can verify ---------- */
   const SC_MEASURES = [
-    { key: "cost", label: "Cost per month", better: "low", fmt: (v) => money0(v), help: "Actual spending per month the office was active (lower ranks higher)" },
-    { key: "retention", label: "Staff retention", better: "high", fmt: (v) => pctf(v), help: "Share of the previous report's staff still paid by the office in this report" },
-    { key: "margin", label: "2026 margin", better: "high", fmt: (v) => v >= 0 ? `won by ${Math.round(v)}` : `lost by ${Math.round(-v)}`, help: "How far ahead (or behind) the member finished, in percentage points of the vote: winning 60% to 40% is a 20-point win. Their lead (or deficit) over the nearest opponent in the State Board's unofficial count; unopposed and non-running members aren't ranked" },
-    { key: "laws", label: "Bills signed into law", better: "high", fmt: (v) => int.format(v), help: "Bills the member was prime sponsor of in the 2025–26 session that the Governor signed (Open Legislation)" },
-    { key: "passRate", label: "Bills passed by own chamber", better: "high", fmt: (v) => pctf(v), help: "Share of the member's 2025–26 bills (prime sponsor, not resolutions) that passed their own chamber" },
-    { key: "reach", label: "Donors in district", better: "high", fmt: (v) => pctf(v), help: "Share of the member's 2025–26 individual donors whose ZIP code falls in the district (estimate)" },
-    { key: "small", label: "Small donors", better: "high", fmt: (v) => pctf(v), help: "Share of the member's individual donors who gave $250 or less in total" },
+    { key: "cost", group: "Office spending", label: "Cost per month", better: "low", fmt: (v) => money0(v), what: "What the office actually spent per month it was open", src: "expenditure report, this period", help: "Actual spending per month the office was active (lower ranks higher)" },
+    { key: "retention", group: "Office staff", label: "Staff retention", better: "high", fmt: (v) => pctf(v), what: "Share of the previous report's staff still paid by the office in this report", src: "expenditure reports, this period and the one before", help: "Share of the previous report's staff still paid by the office in this report" },
+    { key: "margin", group: "Elections", label: "2026 margin", better: "high", fmt: (v) => v >= 0 ? `won by ${Math.round(v)}` : `lost by ${Math.round(-v)}`, what: "Lead over the nearest opponent in percentage points of the vote (60% to 40% is a 20-point win); unopposed and non-running members are left out", src: "State Board of Elections, unofficial 2026 count", help: "How far ahead (or behind) the member finished, in percentage points of the vote: winning 60% to 40% is a 20-point win. Their lead (or deficit) over the nearest opponent in the State Board's unofficial count; unopposed and non-running members aren't ranked" },
+    { key: "laws", group: "Lawmaking", label: "Bills signed into law", better: "high", fmt: (v) => int.format(v), what: "Bills the member was prime sponsor of that the Governor signed", src: "Open Legislation, 2025–26 session", help: "Bills the member was prime sponsor of in the 2025–26 session that the Governor signed (Open Legislation)" },
+    { key: "passRate", group: "Lawmaking", label: "Bills passed by own chamber", better: "high", fmt: (v) => pctf(v), what: "Share of the member's bills (prime sponsor, not resolutions) that passed their own chamber", src: "Open Legislation, 2025–26 session", help: "Share of the member's 2025–26 bills (prime sponsor, not resolutions) that passed their own chamber" },
+    { key: "reach", group: "Fundraising", label: "Donors in district", better: "high", fmt: (v) => pctf(v), what: "Share of individual donors whose ZIP code falls in the district (an estimate: ZIPs can cross district lines)", src: "State Board campaign filings, 2025–26", help: "Share of the member's 2025–26 individual donors whose ZIP code falls in the district (estimate)" },
+    { key: "small", group: "Fundraising", label: "Small donors", better: "high", fmt: (v) => pctf(v), what: "Share of individual donors who gave $250 or less in total", src: "State Board campaign filings, 2025–26", help: "Share of the member's individual donors who gave $250 or less in total" },
   ];
   function scorecardRows() {
     const dn = DONATIONS[CH.id];
@@ -1487,12 +1487,29 @@
         <div class="weight-grid">${SC_MEASURES.map((m) => `<div class="weight"><label for="w-${m.key}">${esc(m.label)}</label><input type="range" id="w-${m.key}" name="${m.key}" min="0" max="4" step="1" value="${weights[m.key]}" aria-valuetext="${SC_WEIGHT_LABELS[weights[m.key]]}"><output for="w-${m.key}">${SC_WEIGHT_LABELS[weights[m.key]]}</output></div>`).join("")}</div>
         <p class="summary">Off leaves a measure out of the index; Most counts it twice as much as Normal. The columns don't change, only how they're added up into the overall score. Your weights are kept in the page address, so you can share the link. <button type="button" class="linkbtn" id="scReset">Reset to equal weights</button></p>
       </details>
+      <section class="sc-key" aria-labelledby="scKeyH"><h2 id="scKeyH" class="mini">How to read a cell</h2>
+        <div class="sc-key-row">
+          <div class="sc-key-sample" aria-hidden="true"><span class="scval">$31,041</span><span class="scrank"><span class="scbar"><span style="width:70%"></span></span>#35</span></div>
+          <dl class="sc-key-list">
+            <div><dt>$31,041</dt><dd>the office's own figure</dd></div>
+            <div><dt><span class="scbar" aria-hidden="true"><span style="width:70%"></span></span> bar</dt><dd>where it falls ${state.within === "party" ? "among its own party's members" : "in the whole chamber"}: full is best, empty is last</dd></div>
+            <div><dt>#35</dt><dd>its rank ${state.within === "party" ? "in its party" : "in the chamber"}; #1 is best. Hover for "#35 of 85"</dd></div>
+            <div><dt>—</dt><dd>no figure: not enough data, unopposed, or not in office long enough</dd></div>
+          </dl>
+        </div>
+        <details class="sc-guide"><summary>What each column measures, which way is better, and where it comes from</summary>
+          <div class="table-wrap"><table class="cf-table stack-sm"><caption class="sr-only">Scorecard measures</caption>
+            <thead><tr><th scope="col">Measure</th><th scope="col">What it counts</th><th scope="col">Better</th><th scope="col">Source</th></tr></thead>
+            <tbody>${SC_MEASURES.map((m) => `<tr><th scope="row"><span class="summary">${esc(m.group)}</span><br>${esc(m.label)}</th><td>${esc(m.what)}</td><td class="nowrap">${m.better === "low" ? "↓ Lower" : "↑ Higher"}</td><td>${esc(m.src)}</td></tr>`).join("")}
+              <tr><th scope="row">Overall score</th><td>Each column turns into a score from 0 (last ${state.within === "party" ? "in its party" : "in the chamber"}) to 100 (first), and the overall score averages them, using your weights. Shown only with at least three measures; the line under it says how many.</td><td class="nowrap">↑ Higher</td><td>this site</td></tr></tbody></table></div>
+        </details>
+      </section>
       <div class="table-wrap"><table class="scorecard">
         <caption class="sr-only">${esc(CH.name)} member office scorecard, sortable</caption>
-        <thead><tr>${sortHeader("Member", "name", state)}${sortHeader(CH.abbr, "district", state, "num")}${sortHeader(`<abbr title="Combines the columns into one score from 0 to 100. 100 = best on every measure, 50 = about average.">Overall score</abbr>`, "index", state, "num sc-index")}${SC_MEASURES.map((m) => sortHeader(`<abbr title="${esc(m.help)}">${esc(m.label)}</abbr>`, m.key, state, "num")).join("")}</tr></thead>
+        <thead><tr>${sortHeader("Member", "name", state)}${sortHeader(CH.abbr, "district", state, "num")}${sortHeader(`<abbr title="Combines the columns into one score from 0 to 100. 100 = best on every measure, 50 = about average.">Overall score</abbr>`, "index", state, "num sc-index")}${SC_MEASURES.map((m) => sortHeader(`<span class="sc-hl"><abbr title="${esc(m.help)}">${esc(m.label)}</abbr><span class="sc-dir">${m.better === "low" ? "↓ lower is better" : "↑ higher is better"}</span></span>`, m.key, state, "num")).join("")}</tr></thead>
         <tbody>${rows.map((r) => `<tr><td><a href="${unitHref(r.s.id)}">${esc(displayName(r.s))}</a> <span class="ptag p${r.party}">${esc(r.party)}</span></td><td class="num">${r.district ?? ""}</td><td class="num sc-index">${r.index != null ? `<span class="sc-idx"><strong>${r.index.toFixed(0)}</strong><span class="scbar wide" aria-hidden="true"><span style="width:${r.index.toFixed(0)}%"></span></span></span><span class="summary">from ${r.nMeasures} measures</span>` : `<span class="summary">—</span>`}</td>${SC_MEASURES.map((m) => cell(r, m)).join("")}</tr>`).join("")}</tbody></table></div>
-      <section class="card"><div class="card-head"><h2>How to read this</h2></div>
-        <ul class="plainlist">${SC_MEASURES.map((m) => `<li><strong>${esc(m.label)}.</strong> ${esc(m.help)}.</li>`).join("")}
+      <section class="card"><div class="card-head"><h2>How the score works, and its limits</h2></div>
+        <ul class="plainlist">
           <li><strong>Overall score.</strong> Each column gives every office a score from 0 (last in its group) to 100 (first); technically, a percentile rank. The overall score is the average of an office's column scores, shown only when it has at least three; the line under it says how many it has. Every measure counts the same unless you change the weights, and that's a choice, so look at the columns too.</li>
           <li><strong>Why rank within party.</strong> The majority conference sets office budgets, and minority-party offices get smaller ones, so cost per month (and bills passed) mostly reflects party. Ranking within party compares like with like; switch to "whole chamber" to see the raw order.</li>
           <li><strong>Lawmaking.</strong> Bills signed into law and the share of bills that passed the member's own chamber come from the Senate's Open Legislation service, for the 2025–26 session. Majority-party members pass far more bills, which is another reason ranking within party is offered. Turn these off with the weights above if you only want the money measures.</li></ul>
