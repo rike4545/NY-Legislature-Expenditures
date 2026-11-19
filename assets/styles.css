@@ -1091,3 +1091,16 @@ dl.glossary { display: grid; grid-template-columns: minmax(180px, 16rem) 1fr; ga
 dl.glossary dt { font-weight: 700; }
 dl.glossary dd { margin: 0; color: var(--text); max-width: 70ch; }
 @media (max-width: 640px) { dl.glossary { grid-template-columns: 1fr; gap: 2px; } dl.glossary dd { margin-bottom: 10px; } }
+
+/* Switch chambers from the page itself */
+.page-switch { display: inline-flex; border: 1px solid var(--border); border-radius: 999px; overflow: hidden; margin: 8px 0 10px; font-size: 13px; font-weight: 600; }
+.page-switch a { padding: 4px 14px; color: var(--muted); text-decoration: none; background: var(--surface); }
+.page-switch a + a { border-left: 1px solid var(--border); }
+.page-switch a.on { background: var(--accent); color: #fff; pointer-events: none; }
+.page-switch a:hover:not(.on), .page-switch a:focus-visible { color: var(--text); background: var(--accent-soft); }
+.overlap { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: 6px 0 14px; font-size: 14px; }
+.ov-label { font-weight: 600; }
+.ov-chip { display: inline-flex; align-items: baseline; gap: 6px; padding: 3px 10px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); text-decoration: none; color: var(--text); }
+.ov-chip:hover, .ov-chip:focus-visible { border-color: var(--accent); }
+.ov-chip .summary { font-size: 12px; }
+@media (forced-colors: active) { .page-switch a.on { forced-color-adjust: none; } }

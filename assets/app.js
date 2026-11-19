@@ -24,6 +24,7 @@
   const ENROLL = {}; // chamber id -> State Board of Elections enrollment (registered voters) by district
   const PUBFIN = {}; // chamber id -> Public Campaign Finance Program participants by district (2026)
   const OUTSIDE = {}; // chamber id -> independent expenditures for/against candidates by district
+  let OVERLAP = null; // {assembly: {district: [[senate district, share]]}, senate: {...}}: which districts of the other chamber cover each one
   const STAFF = {}; // chamber id -> people each candidate's committees paid, matched to legislative payroll (2025-26)
   let LIMITS = null; // 2026 contribution limits (State Board of Elections)
   const LOBBY = {}; // chamber id -> who reported lobbying each legislator, 2025-26
@@ -200,6 +201,7 @@
     await loadElectionSources(bundled);
     await loadBudget(bundled);
     try { VENDOR_DONORS = bundled ? bundled.data["data/vendor_donors.json"] || null : await (await fetch("data/vendor_donors.json")).json(); } catch (e) { VENDOR_DONORS = null; }
+    try { OVERLAP = bundled ? bundled.data["data/district_overlap.json"] || null : await (await fetch("data/district_overlap.json")).json(); } catch (e) { OVERLAP = null; }
     try { LIMITS = bundled ? bundled.data["data/limits_2026.json"] || null : await (await fetch("data/limits_2026.json")).json(); } catch (e) { LIMITS = null; }
     await Promise.all(CHAMBERS.map(async (ch) => {
       await Promise.all(ch.periods.map(async (pm) => {
@@ -2214,6 +2216,7 @@
       <div class="title-row"><h1>${esc(s.kind === "member" ? displayName(s) : s.name)} ${kindChip(s.kind)}${districtChip(s)}</h1>
         <div class="title-actions">${officialLink(s)}${disclosureLink(s)}${ballotpediaLink(s)}${pinBtn(s.name)}<a class="btn" href="${buildHash("compare", { u: s.kind === "member" ? [s.name, DB.members[Math.floor(DB.members.length / 2)].name].filter((v, i, a) => a.indexOf(v) === i).join("|") : s.name })}">Compare…</a></div></div>
       <p class="lede">${rankNote || "Central office, committee, or task force."} ${s.kind === "member" ? `<span class="as-filed">Listed in the report as ${esc(s.name)}${/\.$/.test(s.name) ? "" : "."}</span>` : ""}</p>
+      ${s.kind === "member" && DISTRICT_BY_UNIT.get(s.name) ? overlapLine(DISTRICT_BY_UNIT.get(s.name).district) : ""}
       ${plainSummary(s)}
       <div class="grid kpis">
         ${kpi(term("Actual spending", "actual spending"), money0(s.actual), ps ? changeText(change(s.actual, ps.actual)) : (PREV ? "Not in prior period" : ""))}
@@ -3025,6 +3028,7 @@
           <p class="lede">${esc(d.member)}${d.party ? ` · ${esc(d.party)}` : ""}${s ? ` · <a href="${unitHref(s.id)}">member office page ${I.r}</a>` : ""}${s && (BALLOTPEDIA[CH.id] || {})[s.name] ? ` · <a href="${escUrl(BALLOTPEDIA[CH.id][s.name])}" target="_blank" rel="noopener">Ballotpedia ${I.ext}</a>` : ""} · <a href="${buildHash("sheet/" + d.district, {})}">printable fact sheet ${I.r}</a></p></div>
         <div class="dnav">${s ? pinBtn(s.name) : ""}<a class="btn" href="${dHref(prevD)}" aria-label="Previous district">${I.l} ${CH.abbr} ${prevD.district}</a>${picker}<a class="btn" href="${dHref(nextD)}" aria-label="Next district">${CH.abbr} ${nextD.district} ${I.r}</a></div>
       </div>
+      ${overlapLine(d.district)}
       ${s ? plainSummary(s) : ""}`;
 
     if (!s) {
@@ -3670,6 +3674,40 @@
     const skip = document.getElementById("skipLink");
     if (skip) skip.addEventListener("click", (e) => { e.preventDefault(); const h1 = app.querySelector("h1") || app; h1.setAttribute("tabindex", "-1"); h1.focus(); });
   }
+  /* Move to the same view in the other chamber. A member or district page goes to the other chamber's
+     district that covers most of this one; lists keep their search, sort and filters. */
+  function chamberHref(cid) {
+    const { view, arg, params } = parseHash();
+    if (view === "district" || view === "unit") {
+      const d = view === "district" ? DISTRICTS.find((x) => x.district === Number(arg)) : DISTRICT_BY_UNIT.get((DB.units[arg] || {}).name);
+      const best = d && OVERLAP && (OVERLAP[CH.id][String(d.district)] || [])[0];
+      if (best) return buildHash("district/" + best[0], { c: cid, p: "" });
+    }
+    const nextView = { unit: "units", district: "map", compare: "compare", person: "payroll" }[view] || (view === "overview" ? "" : view);
+    const keepAll = ["units", "scorecard", "stats", "donations", "vendors", "changes", "payees", "endorsements"];
+    const keep = view === "records" ? { q: params.q || "", type: "", month: params.month || "" }
+      : view === "map" ? { m: params.m || "" }
+      : view === "donations" && arg ? {}
+      : keepAll.includes(view) ? Object.fromEntries(Object.entries(params).filter(([k]) => k !== "c" && k !== "p" && k !== "u")) : {};
+    return buildHash(nextView, { ...keep, c: cid, p: "" });
+  }
+  function switchChamber(cid) { if (cid !== CH.id) location.hash = chamberHref(cid); }
+  /* "Same area in the Senate: SD 1 · Anthony H. Palumbo · 66% of this district" for a district or member page. */
+  function overlapLine(district) {
+    const other = CHAMBERS.find((c) => c.id !== CH.id);
+    const rows = OVERLAP && other ? (OVERLAP[CH.id] || {})[String(district)] || [] : [];
+    if (!rows.length) return "";
+    const nameOf = (n) => { const d = (DIST[other.id] || []).find((x) => x.district === n); return d ? d.member : ""; };
+    const share = (f) => f >= 0.95 ? "all" : f < 0.05 ? "a sliver" : `${Math.round(f * 100)}%`;
+    return `<p class="overlap"><span class="ov-label">Same area in the ${esc(other.name)}:</span> ${rows.map(([n, f]) => `<a class="ov-chip" href="${buildHash("district/" + n, { c: other.id, p: "" })}"><strong>${esc(other.abbr)} ${n}</strong>${nameOf(n) ? ` ${esc(nameOf(n))}` : ""} <span class="summary">${share(f)} of this district</span></a>`).join("")}
+      <span class="summary" data-tip="Share of this district's land area inside each ${esc(other.name)} district (2024 lines). Land isn't people: a dense neighborhood can hold most residents on a small share of the land.">by land area</span></p>`;
+  }
+  /* A Senate/Assembly switch at the top of every page that has one in each chamber. */
+  const BOTH_CHAMBER_VIEWS = new Set(["overview", "units", "records", "payees", "salaries", "stats", "donations", "scorecard", "map", "compare", "vendors", "changes", "endorsements"]);
+  function pageSwitch(view) {
+    if (CHAMBERS.length < 2 || !BOTH_CHAMBER_VIEWS.has(view || "overview")) return "";
+    return `<div class="page-switch" role="group" aria-label="Show this page for">${CHAMBERS.map((c) => `<a href="${c.id === CH.id ? "#" : chamberHref(c.id)}" class="${c.id === CH.id ? "on" : ""}"${c.id === CH.id ? ' aria-current="page"' : ""}>${esc(c.name)}</a>`).join("")}</div>`;
+  }
   function render() {
     wireTheme();
     wireNav();
@@ -3708,6 +3746,12 @@
       default: html = viewOverview();
     }
     if (html != null) app.innerHTML = html;
+    const psw = html != null ? pageSwitch(view) : "";
+    if (psw) {
+      const h1 = app.querySelector("h1");
+      const at = h1 && (h1.closest(".title-row") || h1);
+      if (at && at.parentNode === app) at.insertAdjacentHTML("beforebegin", psw);
+    }
     prepareTips(app);
     // Long pages (an office, a district): an "On this page" bar that jumps to each section.
     if (view === "unit" || view === "district") {
@@ -3830,12 +3874,7 @@
       sw.innerHTML = CHAMBERS.map((c) => `<button type="button" data-c="${esc(c.id)}">${esc(c.name)}</button>`).join("");
       sw.addEventListener("click", (e) => {
         const b = e.target.closest("button[data-c]");
-        if (!b || b.dataset.c === CH.id) return;
-        const { view, params } = parseHash();
-        // Offices, districts and comparisons belong to one chamber; keep the view, drop the specifics.
-        const nextView = { unit: "units", district: "map", compare: "compare" }[view] || (view === "overview" ? "" : view);
-        const keep = view === "records" ? { q: params.q || "", type: "", month: params.month || "" } : view === "map" ? { m: params.m || "" } : {};
-        location.hash = buildHash(nextView, { ...keep, c: b.dataset.c, p: params.p || "" });
+        if (b) switchChamber(b.dataset.c);
       });
     }
     sw.querySelectorAll("button").forEach((b) => { b.classList.toggle("on", b.dataset.c === CH.id); b.setAttribute("aria-pressed", b.dataset.c === CH.id); });
