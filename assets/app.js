@@ -24,6 +24,7 @@
   const ENROLL = {}; // chamber id -> State Board of Elections enrollment (registered voters) by district
   const PUBFIN = {}; // chamber id -> Public Campaign Finance Program participants by district (2026)
   const OUTSIDE = {}; // chamber id -> independent expenditures for/against candidates by district
+  const STAFF = {}; // chamber id -> people each candidate's committees paid, matched to legislative payroll (2025-26)
   let LIMITS = null; // 2026 contribution limits (State Board of Elections)
   const LOBBY = {}; // chamber id -> who reported lobbying each legislator, 2025-26
   const HISTORY = {}; // chamber id -> totals from every expenditure report on file
@@ -277,6 +278,10 @@
         const omFile = `data/${ch.id}/outside_money.json`;
         OUTSIDE[ch.id] = bundled ? bundled.data[omFile] || null : await (await fetch(omFile)).json();
       } catch (e) { OUTSIDE[ch.id] = null; }
+      try {
+        const stFile = `data/${ch.id}/campaign_staff.json`;
+        STAFF[ch.id] = bundled ? bundled.data[stFile] || null : await (await fetch(stFile)).json();
+      } catch (e) { STAFF[ch.id] = null; }
     }));
   }
 
@@ -841,6 +846,36 @@
     const total = list.reduce((a, p) => a + p.received, 0);
     return `<p class="pfline"><strong>Public financing:</strong> ${list.length ? `${list.length} ${list.length === 1 ? "candidate" : "candidates"} here registered for New York's 2026 public matching-funds program${total ? `, receiving ${money0(total)} in all` : ""}${rows.length ? ` (${inProg} of the ${rows.length} listed above)` : ""}.` : "no candidate here registered for New York's 2026 public matching-funds program."}${extra.length ? ` Also in the program: ${extra.map((p) => `${esc(p.name)}${p.received ? ` (${money0(p.received)})` : ""}`).join(", ")}.` : ""} <span class="summary">As listed by the State Board on ${esc(fmtDay(pf.retrieved))}; status by election: ${list.map((p) => `${esc(p.name)} — ${esc(pfStatus(p))}`).join("; ") || "none"}.</span></p>`;
   }
+  /* People each candidate's committees paid for campaign work, and whether they're on a legislative payroll. */
+  function staffBlock(district, linked) {
+    const st = STAFF[CH.id];
+    if (!st) return "";
+    const byFiler = st.districts[String(district)] || {};
+    const cands = linked.filter((c) => byFiler[c.filerId]);
+    const pa = st.payrollAsOf || {};
+    const asOf = { senate: pa.senate ? fmtDay(pa.senate) : "", assembly: pa.assembly ? fmtDay(pa.assembly) : "" };
+    if (!cands.length) return `<p class="pfline"><strong>Campaign staff:</strong> no 2025–26 payments to individuals for campaign work were reported by a committee linked to a candidate here.</p>`;
+    const officeName = (m) => m.ch === "senate" ? titleCase(m.office.replace(/^SENATOR\s+/, "")) + (/^SENATOR\s/.test(m.office) ? " (Senate office)" : " (Senate)") : titleCase(m.office) + (/,/.test(m.office) ? " (Assembly office)" : " (Assembly)");
+    const link = (m) => m.ch === "senate" ? buildHash("person", { c: "senate", p: "", name: m.key }) : buildHash("salaries", { c: "assembly", p: "", q: `"${m.key.toLowerCase()}"` });
+    const payrollCell = (m) => {
+      if (!m) return `<span class="summary">Not found on Senate or Assembly payroll</span>`;
+      if (!m.v) return `<span class="summary">Possible match, unverified: a similar name is on the ${m.ch === "senate" ? "Senate" : "Assembly"} payroll</span>`;
+      const where = m.own ? "this candidate's own office" : esc(officeName(m));
+      const t = esc(titleCase(m.title));
+      return m.cur
+        ? `<strong>Yes</strong> · <a href="${link(m)}">${t}</a>, ${where} <span class="summary">(as of ${esc(asOf[m.ch])})</span>`
+        : `Formerly · <a href="${link(m)}">${t}</a>, ${where} <span class="summary">(until ${esc(fmtDay(m.to))})</span>`;
+    };
+    const dates = (a, b) => a === b ? fmtDay(a) : `${fmtDay(a)} – ${fmtDay(b)}`;
+    return `<h3 class="mini" style="margin-top:16px">Campaign staff: who the committees paid, and whether they're on a legislative payroll</h3>
+      ${cands.map((c) => { const x = byFiler[c.filerId]; const ppl = x.people; const tot = ppl.reduce((a, r) => a + r[1], 0); const now = ppl.filter((r) => r[6] && r[6].v && r[6].cur).length;
+        return `<details class="yeartable"><summary>${esc(c.name)}: ${int.format(ppl.length)} ${ppl.length === 1 ? "person" : "people"} paid ${money0(tot)}${now ? `, ${now} now on a legislative payroll` : ""}${x.processor ? ` · plus ${money0(x.processor)} through a payroll company` : ""}</summary>
+        ${ppl.length ? `<div class="table-wrap"><table class="cf-table stack-sm"><caption class="sr-only">People ${esc(c.name)}'s committees paid for campaign work, 2025–26</caption>
+          <thead><tr><th scope="col">Paid to</th><th scope="col" class="num">Amount</th><th scope="col">For</th><th scope="col">When</th><th scope="col">On a legislative payroll?</th></tr></thead>
+          <tbody>${ppl.map((r) => `<tr><th scope="row"><span class="cf-name">${esc(r[0])}</span></th><td class="num">${money0(r[1])}${r[2] > 1 ? `<br><span class="summary">${int.format(r[2])} payments</span>` : ""}</td><td>${esc(r[5])}</td><td class="nowrap">${r[3] ? esc(dates(r[3], r[4])) : "—"}</td><td>${payrollCell(r[6])}</td></tr>`).join("")}</tbody></table></div>` : ""}
+        ${x.processor ? `<p class="summary">${money0(x.processor)} was paid through a payroll company or as payroll taxes, so the filings don't name those workers.</p>` : ""}</details>`; }).join("")}
+      <p class="summary">Payments from each candidate's committees to individuals, as itemized in their State Board of Elections expenditure filings for 2025–26 (<a href="https://data.ny.gov/d/ajsb-8pni" target="_blank" rel="noopener">data.ny.gov</a>), with purposes of wages, campaign workers' salaries, campaign consultant, petitioning, professional services, or other staff work. Businesses are left out by their names, and so are payments described as legal, accounting, printing, photography or reimbursements. Each person is looked up by name on the Senate payroll (as of ${esc(asOf.senate || "—")}) and on the Assembly's latest expenditure report (payroll through ${esc(asOf.assembly || "—")}). "Yes" needs the same first and last name, or a common short form like Chris for Christopher; a similar but different spelling is shown as unverified, and records that ended before 2024 aren't counted. A name match isn't proof it's the same person, and being paid by a campaign while on a legislative payroll isn't by itself improper: staff may do campaign work on their own time. Check the filing before relying on a match.</p>`;
+  }
   function campaignCard(district, memberName) {
     const cf = CAMPAIGN[CH.id];
     if (!cf || district == null) return "";
@@ -870,6 +905,7 @@
         <div class="legend"><span><i class="cf-a"></i>Individuals</span><span><i class="cf-b"></i>Corporations</span><span><i class="cf-c"></i>PACs, unions &amp; other</span><span><i class="cf-d"></i>In-kind</span><span><i class="cf-g"></i>Transfers in</span>${anyPf ? `<span><i class="cf-p"></i>Public matching funds</span>` : ""}</div>` : `<p class="summary">No 2025–26 contributions found for a committee we could link to a candidate in this district.</p>`}
       ${DONATIONS[CH.id] && DONATIONS[CH.id].districts[String(district)] ? `<p><a class="btn" href="${buildHash("donations/" + district, {})}">Donations in depth: donors, where they live, biggest organizational donors ${I.r}</a></p>` : ""}
       ${unlinked.length ? `<p class="summary">Also registered here, with no linked committee activity: ${unlinked.map((c) => esc(c.name)).join(", ")}.</p>` : ""}
+      ${staffBlock(district, linked)}
       ${pfNote(district, rows)}
       ${outsideBlock(district)}
       ${limitsLine(district)}

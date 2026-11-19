@@ -36,6 +36,7 @@ jobs:
       - name: Campaign finance and donations (data.ny.gov)
         run: |
           python3 scripts/build_campaign_finance.py --fetch
+          python3 scripts/build_campaign_staff.py --fetch
           python3 scripts/build_public_financing.py
           python3 scripts/build_outside_money.py
           python3 scripts/build_donations.py
