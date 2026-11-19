@@ -785,6 +785,58 @@
     const nm = " " + (displayName(s) + " " + s.name).toUpperCase().replace(/[^A-Z]+/g, " ") + " ";
     return list.find((r) => { const sur = (r.shortName || "").toUpperCase().replace(/[^A-Z]+/g, " ").trim().split(" ").pop(); return sur && nm.includes(" " + sur + " "); }) || null;
   }
+  /* ---------- The chambers' own rules, shown where they bear on the numbers ---------- */
+  const RULEBOOK = {
+    assembly: { name: "Assembly Rules", url: "https://www.assembly.state.ny.us/Rules/rules_2026.pdf" },
+    senate: { name: "Senate Rules, 2025–26", url: "https://www.nysenate.gov/sites/default/files/admin/structure/media/manage/filefile/a/2025-02/rules-of-the-senate-2025-26.pdf" },
+  };
+  const RULES = {
+    assembly: {
+      allowance: { cite: "Rule V §9", text: "Every member gets an equal share of the staff, newsletter, printing, postage and stationery allowances; leaders, committee chairs and ranking minority members may get more." },
+      reports: { cite: "Rule VII §2", text: "The Speaker runs an expenditure reporting system, and the reports are posted on the Assembly's website: they're the source of this site." },
+      mail: { cite: "Rule V §10", text: "Assembly printing and mail can't be used for newsletters bearing a candidate's name within 30 days of a local or primary election, or 60 days of a general election, and other Assembly-paid mass media are restricted in those windows too. The Assembly keeps a public file of member newsletters." },
+      staffCandidates: { cite: "Rule V §11", text: "Assembly employees who run for the Assembly or Senate come off the payroll from the day they file petitions until the day after the election." },
+      bills: { cite: "Rule IV §§5, 7", text: "A sponsor can ask a committee to vote on a limited number of their bills (four, by the second Tuesday in April). A motion to discharge a bill from committee needs a majority of all members and can be made only after the bill has spent 60 days there." },
+      outside: { cite: "Joint Rule V", text: "A member paid more than $5,000 a year for outside work must ask the Legislative Ethics Commission for an advisory opinion on whether it complies with the Public Officers Law; a new member, within 30 days of taking office." },
+    },
+    senate: {
+      allowance: { cite: "Rule IX §§8–10", text: "Every Senator gets the same base staffing allocation, with more for committee and leadership posts; minority central staff get at least 30% of central staff funds. District office rent is set by local commercial rates." },
+      community: { cite: "Rule IX §11", text: "Member-directed money for community projects is split 71% to the majority conference and 29% to the minority." },
+      reports: { cite: "Rule XIII §2; Rule XIV §1", text: "Expenditure reports are published in a set form, and the Senate must keep a searchable, sortable public database of payroll and expenditure reports, votes and attendance." },
+      mail: { cite: "Rule IX §12", text: "Senate-paid newsletters and mass mailings with a candidate's name or likeness are barred in the 30 days before a local, special, primary or general election, in the area where the member is running. The Senate keeps a public file of every newsletter." },
+      travel: { cite: "Rule VII §3", text: "The Ethics and Internal Governance Committee reviews Senators' per diem and travel expenses, and time and attendance." },
+      bills: { cite: "Rule VII §2(e); Rule XI §3", text: "A sponsor can file up to three motions a year to force a committee vote on a bill (45 days after it was referred; the chair then has 45 days to hold the vote). A petition signed by three-fifths of Senators can move a bill out of committee after 45 days." },
+      outside: { cite: "Joint Rule V", text: "A member paid more than $5,000 a year for outside work must ask the Legislative Ethics Commission for an advisory opinion on whether it complies with the Public Officers Law; a new member, within 30 days of taking office." },
+    },
+  };
+  function ruleNote(key, chId) {
+    const c = chId || CH.id, r = (RULES[c] || {})[key], b = RULEBOOK[c];
+    return r ? `<p class="rule-note"><span class="rule-tag">${c === "senate" ? "Senate" : "Assembly"} rule</span> ${esc(r.text)} <a href="${escUrl(b.url)}" target="_blank" rel="noopener">${esc(b.name)}, ${esc(r.cite)} ${I.ext}</a></p>` : "";
+  }
+  // Election days whose mail blackout windows the reports might cover (general elections: 60 days in the Assembly).
+  const ELECTION_DAYS = [["2024-06-25", "primary"], ["2024-11-05", "general"], ["2025-06-24", "primary"], ["2025-11-04", "general"], ["2026-06-23", "primary"], ["2026-11-03", "general"]];
+  function blackoutsIn(start, end, chId) {
+    const out = [];
+    for (const [day, kind] of ELECTION_DAYS) {
+      const days = chId === "assembly" && kind === "general" ? 60 : 30;
+      const from = new Date(Date.parse(day + "T12:00:00") - days * 864e5).toISOString().slice(0, 10);
+      if (from <= end && day >= start) out.push({ day, kind, from, days });
+    }
+    return out;
+  }
+  /* Newsletter and bulk postage an office was charged, with the mail rule. The reports list postage as one
+     undated charge for the half-year, so they can't show whether a mailing went out in a blackout window. */
+  function mailNote(s) {
+    if (s.kind !== "member") return "";
+    const { records, types, descs } = DB;
+    let mass = 0;
+    for (const r of records) if (r.u === s.id && types[r.t].allocated && /NEWS ?LETTER|BULK/i.test(descs[r.d] || "")) mass += r.amt;
+    const win = blackoutsIn(DB.meta.period.start, DB.meta.period.end, CH.id);
+    return `<div class="mailnote"><p>${mass ? `Newsletter and bulk mail postage charged to this office in ${esc(periodName(DB))}: <strong>${money0(mass)}</strong>.` : `No newsletter or bulk mail postage was charged to this office in ${esc(periodName(DB))}.`}
+      ${win.length ? `This report overlaps the mail blackout before ${win.map((w) => `the ${fmtDay(w.day)} ${w.kind} election (${fmtDay(w.from)} – ${fmtDay(w.day)})`).join(" and ")}, which applies when the member is on that ballot.` : ""}
+      The report lists postage as one charge for the whole half-year, so it can't show when a mailing went out; the chamber's public newsletter file can.</p>
+      ${ruleNote("mail")}</div>`;
+  }
   function legislationCard(s) {
     const L = LEG[CH.id];
     const r = legFor(s);
@@ -809,6 +861,7 @@
       <p class="summary">A typical ${esc(CH.name)} member introduced ${med("introduced")} bills and had ${med("signed")} signed. ${r.vetoed ? `${r.vetoed} of this member's bills were vetoed. ` : ""}${r.resolutions ? `Also ${r.resolutions} resolutions (not counted above). ` : ""}Majority-party members usually pass far more bills, so compare within a party.</p>
       ${comparison}
       ${r.signedBills.length ? `<details><summary>Bills signed into law (${r.signed})</summary><ul class="plainlist">${r.signedBills.map(([no, t]) => `<li><a href="${escUrl(url(no))}" target="_blank" rel="noopener">${esc(no)}</a> · ${esc(t)}</li>`).join("")}</ul></details>` : ""}
+      ${ruleNote("bills")}
       <p class="summary">Counts bills the member sponsored, not co-sponsored, and leaves out budget bills and Rules Committee bills. When a bill was replaced on the floor by its same-as bill from the other house, the steps that bill went on to take count here too, so one law can be credited to both its Senate and Assembly sponsors. Source: <a href="https://legislation.nysenate.gov" target="_blank" rel="noopener">NY Open Legislation</a>.</p>
     </section>`;
   }
@@ -888,7 +941,7 @@
           <thead><tr><th scope="col">Paid to</th><th scope="col" class="num">Amount</th><th scope="col">For</th><th scope="col">When</th><th scope="col">On a legislative payroll?</th></tr></thead>
           <tbody>${ppl.map((r) => `<tr><th scope="row"><span class="cf-name">${esc(r[0])}</span></th><td class="num">${money0(r[1])}${r[2] > 1 ? `<br><span class="summary">${int.format(r[2])} payments</span>` : ""}</td><td>${esc(r[5])}</td><td class="nowrap">${r[3] ? esc(dates(r[3], r[4])) : "—"}</td><td>${payrollCell(r[6])}</td></tr>`).join("")}</tbody></table></div>` : ""}
         ${x.processor ? `<p class="summary">${money0(x.processor)} was paid through a payroll company or as payroll taxes, so the filings don't name those workers.</p>` : ""}</details>`; }).join("")}
-      <p class="summary">Payments from each candidate's committees to individuals, as itemized in their State Board of Elections expenditure filings for 2025–26 (<a href="https://data.ny.gov/d/ajsb-8pni" target="_blank" rel="noopener">data.ny.gov</a>), with purposes of wages, campaign workers' salaries, campaign consultant, petitioning, professional services, or other staff work. Businesses are left out by their names, and so are payments described as legal, accounting, printing, photography or reimbursements. Each person is looked up by name on the Senate payroll (as of ${esc(asOf.senate || "—")}) and on the Assembly's latest expenditure report (payroll through ${esc(asOf.assembly || "—")}). "Yes" needs the same first and last name, or a common short form like Chris for Christopher; a similar but different spelling is shown as unverified, and records that ended before 2024 aren't counted. A name match isn't proof it's the same person, and being paid by a campaign while on a legislative payroll isn't by itself improper: staff may do campaign work on their own time. Check the filing before relying on a match.</p>`;
+      <p class="summary">Payments from each candidate's committees to individuals, as itemized in their State Board of Elections expenditure filings for 2025–26 (<a href="https://data.ny.gov/d/ajsb-8pni" target="_blank" rel="noopener">data.ny.gov</a>), with purposes of wages, campaign workers' salaries, campaign consultant, petitioning, professional services, or other staff work. Businesses are left out by their names, and so are payments described as legal, accounting, printing, photography or reimbursements. Each person is looked up by name on the Senate payroll (as of ${esc(asOf.senate || "—")}) and on the Assembly's latest expenditure report (payroll through ${esc(asOf.assembly || "—")}). "Yes" needs the same first and last name, or a common short form like Chris for Christopher; a similar but different spelling is shown as unverified, and records that ended before 2024 aren't counted. A name match isn't proof it's the same person, and being paid by a campaign while on a legislative payroll isn't by itself improper: staff may do campaign work on their own time. Check the filing before relying on a match.</p>${CH.id === "assembly" ? ruleNote("staffCandidates") : ""}`;
   }
   function campaignCard(district, memberName) {
     const cf = CAMPAIGN[CH.id];
@@ -1514,7 +1567,7 @@
       <section class="card"><div class="card-head"><h2>How the score works, and its limits</h2></div>
         <ul class="plainlist">
           <li><strong>Overall score.</strong> Each column gives every office a score from 0 (last in its group) to 100 (first); technically, a percentile rank. The overall score is the average of an office's column scores, shown only when it has at least three; the line under it says how many it has. Every measure counts the same unless you change the weights, and that's a choice, so look at the columns too.</li>
-          <li><strong>Why rank within party.</strong> The majority conference sets office budgets, and minority-party offices get smaller ones, so cost per month (and bills passed) mostly reflects party. Ranking within party compares like with like; switch to "whole chamber" to see the raw order.</li>
+          <li><strong>Why rank within party.</strong> Under the chamber's rules every member gets the same base allowance, but leaders and committee chairs, nearly all of them in the majority, get more, and the majority controls which bills reach the floor. So cost per month and bills passed mostly reflect party and post. Ranking within party compares like with like; switch to "whole chamber" to see the raw order.${ruleNote("allowance")}${ruleNote("community")}</li>
           <li><strong>Lawmaking.</strong> Bills signed into law and the share of bills that passed the member's own chamber come from the Senate's Open Legislation service, for the 2025–26 session. Majority-party members pass far more bills, which is another reason ranking within party is offered. Turn these off with the weights above if you only want the money measures.</li></ul>
         <p class="summary">None of these measures says whether an office served its district well; they're checkable facts about cost, staffing, elections and fundraising. Members who left mid-period or have little data are ranked on what exists. Sources: the ${esc(CH.name)} expenditure reports, the State Board of Elections unofficial count, and campaign finance filings (see About the Data).</p></section>`;
   }
@@ -1592,7 +1645,7 @@
   }
   function disclosureLink(s) {
     const f = memberInfo(s).disclosure;
-    return s.kind === "member" && f ? `<a class="btn" href="${escUrl(f.url)}" target="_blank" rel="noopener" title="The member's annual statement of financial disclosure for ${f.year} (covering ${f.year - 1}), filed with the state ethics commission: outside jobs, income sources, investments and debts. A scanned PDF.">Financial disclosure ${f.year} ${I.ext}</a>` : "";
+    return s.kind === "member" && f ? `<a class="btn" href="${escUrl(f.url)}" target="_blank" rel="noopener" title="The member's annual statement of financial disclosure for ${f.year} (covering ${f.year - 1}), filed with the state ethics commission: outside jobs, income sources, investments and debts. A scanned PDF. Under Joint Rule V, a member paid more than $5,000 a year for outside work must also ask the Legislative Ethics Commission for an advisory opinion.">Financial disclosure ${f.year} ${I.ext}</a>` : "";
   }
   function officialLink(s) {
     const u = memberInfo(s).profileUrl;
@@ -2254,6 +2307,7 @@
         ${kpi("Travel", money0(s.byType.travel || 0), `${travel.length} reimbursements${vsPrev(s.byType.travel || 0, ps && (ps.byType.travel || 0))}`)}
         ${kpi(term("Shared costs", "allocated"), money0(s.allocated), "Listed for information, not in the total")}
       </div>
+      ${s.kind === "member" ? ruleNote("allowance") : ""}
       ${profileCard(s)}
       ${s.kind === "member" && memberInfo(s).district ? demogCard(memberInfo(s).district, s) + votersCard(memberInfo(s).district, s) : ""}
       ${historyCard(s)}
@@ -2293,9 +2347,10 @@
           <thead><tr><th>Voucher date</th><th>Payee</th><th>Purpose</th><th>Voucher</th><th class="num">Amount</th></tr></thead>
           <tbody>${travel.map((r) => `<tr><td class="nowrap">${fmtDate(r.date)}</td><td>${esc(payees[r.p])}</td><td>${esc(titleCase(descs[r.d]))}</td><td class="mono">${esc(r.voucher)}</td><td class="num${r.amt < 0 ? " neg" : ""}">${money(r.amt)}</td></tr>`).join("")}</tbody>
         </table></div>` : `<p class="empty">No travel reimbursements.</p>`}
+        ${s.kind === "member" ? ruleNote("travel") : ""}
       </section>
 
-      <section class="card"><div class="card-head"><h2>Allocated operational costs</h2><span class="summary">shares of centrally paid costs</span></div>${bars(allocated)}</section>
+      <section class="card"><div class="card-head"><h2>Allocated operational costs</h2><span class="summary">shares of centrally paid costs</span></div>${bars(allocated)}${mailNote(s)}</section>
 
       ${otherPeriodLinks(s)}
       <p><a class="btn" href="${buildHash("records", { unit: s.id })}">See all ${int.format(recs.length)} records for this ${s.kind === "member" ? "member" : "office"} ${I.r}</a></p>`;
@@ -3156,6 +3211,12 @@
       : `"Allocated operational expenses" are each office's share of postage and supplies. The Senate's report notes they are allocated back to offices after the fact, that the original vouchers appear under the central offices (Post Office and Senate Supply), and that the amounts are for informational purposes only.`;
     return `<div class="about">
       <h1>About the data</h1>
+      <section class="card disclosures" id="rules" aria-labelledby="rules-h">
+        <h2 id="rules-h">The chambers' rules behind the numbers</h2>
+        <p>Each house adopts its own rules every two years, and the two share a set of joint rules. These are the ones that shape what this site shows; each also appears on the pages it affects. Read the full texts: <a href="${escUrl(RULEBOOK.assembly.url)}" target="_blank" rel="noopener">${esc(RULEBOOK.assembly.name)} ${I.ext}</a> · <a href="${escUrl(RULEBOOK.senate.url)}" target="_blank" rel="noopener">${esc(RULEBOOK.senate.name)} ${I.ext}</a>.</p>
+        ${["assembly", "senate"].map((c) => `<h3 class="mini">${c === "senate" ? "Senate" : "Assembly"}</h3><ul>${Object.values(RULES[c]).map((r) => `<li><strong>${esc(r.cite)}.</strong> ${esc(r.text)}</li>`).join("")}</ul>`).join("")}
+        <p class="summary">Summarized in plain words; the rule texts govern. Neither rulebook sets per diem or travel rates, which come from separate policies.</p>
+      </section>
       <section class="card disclosures" id="disclosures" aria-labelledby="disc-h">
         <h2 id="disc-h">Disclosures</h2>
         <ul>
