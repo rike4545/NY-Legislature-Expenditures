@@ -17,6 +17,9 @@ Inputs:
                                                the current district number)
     data/elections/2026.csv, sources.csv       Nov 3, 2026 outcome per seat that changes hands or is
                                                close, from the listed sources (unofficial results)
+    data/raw/disclosures/fds_<year>_links.tsv  each legislator's annual financial disclosure statement
+                                               on ethics.ny.gov (chamber, page slug), from the state
+                                               ethics commission's listing
 Output:
     data/<chamber>/members.json  {office name: {district, contact, roles: [{role, kind}], offices: [...],
                                   assumedOffice, election: {status, note, successor, successorParty, sources}}}
@@ -37,6 +40,50 @@ SKIP = {"jr", "sr", "ii", "iii", "iv", "dr", "senator", "sen", "mr", "ms", "mrs"
 def words(s: str) -> list:
     s = unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode().lower()
     return [w for w in re.sub(r"[-.,']", " ", s).split() if w not in SKIP and len(w) > 1]
+
+
+def attach_disclosures(chamber: str, out: dict, members: list) -> None:
+    """Link each member to their latest financial disclosure statement on ethics.ny.gov.
+    A page slug is last-[suffix]-first-[middle]-fds-<year>; it matches a member when its first word
+    (the last name, apostrophes dropped) and another of its words are in the member's name."""
+    def key_words(s: str) -> set:
+        s = unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode().lower().replace("'", "")
+        return {w for w in re.sub(r"[^a-z]+", " ", s).split() if w not in SKIP and len(w) > 1}
+    files = sorted((ROOT / "data/raw/disclosures").glob("fds_*_links.tsv"))
+    if not files:
+        return
+    year = int(re.search(r"fds_(\d{4})_links", files[-1].name).group(1))
+    slugs = [line.rstrip("\n").split("\t")[1] for line in open(files[-1], encoding="utf-8")
+             if line.split("\t")[0] == chamber]
+    # Misspelled last names in the commission's page addresses.
+    typos = {"harkham": "harckham", "depietro": "dipietro"}
+    # Names the statement gives differently from the payroll name, checked by hand.
+    by_hand = {"krueger-liz": "SENATOR ELIZABETH KRUEGER", "rivera-j-gustavo": "SENATOR JOSE G. RIVERA",
+               "mccants-baskin-april": "SENATOR APRIL N. M. BASKIN"}
+    sw_of = {slug: [typos.get(w, w) for w in slug.replace(f"-fds-{year}", "").split("-") if w not in SKIP and len(w) > 1]
+             for slug in slugs}
+    mw_of = {unit: key_words(unit) for unit in members}
+    found = {}
+    for unit, mw in mw_of.items():
+        hits = [slug for slug, sw in sw_of.items() if sw and sw[0] in mw and any(w in mw for w in sw[1:])]
+        if len(hits) == 1:
+            found[unit] = hits[0]
+    # Second pass for nicknames (Liz for Elizabeth) and hyphenated names: a last-name word that
+    # fits one member, whose first name starts with the same letter as the statement's.
+    for slug, sw in sw_of.items():
+        if slug in found.values():
+            continue
+        fits = [u for u, mw in mw_of.items() if u not in found and any(w in mw for w in sw)
+                and any(x[0] == w[0] for w in sw for x in mw if w not in mw)]
+        if len(fits) == 1:
+            found[fits[0]] = slug
+    for slug in slugs:
+        unit = by_hand.get(slug.replace(f"-fds-{year}", ""))
+        if unit in mw_of and unit not in found:
+            found[unit] = slug
+    for unit, slug in found.items():
+        out.setdefault(unit, {})["disclosure"] = {"year": year, "url": f"https://ethics.ny.gov/{slug}"}
+    print(f"{chamber}: {sum(1 for v in out.values() if 'disclosure' in v)} members linked to {year} financial disclosures")
 
 
 def match(name: str, members: list):
@@ -112,6 +159,7 @@ def build(chamber: str) -> None:
         if r["chamber"] == chamber and by_district.get(int(r["district"])):
             out.setdefault(by_district[int(r["district"])], {})["profileUrl"] = r["url"]
 
+    attach_disclosures(chamber, out, current)
     attach_boe(chamber, out, by_district)
 
     (ROOT / f"data/{chamber}/members.json").write_text(json.dumps(out, ensure_ascii=False, separators=(",", ":")))
