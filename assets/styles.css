@@ -789,7 +789,16 @@ section.card { scroll-margin-top: 140px; }
 /* ---------- Two-line change lists ---------- */
 .chg-list li { display: flex; flex-direction: column; gap: 2px; padding: 6px 0; border-bottom: 1px solid var(--border); }
 .chg-list li:last-child { border-bottom: 0; }
-.chg-nums { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.chg-nums { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; display: flex; flex-wrap: wrap; gap: 2px 10px; align-items: baseline; }
+.chg-main { color: var(--text); }
+.chg-nums .up { color: var(--up); font-weight: 700; white-space: nowrap; } .chg-nums .down { color: var(--down); font-weight: 700; white-space: nowrap; }
+.chg-tot { font-size: 12px; }
+.chg-bar { display: block; height: 4px; border-radius: 2px; background: var(--accent-soft); overflow: hidden; margin-top: 2px; max-width: 220px; }
+.chg-bar span { display: block; height: 100%; }
+.chg-bar.up span { background: var(--up); } .chg-bar.down span { background: var(--down); }
+.chg-partial { margin-top: 8px; } .chg-partial > summary { cursor: pointer; font-size: 14px; font-weight: 600; }
+.sh-sub { font-size: 15px; margin: 18px 0 4px; }
+@media (forced-colors: active) { .chg-bar span { forced-color-adjust: none; } }
 
 /* ---------- Phones ---------- */
 @media (max-width: 640px) {

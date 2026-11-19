@@ -44,6 +44,37 @@ def files(chamber):
     return [by_end[k] for k in sorted(by_end)]
 
 
+def parse_svc(svc: str):
+    """Service dates on a pay line: '01/02/25-03/12/25' (Assembly), '2024-09-12 – 2025-03-12' or a
+    single '2025-03-26' (Senate). Returns (first, last) dates, or None."""
+    from datetime import date as _d
+    found = []
+    for m in re.finditer(r"(\d{4})-(\d{2})-(\d{2})|(\d{2})/(\d{2})/(\d{2,4})", svc or ""):
+        try:
+            if m.group(1):
+                found.append(_d(int(m.group(1)), int(m.group(2)), int(m.group(3))))
+            else:
+                y = int(m.group(6))
+                found.append(_d(y + 2000 if y < 100 else y, int(m.group(4)), int(m.group(5))))
+        except ValueError:
+            pass
+    return (min(found), max(found)) if found else None
+
+
+def months_open(spans, start, end, period_months):
+    """Months of the period an office was open: from the earliest to the latest service date on its
+    pay lines, clipped to the period, to the nearest half month (an office with no dated pay counts
+    as open the whole period)."""
+    if not spans:
+        return period_months
+    a = max(min(x[0] for x in spans), start)
+    b = min(max(x[1] for x in spans), end)
+    if b < a:
+        return 0.5
+    m = round(((b - a).days + 1) / 30.44 * 2) / 2
+    return max(0.5, min(period_months, m))
+
+
 def main():
     for chamber, cfg in bd.CHAMBERS.items():
         periods, units = [], {}
@@ -52,6 +83,7 @@ def main():
             rows, members = (read_assembly_lenient if chamber == "assembly" else cfg["read"])(f, start, end)
             tot = {"ps": 0.0, "mo": 0.0, "travel": 0.0, "allocated": 0.0}
             per = {}
+            period_months = round(((end - start).days + 1) / 30.44)
             for r in rows:
                 g = cfg["types"][r["type"]][1]
                 tot[g] += r["amount"]
@@ -59,17 +91,21 @@ def main():
                 u[g] += r["amount"]
                 if g == "ps" and r["amount"] > 0:
                     u["staff"].add(r["payee"])
-            periods.append({"id": end.isoformat(), "start": start.isoformat(), "end": end.isoformat(),
+                    sp = parse_svc(r.get("svc"))
+                    if sp:
+                        u.setdefault("spans", []).append(sp)
+            periods.append({"id": end.isoformat(), "start": start.isoformat(), "end": end.isoformat(), "months": period_months,
                             "actual": round(tot["ps"] + tot["mo"] + tot["travel"], 2), **{k: round(v, 2) for k, v in tot.items()},
                             "members": len(members), "rows": len(rows)})
             for name, u in per.items():
                 e = units.setdefault(name, {"kind": "office", "s": []})
                 if name in members:
                     e["kind"] = "member"
-                e["s"].append([i, round(u["ps"] + u["mo"] + u["travel"], 2), round(u["ps"], 2), round(u["mo"], 2), round(u["travel"], 2), len(u["staff"])])
+                e["s"].append([i, round(u["ps"] + u["mo"] + u["travel"], 2), round(u["ps"], 2), round(u["mo"], 2), round(u["travel"], 2), len(u["staff"]),
+                                months_open(u.get("spans"), start, end, period_months)])
             print(f"{chamber} {start}..{end}: ${periods[-1]['actual']:,.0f} actual, {len(members)} members, {len(rows):,} lines")
         out = ROOT / f"data/{chamber}/history.json"
-        out.write_text(json.dumps({"chamber": chamber, "fields": ["period", "actual", "ps", "mo", "travel", "staff"],
+        out.write_text(json.dumps({"chamber": chamber, "fields": ["period", "actual", "ps", "mo", "travel", "staff", "months"],
                                    "periods": periods, "units": units}, separators=(",", ":")))
         print(chamber, len(periods), "periods,", len(units), "offices ->", out.relative_to(ROOT), f"{out.stat().st_size // 1024} KB")
 
