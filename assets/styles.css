@@ -485,7 +485,8 @@ th.sortable .th-sort:focus-visible { outline: 2px solid var(--accent); outline-o
 @media (max-width: 640px) { .theme-toggle .theme-label { display: none; } .theme-toggle { padding: 0 8px; } }
 
 kbd { font: 600 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace; padding: 2px 6px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 5px; background: var(--surface); }
-.about .a11y ul { margin: 6px 0 10px; padding-left: 18px; }
+.about .a11y ul, .about .disclosures ul { margin: 6px 0 10px; padding-left: 18px; }
+.about .disclosures li { margin: 6px 0; line-height: 1.55; }
 .about .a11y li { margin: 6px 0; line-height: 1.55; }
 
 @media (prefers-reduced-motion: reduce) {

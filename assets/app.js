@@ -3156,6 +3156,16 @@
       : `"Allocated operational expenses" are each office's share of postage and supplies. The Senate's report notes they are allocated back to offices after the fact, that the original vouchers appear under the central offices (Post Office and Senate Supply), and that the amounts are for informational purposes only.`;
     return `<div class="about">
       <h1>About the data</h1>
+      <section class="card disclosures" id="disclosures" aria-labelledby="disc-h">
+        <h2 id="disc-h">Disclosures</h2>
+        <ul>
+          <li><strong>No outside funding.</strong> This project takes no donations, grants, advertising, sponsorships or other outside money. No person, campaign, party, union, business or organization pays for it or has a say in what it shows.</li>
+          <li><strong>No endorsements.</strong> The site doesn't endorse or oppose any candidate, party, ballot measure or bill, and no candidate, party or group endorses it. The "Party endorsements" pages report which parties put candidates on their ballot lines, from public election filings; they aren't the site's.</li>
+          <li><strong>Independent.</strong> Not affiliated with or approved by the New York State Assembly, the Senate, any member, the State Board of Elections or any other state agency.</li>
+          <li><strong>Public records only.</strong> Every figure comes from a public source named on its page and in the list below; nothing is bought, leaked or private.</li>
+          <li><strong>Corrections.</strong> Mistakes are fixed as soon as they're found. To report one, <a href="https://github.com/rike4545/NY-Legislature-Expenditures/issues" target="_blank" rel="noopener">open an issue on GitHub</a>; the code and every change to the data are public there.</li>
+        </ul>
+      </section>
       <section class="card a11y" id="accessibility" aria-labelledby="a11y-h">
         <h2 id="a11y-h">Accessibility</h2>
         <ul>
