@@ -1089,7 +1089,7 @@
     if (!PREV) return `<h1>What changed</h1><p class="empty">There's no earlier report on file for this chamber to compare with.</p>`;
     const nowU = new Map(DB.unitStats.map((u) => [u.name, u])), prevU = new Map(PREV.unitStats.map((u) => [u.name, u]));
     const added = DB.unitStats.filter((u) => !prevU.has(u.name)), gone = PREV.unitStats.filter((u) => !nowU.has(u.name));
-    const moved = DB.unitStats.filter((u) => prevU.has(u.name)).map((u) => [u, u.actual - prevU.get(u.name).actual, prevU.get(u.name).actual]).sort((a, b) => b[1] - a[1]);
+    const moved = DB.unitStats.filter((u) => prevU.has(u.name)).map((u) => { const q = prevU.get(u.name); return { html: `<a href="${unitHref(u.id)}">${esc(displayName(u))}</a>`, before: q.actual, after: u.actual, mBefore: q.months, mAfter: u.months, full: Math.min(DB.periodMonths, PREV.periodMonths) }; });
     const ppl = (db) => new Set(db.salaries.map((x) => db.payees[x.p]));
     const pNow = ppl(DB), pPrev = ppl(PREV);
     const hired = [...pNow].filter((n) => !pPrev.has(n)).length, left = [...pPrev].filter((n) => !pNow.has(n)).length;
@@ -1106,9 +1106,10 @@
         ${kpi("People paid for the first time", int.format(hired), `${int.format(left)} paid last time aren't paid in this report`)}
         ${kpi("New operations payees", int.format(newV.length), newV.length ? `${money0(newV.reduce((a, x) => a + x[1], 0))} paid to them` : "")}
       </div>
+      <section class="card"><div class="card-head"><h2>Biggest changes by office</h2><span class="summary">${esc(periodName(DB))} vs. ${esc(periodName(PREV))}</span></div>
+        ${changeLists(moved, { up: "Spending up the most", down: "Spending down the most", before: periodName(PREV), after: periodName(DB), full: Math.min(DB.periodMonths, PREV.periodMonths), n: 10 })}
+        <p class="summary">These two reports cover different halves of the year. The Legislature is in session January to June, so some costs rise and fall with the calendar; the yearly comparison on the overview page matches like with like.</p></section>
       <div class="grid two">
-        <section class="card"><div class="card-head"><h2>Spending up the most</h2></div><ul class="plainlist">${moved.slice(0, 10).map(([u, d, p]) => li(u, `· ${money0(p)} → ${money0(u.actual)} <span class="up">+${money0(d)}</span>`)).join("")}</ul></section>
-        <section class="card"><div class="card-head"><h2>Spending down the most</h2></div><ul class="plainlist">${moved.slice(-10).reverse().map(([u, d, p]) => li(u, `· ${money0(p)} → ${money0(u.actual)} <span class="down">−${money0(-d)}</span>`)).join("")}</ul></section>
         <section class="card"><div class="card-head"><h2>New in this report</h2><span class="summary">${int.format(added.length)}</span></div><ul class="plainlist">${added.slice().sort((a, b) => b.actual - a.actual).slice(0, 15).map((u) => li(u, `· ${money0(u.actual)}`)).join("") || "<li>None</li>"}</ul></section>
         <section class="card"><div class="card-head"><h2>Not in this report</h2><span class="summary">${int.format(gone.length)}</span></div><ul class="plainlist">${gone.slice().sort((a, b) => b.actual - a.actual).slice(0, 15).map((u) => `<li>${esc(titleCase(u.name))} · ${money0(u.actual)} last time</li>`).join("") || "<li>None</li>"}</ul></section>
         <section class="card"><div class="card-head"><h2>Biggest new operations payees</h2></div><ul class="plainlist">${newV.slice(0, 12).map(([k, v]) => `<li><a href="${buildHash("records", { q: `"${k.toLowerCase()}"` })}">${esc(titleCase(k))}</a> · ${money0(v)}</li>`).join("") || "<li>None</li>"}</ul></section>
@@ -2025,18 +2026,46 @@
       <div class="legend">${SH_SEGS.map(([, l, cls]) => `<span><i class="${cls}"></i>${esc(l)}</span>`).join("")}<span>Allocated costs (shared services charged to offices) are not included.</span></div>
       ${table}`;
   }
+  /* Spending changes, fairly: compare cost per month the office was open, not raw totals, and set aside
+     offices open only part of either period (new members, departures), whose totals jump for that
+     reason alone. Each entry: {html (the office link), before, after, mBefore, mAfter, full (months)}. */
+  function changeLists(entries, labels) {
+    const fair = [], partial = [];
+    for (const e of entries) {
+      if (!(e.before > 0) || !(e.after > 0)) continue;
+      (e.mBefore >= e.full && e.mAfter >= e.full ? fair : partial).push({ ...e, pmB: e.before / e.mBefore, pmA: e.after / e.mAfter });
+    }
+    fair.forEach((e) => { e.d = e.pmA - e.pmB; e.pct = e.d / e.pmB * 100; });
+    fair.sort((a, b) => b.d - a.d);
+    const item = (e) => {
+      const up = e.d >= 0;
+      return `<li>${e.html}<span class="chg-nums"><span class="chg-main">${money0(e.pmB)} → ${money0(e.pmA)} a month</span>
+        <span class="${up ? "up" : "down"}">${up ? I.up : I.down} ${up ? "+" : "−"}${money0(Math.abs(e.d))} a month (${up ? "+" : "−"}${Math.abs(e.pct).toFixed(0)}%)</span>
+        <span class="chg-tot">totals ${money0(e.before)} → ${money0(e.after)}</span></span>
+        <span class="chg-bar ${up ? "up" : "down"}" aria-hidden="true"><span style="width:${Math.min(100, Math.abs(e.pct)).toFixed(0)}%"></span></span></li>`;
+    };
+    const why = (e) => e.mBefore < e.full && e.mAfter < e.full ? `open about ${e.mBefore} and ${e.mAfter} of ${e.full} months`
+      : e.mBefore < e.full ? `open about ${e.mBefore} of ${e.full} months in ${esc(labels.before)} (new office)` : `open about ${e.mAfter} of ${e.full} months in ${esc(labels.after)} (left or changed hands)`;
+    const ups = fair.filter((e) => e.d > 0).slice(0, labels.n || 5), downs = fair.filter((e) => e.d < 0).slice(-(labels.n || 5)).reverse();
+    return `<div class="grid two">
+        <div><h3 class="mini">${esc(labels.up)}</h3><ul class="plainlist chg-list">${ups.map(item).join("") || "<li>None</li>"}</ul></div>
+        <div><h3 class="mini">${esc(labels.down)}</h3><ul class="plainlist chg-list">${downs.map(item).join("") || "<li>None</li>"}</ul></div></div>
+      <p class="summary">Ranked by the change in spending per month the office was open, so a half-year with a gap doesn't look like a cut. Compared: ${int.format(fair.length)} offices open all ${labels.full} months of both periods.</p>
+      ${partial.length ? `<details class="chg-partial"><summary>${int.format(partial.length)} ${partial.length === 1 ? "office" : "offices"} left out: open only part of a period</summary>
+        <ul class="plainlist chg-list">${partial.sort((a, b) => Math.abs(b.after - b.before) - Math.abs(a.after - a.before)).map((e) => `<li>${e.html}<span class="chg-nums">${why(e)} · totals ${money0(e.before)} → ${money0(e.after)} · ${money0(e.pmB)} → ${money0(e.pmA)} a month while open</span></li>`).join("")}</ul></details>` : ""}`;
+  }
   function chamberHistoryCard() {
     const h = HISTORY[CH.id];
     if (!h || h.periods.length < 3) return "";
     const last = h.periods.length - 1;
+    const link = (name) => { const x = DB.byName.get(name); return x ? `<a href="${unitHref(x.id)}">${esc(displayName(x))}</a>` : esc(titleCase(name)); };
+    const full = h.periods[last].months || 6;
     const yoy = [];
     for (const [name, u] of Object.entries(h.units)) {
       if (u.kind !== "member") continue;
       const now = u.s.find((x) => x[0] === last), before = u.s.find((x) => x[0] === last - 2);
-      if (now && before && before[1] > 50000) yoy.push([name, now[1], before[1], now[1] - before[1]]);
+      if (now && before) yoy.push({ html: link(name), before: before[1], after: now[1], mBefore: before[6] ?? full, mAfter: now[6] ?? full, full });
     }
-    yoy.sort((a, b) => b[3] - a[3]);
-    const link = (name) => { const x = DB.byName.get(name); return x ? `<a href="${unitHref(x.id)}">${esc(displayName(x))}</a>` : esc(titleCase(name)); };
     const pFirst = h.periods[0], pLast = h.periods[last];
     const prevYear = h.periods[last - 2];
     const kpis = `<div class="grid kpis small sh-kpis">
@@ -2048,8 +2077,7 @@
     return `<section class="card"><div class="card-head"><h2>${esc(CH.name)} spending over the years</h2><span class="summary">${h.periods.length} half-year reports, ${esc(fmtDay(pFirst.start))} to ${esc(fmtDay(pLast.end))} · click a column to open that report</span></div>
       ${kpis}
       ${spendHistChart(h)}
-      ${yoy.length ? `<div class="grid two"><div><h3 class="mini">Member offices up the most from a year earlier</h3><ul class="plainlist chg-list">${yoy.slice(0, 5).map((x) => `<li>${link(x[0])}<span class="chg-nums">${money0(x[2])} → ${money0(x[1])} <span class="up">+${money0(x[3])}</span></span></li>`).join("")}</ul></div>
-        <div><h3 class="mini">Down the most</h3><ul class="plainlist chg-list">${yoy.slice(-5).reverse().map((x) => `<li>${link(x[0])}<span class="chg-nums">${money0(x[2])} → ${money0(x[1])} <span class="down">−${money0(-x[3])}</span></span></li>`).join("")}</ul></div></div>` : ""}
+      ${yoy.length && prevYear ? `<h3 class="sh-sub">Member offices, ${esc(halfLabel(pLast))} vs. a year earlier</h3>${changeLists(yoy, { up: "Up the most", down: "Down the most", before: halfLabel(prevYear), after: halfLabel(pLast), full })}` : ""}
     </section>`;
   }
   function budgetHistoryCard() {
