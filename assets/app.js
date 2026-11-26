@@ -529,7 +529,7 @@
       <div><dt>Member offices' share</dt><dd>${(x.db.members.reduce((a, s) => a + s.actual, 0) / t.totalActual * 100).toFixed(1)}%</dd></div>
       <div><dt>Top 10% of member offices</dt><dd>${(() => { const a = x.db.members.map((s) => s.actual).sort((p, q) => q - p); const k = Math.max(1, Math.round(a.length / 10)); return (a.slice(0, k).reduce((p, q) => p + q, 0) / a.reduce((p, q) => p + q, 0) * 100).toFixed(1) + "% of member spending"; })()}</dd></div></dl></div>`; }).join("");
     return `<h1>Statistics</h1>
-      <p class="lede">Descriptive statistics for the ${sets.map((x) => esc(x.c.name)).join(" and ")}, side by side, for ${esc(periodName(DB))}. Member offices are compared with member offices, so the figures are per office, not per chamber.</p>
+      <p class="lede">Descriptive statistics for the ${sets.map((x) => esc(x.c.name)).join(" and ")}, side by side, for ${esc(periodName(DB))}. Every figure is per member office, not a chamber total.</p>
       <div class="grid two statheads">${head}</div>
       ${makeupCard()}
       ${metrics.map(([label, get, fmt]) => {
@@ -551,7 +551,7 @@
         <p><a class="btn" href="${buildHash("payroll", { c: "senate", p: "" })}">Open the Senate payroll ${I.r}</a> <a class="btn" href="${buildHash("salaries", {})}">Assembly salaries ${I.r}</a></p>`;
     }
     const pr = payroll();
-    if (pr === undefined) return `<h1>Senate payroll</h1><p class="empty">Loading 416 biweekly payroll reports…</p>`;
+    if (pr === undefined) return `<h1>Senate payroll</h1><p class="empty">Loading the Senate's biweekly payroll reports…</p>`;
     if (!pr) return `<h1>Senate payroll</h1><p class="empty">The payroll history couldn't be loaded.</p>`;
     const q = (params.q || "").trim().toLowerCase();
     const cur = [];
@@ -1005,7 +1005,7 @@
     const maxM = Math.max(1, ...rows.map((r) => r.monetary));
     setTimeout(() => wireSortHeaders(app, state, (st) => go("donations", { sort: st.sort, dir: st.dir }, true), { district: "asc" }), 0);
     return `<h1>Donations by district</h1>
-      <p class="lede">Itemized monetary contributions to ${esc(CH.name)} candidates in 2025 and 2026, district by district: who gave, from where, and how much. Open a district for each candidate's donors, money by month and biggest organizational donors.</p>
+      <p class="lede">Money given to ${esc(CH.name)} candidates in 2025 and 2026, district by district: how much, what kinds of donors, and where it came from. Open a district to see each candidate's money by month and their biggest organizational donors.</p>
       <div class="grid kpis">
         ${kpi("Itemized contributions", compact(all.m), `${rows.length} districts with reported money`)}
         ${kpi("From individuals", pctf(all.m ? all.i / all.m : 0), `${int.format(all.dn)} donor–candidate pairs`)}
@@ -1032,7 +1032,7 @@
     const dist = DISTRICTS.find((x) => String(x.district) === d);
     const head = `<a class="back" href="${buildHash("donations", {})}">${I.l} Donations by district</a>
       <h1>Donations in ${esc(CH.name)} District ${esc(d)}</h1>
-      <p class="lede">${dist ? `Represented now by ${esc(dist.member)}. ` : ""}Itemized monetary contributions to each candidate's committees in 2025 and 2026. <a href="${dist ? buildHash("district/" + d, {}) : "#"}">District spending and results ${I.r}</a></p>`;
+      <p class="lede">${dist ? `Represented now by ${esc(dist.member)}. ` : ""}Money given to each candidate's campaign committees in 2025 and 2026. <a href="${dist ? buildHash("district/" + d, {}) : "#"}">District spending and results ${I.r}</a></p>`;
     if (!cands) return head + `<p class="empty">No itemized contributions found for a committee linked to a candidate here.</p>`;
     const months = [...new Set(cands.flatMap((c) => Object.keys(c.months)))].sort();
     const maxMonth = Math.max(1, ...cands.flatMap((c) => Object.values(c.months)));
@@ -1748,7 +1748,7 @@
     if (!v) return `<h1>Vendors that also donate</h1><p class="empty">Not available.</p>`;
     const own = v.matches.filter((m) => m.ownOffice).length;
     return `<h1>Vendors that also donate</h1>
-      <p class="lede">Businesses the Assembly and Senate paid (from every expenditure report on this site) that also gave to an Assembly or Senate candidate in 2025–26. ${v.matches.length} match by name; for ${own}, the member whose office paid the vendor is one of the candidates it gave to.</p>
+      <p class="lede">Businesses the Assembly or Senate paid, in any expenditure report on this site, that also gave money to an Assembly or Senate candidate in 2025–26. ${v.matches.length} match by name, and ${own} of them gave to the same member whose office paid them.</p>
       <div class="callout"><strong>What this does and doesn't show.</strong> Vendors may legally contribute to campaigns, and a match isn't evidence of wrongdoing. Names are matched only when they're the same after ignoring case, punctuation and suffixes like "Inc" or "LLC", or when the donor is the vendor's own PAC, so some real links are missed. Check any match against the expenditure records and the <a href="https://publicreporting.elections.ny.gov/" target="_blank" rel="noopener">State Board of Elections filings</a>.</div>
       ${v.matches.map((m) => { const paid = m.paid.assembly + m.paid.senate; return `<section class="card vd${m.ownOffice ? " own" : ""}"><div class="card-head"><h2>${esc(titleCase(m.vendor))}</h2><span class="summary">${m.ownOffice ? `<span class="echip maybe">Gave to a member whose office paid it</span> ` : ""}matched by ${esc(m.how)}</span></div>
         <div class="grid two">
@@ -2223,8 +2223,8 @@
     const total = list.reduce((a, s) => a + s.actual, 0);
 
     const html = `
-      <h1>Members &amp; Offices</h1>
-      <p class="lede">Each ${esc(CH.name)} member's office and each central office, committee, and task force in the report. Click a name for its full breakdown.</p>
+      <h1>Members &amp; offices</h1>
+      <p class="lede">Every ${esc(CH.name)} member's office, plus every central office, committee and task force in the report. Pick a name to see where its money went.</p>
       <div class="filters">
         <label class="wide">Filter by name<input type="search" id="uq" value="${esc(state.q)}" placeholder="e.g. Thiele, Ways and Means, minority"></label>
         <label>Show<select id="ukind">
@@ -2451,8 +2451,8 @@
     if (state.payee) active.push(`<span class="chip">Payee: ${esc(state.payee)} <a href="${buildHash("records", { ...state, payee: "", page: "" })}" aria-label="Remove payee filter">${I.x}</a></span>`);
 
     app.innerHTML = `
-      <h1>All Records</h1>
-      <p class="lede">Search all ${int.format(meta.rowCount)} lines. Words are matched across member/office, payee, description, voucher number, and dates. Use quotes for exact phrases, e.g. <code>"office rental"</code>.</p>
+      <h1>All records</h1>
+      <p class="lede">Search all ${int.format(meta.rowCount)} lines of the report by office, payee, description, voucher number or date. Put a phrase in quotes to match it exactly, like <code>"office rental"</code>.</p>
       <div class="filters">
         <label class="wide">Search<input type="search" id="rq" value="${esc(state.q)}" placeholder="e.g. verizon, chief of staff, bolton landing"></label>
         <label>Member / office<select id="runit"><option value="">All</option>${unitOptions}</select></label>
@@ -2613,7 +2613,7 @@
     };
     app.innerHTML = `
       <h1>Salaries</h1>
-      <p class="lede">Every person on the ${esc(CH.name)} payroll in ${esc(periodName(DB))}, with their regular pay normalized to a yearly rate so part-period and full-period employees can be compared.</p>
+      <p class="lede">Every person on the ${esc(CH.name)} payroll in ${esc(periodName(DB))}, with their regular pay turned into a yearly rate, so someone who worked two months can be compared with someone who worked all six.</p>
       <div class="callout"><strong>How it's calculated.</strong> For each person in each office, regular pay lines are added up and divided by the days their service dates cover, then scaled to 364 days (26 biweekly pay periods). A member paid $70,999.98 for 182 days annualizes to $142,000, the legislative base salary. One-time payments (lump-sum vacation, deferral payments, stipends, allowances, back pay) and stints under one pay period are left out. ${CH.id === "senate" ? "Senators' own MEMBER lines are different: the Senate reports them with only a check date and one amount for the whole report (usually $71,000, 13 checks; $65,538, 12 checks, in the report ending March 2025). Their rate is the base salary set in law, and the amount is shown as a number of biweekly checks at that rate. Leadership stipends (Temporary President, Minority Leader and so on) are paid in uneven lumps and are shown as reported on each senator's page, not annualized." : ""} New York's base legislator salary is $142,000 (<a href="https://www.ncsl.org/about-state-legislatures/2025-legislator-compensation" target="_blank" rel="noopener">NCSL, 2025</a>). It's an estimate of a yearly rate, not a reported salary.</div>
       <p class="summary paywin">${payWindowNote(DB)}</p>
       ${CH.id === "senate" && pr ? payrollYearsCard(pr) : ""}
@@ -2697,7 +2697,7 @@
 
     app.innerHTML = `
       <h1>Payees</h1>
-      <p class="lede">Everyone the ${esc(CH.name)} paid this period — vendors for operations, people on payroll, and travel reimbursements — combined across all members and offices. Allocated costs are excluded.</p>
+      <p class="lede">Everyone the ${esc(CH.name)} paid this period, added up across every office: vendors, staff on payroll, and people reimbursed for travel. Shared costs (allocated) aren't included.</p>
       ${VENDOR_DONORS && VENDOR_DONORS.matches.length ? `<p><a class="btn" href="${buildHash("vendors", {})}">Vendors that also donated to legislative campaigns (${VENDOR_DONORS.matches.length}) ${I.r}</a></p>` : ""}
       <div class="filters">
         <label class="wide">Search payees<input type="search" id="pq" value="${esc(state.q)}" placeholder="e.g. national grid, smith"></label>
@@ -2935,7 +2935,7 @@
 
     app.innerHTML = `
       <h1>Compare</h1>
-      <p class="lede">Put up to ${MAX_COMPARE} members or offices side by side for ${esc(periodName(DB))}. The comparison stays put when you switch report periods; the highest value in each row (best rank) is highlighted.</p>
+      <p class="lede">Put up to ${MAX_COMPARE} members or offices side by side for ${esc(periodName(DB))}. In each row, the highest figure is highlighted. Your picks stay when you switch report periods.</p>
       <div class="filters">
         <label class="wide">Add a member or office
           <select id="cadd"${picked.length >= MAX_COMPARE ? " disabled" : ""}><option value="">${picked.length >= MAX_COMPARE ? `Limit of ${MAX_COMPARE} reached` : "Choose…"}</option>${options}</select></label>
@@ -3285,6 +3285,7 @@
       : `"Allocated operational expenses" are each office's share of postage and supplies. The Senate's report notes they are allocated back to offices after the fact, that the original vouchers appear under the central offices (Post Office and Senate Supply), and that the amounts are for informational purposes only.`;
     return `<div class="about">
       <h1>About the data</h1>
+      <p class="lede">Twice a year the New York State Assembly and Senate each publish an Expenditure Report: every paycheck, rent payment, vendor bill and travel reimbursement for six months. This site shows every line of those reports, with nothing added or removed. You're viewing the <strong>${esc(CH.name)}</strong>; switch chambers or periods at the top of the page.</p>
       <section class="card disclosures" id="rules" aria-labelledby="rules-h">
         <h2 id="rules-h">The chambers' rules behind the numbers</h2>
         <p>Each house adopts its own rules every two years, and the two share a set of joint rules. These are the ones that shape what this site shows; each also appears on the pages it affects. Read the full texts: <a href="${escUrl(RULEBOOK.assembly.url)}" target="_blank" rel="noopener">${esc(RULEBOOK.assembly.name)} ${I.ext}</a> · <a href="${escUrl(RULEBOOK.senate.url)}" target="_blank" rel="noopener">${esc(RULEBOOK.senate.name)} ${I.ext}</a>.</p>
@@ -3311,7 +3312,6 @@
         </ul>
         <p class="summary">Something hard to use? <a href="https://github.com/rike4545/NY-Legislature-Expenditures/issues" target="_blank" rel="noopener">Open an issue on GitHub</a>.</p>
       </section>
-      <p class="lede">This site presents the semi-annual Expenditure Reports of the New York State Assembly and the New York State Senate. Every line in each original file is included; nothing is added or removed. Use the chamber buttons and period menu at the top to switch. You're viewing the <strong>${esc(CH.name)}</strong>.</p>
       <section class="card" id="glossary"><div class="card-head"><h2>Words used on this site</h2><span class="summary">dotted words on any page show these too</span></div>
         <dl class="glossary">${[["Actual spending", "actual spending"], ["Payroll", "payroll"], ["Office expenses (M&amp;O)", "M&O"], ["Shared costs (allocated)", "allocated"], ["Bills paid (vouchered)", "vouchered"], ["Typical (median)", "typical"], ["Typical household income", "typical income"], ["Score (percentile rank)", "score"], ["Give or take (margin of error)", "margin of error"], ["Voter turnout", "turnout"], ["Cost per resident", "per resident"], ["Prime sponsor", "prime sponsor"], ["Outside money (independent expenditure)", "independent expenditure"], ["Public matching funds", "matching funds"]].map(([w, k]) => `<dt>${w}</dt><dd>${esc(GLOSSARY[k])}</dd>`).join("")}
           <dt>Percent more or less</dt><dd>"10% more" means for every $100 before, there's $110 now. "About twice as much" means it doubled.</dd>
