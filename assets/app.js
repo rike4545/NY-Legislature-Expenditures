@@ -529,7 +529,7 @@
       <div><dt>Member offices' share</dt><dd>${(x.db.members.reduce((a, s) => a + s.actual, 0) / t.totalActual * 100).toFixed(1)}%</dd></div>
       <div><dt>Top 10% of member offices</dt><dd>${(() => { const a = x.db.members.map((s) => s.actual).sort((p, q) => q - p); const k = Math.max(1, Math.round(a.length / 10)); return (a.slice(0, k).reduce((p, q) => p + q, 0) / a.reduce((p, q) => p + q, 0) * 100).toFixed(1) + "% of member spending"; })()}</dd></div></dl></div>`; }).join("");
     return `<h1>Statistics</h1>
-      <p class="lede">Descriptive statistics for the ${sets.map((x) => esc(x.c.name)).join(" and ")}, side by side, for ${esc(periodName(DB))}. Every figure is per member office, not a chamber total.</p>
+      <p class="lede">Descriptive statistics for the ${sets.map((x) => esc(x.c.name)).join(" and ")}, side by side, for ${esc(periodName(DB))}. The summary cards at the top are chamber totals; the charts below compare member offices with each other, apart from the central-office pay chart.</p>
       <div class="grid two statheads">${head}</div>
       ${makeupCard()}
       ${metrics.map(([label, get, fmt]) => {
