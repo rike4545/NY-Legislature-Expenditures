@@ -3146,6 +3146,16 @@
     return Math.round(v.filter((x) => x < value).length / v.length * 100);
   }
 
+  // Companion site: LI-CandidateCheck reviews the claims on both candidates' campaign sites
+  // in every 2026 Long Island Senate (SD 1-9) and Assembly (AD 1-22) race.
+  const CANDIDATECHECK = "https://rike4545.github.io/LI-CandidateCheck/";
+  function candidateCheckLink(chamberId, district) {
+    const n = Number(district);
+    if (!(chamberId === "senate" ? n >= 1 && n <= 9 : chamberId === "assembly" ? n >= 1 && n <= 22 : false)) return "";
+    const race = (chamberId === "senate" ? "SD" : "AD") + n;
+    return `<p class="summary">2026 race: <a href="${CANDIDATECHECK}#/race/${race}" target="_blank" rel="noopener">claims on both candidates' campaign sites, reviewed ${I.ext}</a> (LI-CandidateCheck)</p>`;
+  }
+
   function viewDistrict(arg) {
     const num = Number(arg);
     const d = DISTRICTS.find((x) => x.district === num);
@@ -3182,7 +3192,8 @@
       <div class="crumbs"><a href="${buildHash("map", {})}">${I.l} District map</a></div>
       <div class="title-row district-head">
         <div><h1>${esc(CH.name)} District ${d.district} ${s ? electionChip(s, true) : ""}</h1>
-          <p class="lede">${esc(d.member)}${d.party ? ` · ${esc(d.party)}` : ""}${s ? ` · <a href="${unitHref(s.id)}">member office page ${I.r}</a>` : ""}${s && (BALLOTPEDIA[CH.id] || {})[s.name] ? ` · <a href="${escUrl(BALLOTPEDIA[CH.id][s.name])}" target="_blank" rel="noopener">Ballotpedia ${I.ext}</a>` : ""} · <a href="${buildHash("sheet/" + d.district, {})}">printable fact sheet ${I.r}</a></p></div>
+          <p class="lede">${esc(d.member)}${d.party ? ` · ${esc(d.party)}` : ""}${s ? ` · <a href="${unitHref(s.id)}">member office page ${I.r}</a>` : ""}${s && (BALLOTPEDIA[CH.id] || {})[s.name] ? ` · <a href="${escUrl(BALLOTPEDIA[CH.id][s.name])}" target="_blank" rel="noopener">Ballotpedia ${I.ext}</a>` : ""} · <a href="${buildHash("sheet/" + d.district, {})}">printable fact sheet ${I.r}</a></p>
+          ${candidateCheckLink(CH.id, d.district)}</div>
         <div class="dnav">${s ? pinBtn(s.name) : ""}<a class="btn" href="${dHref(prevD)}" aria-label="Previous district">${I.l} ${CH.abbr} ${prevD.district}</a>${picker}<a class="btn" href="${dHref(nextD)}" aria-label="Next district">${CH.abbr} ${nextD.district} ${I.r}</a></div>
       </div>
       ${overlapLine(d.district)}
