@@ -1,0 +1,35 @@
+# Claude security review of pull request changes.
+# Runs only on PRs from branches in this repo (not forks); the action is not hardened
+# against prompt injection, so it should only review trusted PRs.
+# Requires: the ANTHROPIC_API_KEY Actions secret (an API key; the OAuth token does not work here).
+name: Claude Security Review
+
+permissions:
+  pull-requests: write
+  contents: read
+
+on:
+  pull_request:
+
+jobs:
+  security:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for API key
+        id: key
+        env:
+          KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -n "$KEY" ]; then echo "present=true" >> "$GITHUB_OUTPUT"; else echo "::notice::ANTHROPIC_API_KEY secret not set; skipping security review."; fi
+      - uses: actions/checkout@v4
+        if: steps.key.outputs.present == 'true'
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 2
+      - uses: anthropics/claude-code-security-review@0c6a49f1fa56a1d472575da86a94dbc1edb78eda # main as of 2026-11-28
+        if: steps.key.outputs.present == 'true'
+        with:
+          comment-pr: true
+          claude-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          exclude-directories: "Pods,build,DerivedData,.build,node_modules,.gradle"

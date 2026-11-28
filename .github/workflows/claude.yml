@@ -1,0 +1,45 @@
+# Claude assistant: mention @claude in an issue, PR comment, or review to get help.
+# Requires: the Claude GitHub App installed on this repo, and an ANTHROPIC_API_KEY (or CLAUDE_CODE_OAUTH_TOKEN) Actions secret.
+name: Claude
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  pull_request_review:
+    types: [submitted]
+  issues:
+    types: [opened, assigned]
+
+jobs:
+  claude:
+    if: |
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
+      (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+      id-token: write
+      actions: read
+    steps:
+      - name: Check for API key
+        id: key
+        env:
+          A: ${{ secrets.ANTHROPIC_API_KEY }}
+          O: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          if [ -n "$A" ] || [ -n "$O" ]; then echo "present=true" >> "$GITHUB_OUTPUT"; else echo "::notice::Neither ANTHROPIC_API_KEY nor CLAUDE_CODE_OAUTH_TOKEN is set; skipping Claude."; fi
+      - uses: actions/checkout@v4
+        if: steps.key.outputs.present == 'true'
+        with:
+          fetch-depth: 1
+      - uses: anthropics/claude-code-action@f3b070c88125d33dbae5653df5f143101d4ea9dc # v1.0.276, same pin as Riverhead-NY-Budget-Web-App
+        if: steps.key.outputs.present == 'true'
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
